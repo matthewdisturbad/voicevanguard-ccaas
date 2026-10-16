@@ -16,7 +16,7 @@
     },
     "category": "Workforce Engagement Management"
   },
-  "url": "https://voicevanguard.trustco.pro/dashboard?tenant={{pcOrganization.id}}&lang={{pcLangTag}}&env={{pcEnvironment}}",
+  "url": "https://voicevanguard.trustco.pro/dashboard?tenant=TENANT_KEY_DO_CLIENTE&org={{pcOrganization.id}}&lang={{pcLangTag}}&env={{pcEnvironment}}",
   "sandbox": "allow-scripts allow-same-origin allow-forms allow-popups allow-downloads",
   "permissions": [
     "analytics:conversationDetail:view",
