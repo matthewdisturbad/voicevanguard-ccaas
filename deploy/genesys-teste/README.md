@@ -2,7 +2,7 @@
 
 Sobe o VoiceVanguard (relay + extensão + console) e valida as três funções de saúde da estação numa **org de testes** Genesys Cloud. Nada aqui usa credenciais reais; todos os segredos são gerados por você e colados direto no Railway.
 
-> **Base de código:** este pacote parte da branch do PR #15 (`feat/audio-precheck-latencia`), que inclui o PR #10. A `main` ainda não tem as funções de áudio, pré-check e latência, nem a autenticação por chaves separadas. Faça o teste a partir desta base.
+> **Base de código:** este pacote parte da branch do PR #10 (`fix/avaliacao-seguranca-producao`), que já inclui o PR #15. A `main` ainda não tem as funções de áudio, pré-check e latência, nem a autenticação por chaves separadas. Faça o teste a partir desta base.
 
 ## O que precisa de OAuth?
 
@@ -26,7 +26,7 @@ Navegador do operador (Chrome/Edge)           Railway (serviço de TESTE)
 - [ ] Node 20+ e `jq`, `openssl` na sua máquina (para gerar chaves).
 
 ### B. Subir o relay de teste (Railway)
-- [ ] Crie um serviço novo apontando para este repositório, **branch `feat/audio-precheck-latencia`**, com *Root Directory* `01_Cloud_Relay_Backend` (start: `npm start`). Não use a branch `main` nem o serviço de produção `01_Cloud_Relay_Backend`.
+- [ ] Crie um serviço novo apontando para este repositório, **branch `fix/avaliacao-seguranca-producao`** (ou `main`, depois que o PR #10 for mergeado), com *Root Directory* `01_Cloud_Relay_Backend` (start: `npm start`). Não use a branch `main` nem o serviço de produção `01_Cloud_Relay_Backend`.
 - [ ] Gere as duas chaves (diferentes entre si):
   ```bash
   openssl rand -hex 24   # agentKey
