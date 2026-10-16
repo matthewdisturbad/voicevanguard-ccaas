@@ -121,7 +121,7 @@ async function executeSafeCacheClear(origin = 'manual') {
         pendingCacheClear = true;
         sendWsMessage({
             type: 'COMMAND_RESULT',
-            result: { success: false, inCall: true, message: 'Operador em chamada ativa. Ação agendada para o pós-chamada.' }
+            result: { success: false, inCall: true, code: 'IN_CALL_QUEUED', message: 'Operador em chamada ativa. Ação agendada para o pós-chamada.' }
         });
         return { success: false, inCall: true };
     }
@@ -134,11 +134,12 @@ async function executeSafeCacheClear(origin = 'manual') {
 
         sendWsMessage({
             type: 'COMMAND_RESULT',
-            result: { success: true, timestamp: now, origin: origin }
+            result: { success: true, code: 'CACHE_CLEARED', timestamp: now, origin: origin }
         });
 
         return { success: true };
     } catch (e) {
+        sendWsMessage({ type: 'COMMAND_RESULT', result: { success: false, code: 'CLEAR_FAILED', timestamp: new Date().toISOString(), origin: origin } });
         return { success: false, error: e.toString() };
     }
 }

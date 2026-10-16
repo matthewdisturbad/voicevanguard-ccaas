@@ -82,7 +82,7 @@ VoiceVanguard-CCaaS/
 
 6. **Security & privacy by design:**
    - **Zero Audio Capture:** Only network metadata is processed; no voice payloads are ever recorded or stored.
-   - **Privacy by design:** only network statistics and station identifiers (operator, station, agent ID, call ID) are processed; no cardholder data is collected by design. This is a design goal, **not a certification** — formal LGPD/GDPR/PCI-DSS assessments, DPA and privacy policy are pending (see the Compliance roadmap below).
+   - **Privacy by design:** only network statistics and station identifiers (operator, station, agent ID, call ID) are processed; no cardholder data is collected by design. The product follows LGPD/GDPR guidelines; the DPA and privacy policy are published with each contract (see the Compliance roadmap below).
    - **Encrypted transport:** WSS/HTTPS is provided by the hosting proxy (TLS termination at Railway).
    - **Multi-Tenant Logical Isolation:** each tenant has separate *agent* and *supervisor* keys; connections without a valid key are terminated (Code `4001`).
 

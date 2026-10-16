@@ -142,6 +142,17 @@
         .auth-foot { margin-top: var(--s4); font-size: var(--fs-xs); color: var(--text-3); line-height: 1.6; }
         .auth-foot a { color: var(--accent); text-decoration: underline; }
 
+        .lang-toggle { display: inline-flex; border: 1px solid var(--border-strong); border-radius: var(--radius); padding: 2px; gap: 2px; }
+        .lang-btn { background: transparent; border: none; font: inherit; font-size: var(--fs-xs); font-weight: 600; padding: var(--s1) var(--s2); border-radius: 4px; cursor: pointer; color: var(--text-3); line-height: 1.4; }
+        .lang-btn:hover { color: var(--text); }
+        .lang-btn.active { background: var(--text); color: var(--bg); }
+        .lang-btn:focus-visible { outline-offset: 1px; }
+        .auth-header { position: relative; }
+        .auth-lang { position: absolute; top: var(--s3); right: var(--s3); }
+        .cell-block { min-width: 0; overflow-wrap: anywhere; }
+        .pc-item + .pc-item { margin-top: var(--s2); }
+        .pc-hint { font-size: var(--fs-xs); color: var(--text-3); max-width: 46ch; }
+
         [hidden] { display: none !important; }
         .sr-only { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
         button, select, input { font-family: inherit; }
@@ -239,7 +250,8 @@
             .stack-table td.cell-action::before { content: none; }
             .stack-table td.cell-action .btn-action { width: 100%; min-height: 44px; font-size: var(--fs-sm); }
             .cause { max-width: none; }
-            .btn-quiet, .btn-primary, .btn-danger, .btn-top, .tab-btn { min-height: 44px; }
+            .btn-quiet, .btn-primary, .btn-danger, .btn-top, .tab-btn, .lang-btn { min-height: 44px; }
+            .lang-btn { min-width: 44px; }
             .field { flex: 1 1 100%; }
             .field input, .field select { min-height: 44px; }
             .agent-panel { width: 100%; border-left: none; }
@@ -252,26 +264,26 @@
 <div id="authOverlay" style="display: none;">
     <div class="auth-card" role="dialog" aria-modal="true" aria-labelledby="authTitle">
         <div class="auth-header">
+            <div class="lang-toggle auth-lang" role="group" aria-label="Idioma / Language">
+                <button type="button" class="lang-btn active" data-lang="pt" aria-pressed="true" title="Português">PT</button>
+                <button type="button" class="lang-btn" data-lang="en" aria-pressed="false" title="English">EN</button>
+            </div>
             <svg class="brand-mark" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2.5L4 6v5.5c0 4.7 3.3 8.7 8 10 4.7-1.3 8-5.3 8-10V6l-8-3.5z"/><path d="M8.5 12h1.8l1.2-3 1.8 6 1.2-3h1"/></svg>
             <h2 id="authTitle">VoiceVanguard CCaaS</h2>
-            <p>Acesso restrito ao console do supervisor</p>
+            <p data-i18n="auth_sub">Acesso restrito ao console do supervisor</p>
         </div>
         <div class="auth-body">
             <div id="authErrorBox" class="auth-error" role="alert"></div>
             <div class="auth-form-group">
-                <label for="inputTenantKey">Chave de supervisor do tenant</label>
-                <input type="password" id="inputTenantKey" placeholder="Chave de supervisor do seu tenant" autocomplete="off" autocorrect="off">
+                <label for="inputTenantKey" data-i18n="auth_key_label">Chave de supervisor do tenant</label>
+                <input type="password" id="inputTenantKey" placeholder="Chave de supervisor do seu tenant" data-i18n-ph="auth_key_ph" autocomplete="off" autocorrect="off">
             </div>
-            <div class="auth-form-group">
-                <label for="inputSupervisorName">Identificação do supervisor</label>
-                <input type="text" id="inputSupervisorName" value="Supervisor Principal" placeholder="Nome ou matrícula">
-            </div>
-            <button id="btnSubmitLogin" class="btn-login" type="button">
+            <button id="btnSubmitLogin" class="btn-login" type="button" data-i18n="auth_btn">
                 Entrar no console
             </button>
             <div class="auth-foot">
-                Conexão cifrada em trânsito, com isolamento lógico entre tenants.<br>
-                Precisa de uma chave? <a href="mailto:contato@trustco.pro?subject=VoiceVanguard%20Tenant%20Request">Solicitar à engenharia</a>
+                <span data-i18n="auth_foot1">Conexão cifrada em trânsito, com isolamento lógico entre tenants.</span><br>
+                <span data-i18n="auth_need_key">Precisa de uma chave?</span> <a href="mailto:contato@trustco.pro?subject=VoiceVanguard%20Tenant%20Request" data-i18n="auth_request">Solicitar à engenharia</a>
             </div>
         </div>
     </div>
@@ -282,9 +294,9 @@
         <svg class="brand-mark" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2.5L4 6v5.5c0 4.7 3.3 8.7 8 10 4.7-1.3 8-5.3 8-10V6l-8-3.5z"/><path d="M8.5 12h1.8l1.2-3 1.8 6 1.2-3h1"/></svg>
         <div>
             <h1>VoiceVanguard CCaaS</h1>
-            <div class="brand-sub">Observabilidade WebRTC multi-tenant</div>
+            <div class="brand-sub" data-i18n="brand_sub">Observabilidade WebRTC multi-tenant</div>
         </div>
-        <span class="brand-badge" id="tenantBadge">AUTENTICANDO</span>
+        <span class="brand-badge" id="tenantBadge" data-i18n="badge_auth">AUTENTICANDO</span>
     </div>
 
     <div class="tenant-status-box">
@@ -293,51 +305,55 @@
             <span class="live-dot is-connecting" id="liveDotIndicator" aria-hidden="true"></span>
             <span id="connStatus" role="status">Verificando credenciais...</span>
         </span>
-        <button class="btn-top" id="btnReconnect" type="button" hidden>Reconectar agora</button>
+        <button class="btn-top" id="btnReconnect" type="button" hidden data-i18n="btn_reconnect">Reconectar agora</button>
         <span id="tenantOrgDisplay" class="org-name">--</span>
-        <button class="btn-top" id="btnLogout" type="button">Sair</button>
+        <button class="btn-top" id="btnLogout" type="button" data-i18n="btn_logout">Sair</button>
+        <div class="lang-toggle" role="group" aria-label="Idioma / Language">
+            <button type="button" class="lang-btn active" data-lang="pt" aria-pressed="true" title="Português">PT</button>
+            <button type="button" class="lang-btn" data-lang="en" aria-pressed="false" title="English">EN</button>
+        </div>
     </div>
 </header>
 
 <main class="container">
-    <div class="tabs" role="tablist" aria-label="Seções do console">
-        <button class="tab-btn active" id="tabLiveBtn" role="tab" aria-selected="true" aria-controls="tabContentLive" type="button" data-tab="live">Monitoramento ao vivo</button>
-        <button class="tab-btn" id="tabCallsBtn" role="tab" aria-selected="false" aria-controls="tabContentCalls" type="button" data-tab="calls">Auditoria de chamadas</button>
-        <button class="tab-btn" id="tabHealthBtn" role="tab" aria-selected="false" aria-controls="tabContentHealth" type="button" data-tab="health">Saúde da estação</button>
-        <button class="tab-btn" id="tabBiBtn" role="tab" aria-selected="false" aria-controls="tabContentBi" type="button" data-tab="bi">Fatores locais</button>
+    <div class="tabs" role="tablist" aria-label="Seções do console" data-i18n-aria="tabs_aria">
+        <button class="tab-btn active" id="tabLiveBtn" role="tab" aria-selected="true" aria-controls="tabContentLive" type="button" data-tab="live" data-i18n="tab_live">Monitoramento ao vivo</button>
+        <button class="tab-btn" id="tabCallsBtn" role="tab" aria-selected="false" aria-controls="tabContentCalls" type="button" data-tab="calls" data-i18n="tab_calls">Auditoria de chamadas</button>
+        <button class="tab-btn" id="tabHealthBtn" role="tab" aria-selected="false" aria-controls="tabContentHealth" type="button" data-tab="health" data-i18n="tab_health">Saúde da estação</button>
+        <button class="tab-btn" id="tabBiBtn" role="tab" aria-selected="false" aria-controls="tabContentBi" type="button" data-tab="bi" data-i18n="tab_bi">Fatores locais</button>
     </div>
 
-    <div id="staleBanner" class="stale-banner" role="status" hidden>Sem conexão com o relay: os dados abaixo podem estar desatualizados até a reconexão.</div>
+    <div id="staleBanner" class="stale-banner" role="status" hidden data-i18n="stale">Sem conexão com o relay: os dados abaixo podem estar desatualizados até a reconexão.</div>
 
     <!-- Indicadores -->
     <div class="cards-grid">
         <div class="card">
-            <div class="card-label">PAs conectadas</div>
+            <div class="card-label" data-i18n="kpi_connected">PAs conectadas</div>
             <div class="card-val" id="cardTotalAgents">0</div>
             <div class="card-hint" id="hintTotalAgents"></div>
         </div>
         <div class="card">
-            <div class="card-label">PAs com status OK</div>
+            <div class="card-label" data-i18n="kpi_ok">PAs com status OK</div>
             <div class="card-val" id="cardAgentsOk">—</div>
             <div class="card-hint" id="hintAgentsOk"></div>
         </div>
         <div class="card">
-            <div class="card-label">MOS médio (G.107)</div>
+            <div class="card-label" data-i18n="kpi_mos">MOS médio (G.107)</div>
             <div class="card-val" id="cardAvgMos">—</div>
             <div class="card-hint"></div>
         </div>
         <div class="card">
-            <div class="card-label">Jitter médio</div>
+            <div class="card-label" data-i18n="kpi_jitter">Jitter médio</div>
             <div class="card-val" id="cardAvgJitter">—</div>
             <div class="card-hint"></div>
         </div>
         <div class="card">
-            <div class="card-label">Chamadas auditadas</div>
+            <div class="card-label" data-i18n="kpi_calls">Chamadas auditadas</div>
             <div class="card-val" id="cardTotalCalls">0</div>
             <div class="card-hint"></div>
         </div>
         <div class="card">
-            <div class="card-label">Chamadas excelentes ou boas</div>
+            <div class="card-label" data-i18n="kpi_good">Chamadas excelentes ou boas</div>
             <div class="card-val" id="cardSuccessCalls">—</div>
             <div class="card-hint" id="hintSuccessCalls"></div>
         </div>
@@ -346,43 +362,43 @@
     <!-- Aba 1: monitoramento de PAs -->
     <div id="tabContentLive" role="tabpanel" aria-labelledby="tabLiveBtn">
         <div class="attention is-clear" id="attentionBar">
-            <span><strong id="attentionTitle">Precisam de atenção agora: 0</strong> <span id="attentionSub" class="muted"></span></span>
-            <button class="btn-quiet" id="btnAttention" type="button" aria-pressed="false">Ver só as que precisam de atenção</button>
+            <span><strong id="attentionTitle" data-i18n="attn_initial">Precisam de atenção agora: 0</strong> <span id="attentionSub" class="muted"></span></span>
+            <button class="btn-quiet" id="btnAttention" type="button" aria-pressed="false" data-i18n="btn_attn_only">Ver só as que precisam de atenção</button>
         </div>
 
-        <div class="toolbar" role="search" aria-label="Filtros da lista de PAs">
+        <div class="toolbar" role="search" aria-label="Filtros da lista de PAs" data-i18n-aria="filters_aria">
             <div class="field grow">
-                <label for="fltSearch">Buscar por operador, estação ou ID</label>
-                <input type="search" id="fltSearch" placeholder="Ex.: Ana, PA-0123, ID da chamada" autocomplete="off">
+                <label for="fltSearch" data-i18n="flt_search">Buscar por operador, estação ou ID</label>
+                <input type="search" id="fltSearch" placeholder="Ex.: Ana, PA-0123, ID da chamada" data-i18n-ph="flt_search_ph" autocomplete="off">
             </div>
             <div class="field">
-                <label for="fltStatus">Status</label>
+                <label for="fltStatus" data-i18n="flt_status">Status</label>
                 <select id="fltStatus">
-                    <option value="all">Todos</option>
-                    <option value="attention">Precisam de atenção</option>
-                    <option value="ok">OK</option>
-                    <option value="incall">Em chamada</option>
-                    <option value="free">Livres</option>
-                    <option value="offline">Offline</option>
+                    <option value="all" data-i18n="st_all">Todos</option>
+                    <option value="attention" data-i18n="st_attention">Precisam de atenção</option>
+                    <option value="ok" data-i18n="st_ok">OK</option>
+                    <option value="incall" data-i18n="st_incall">Em chamada</option>
+                    <option value="free" data-i18n="st_free">Livres</option>
+                    <option value="offline" data-i18n="st_offline">Offline</option>
                 </select>
             </div>
             <div class="field" id="fltTowerField" hidden>
-                <label for="fltTower">Torre</label>
+                <label for="fltTower" data-i18n="flt_tower">Torre</label>
                 <select id="fltTower"></select>
             </div>
             <div class="field">
-                <label for="fltSort">Ordenar por</label>
+                <label for="fltSort" data-i18n="flt_sort">Ordenar por</label>
                 <select id="fltSort">
-                    <option value="priority">Prioridade (alertas primeiro)</option>
-                    <option value="mos">MOS (menor primeiro)</option>
-                    <option value="rtt">RTT (maior primeiro)</option>
-                    <option value="jitter">Jitter (maior primeiro)</option>
-                    <option value="loss">Perda (maior primeiro)</option>
-                    <option value="station">Estação (A–Z)</option>
-                    <option value="operator">Operador (A–Z)</option>
+                    <option value="priority" data-i18n="so_priority">Prioridade (alertas primeiro)</option>
+                    <option value="mos" data-i18n="so_mos">MOS (menor primeiro)</option>
+                    <option value="rtt" data-i18n="so_rtt">RTT (maior primeiro)</option>
+                    <option value="jitter" data-i18n="so_jitter">Jitter (maior primeiro)</option>
+                    <option value="loss" data-i18n="so_loss">Perda (maior primeiro)</option>
+                    <option value="station" data-i18n="so_station">Estação (A–Z)</option>
+                    <option value="operator" data-i18n="so_operator">Operador (A–Z)</option>
                 </select>
             </div>
-            <button class="btn-quiet" id="btnClearFilters" type="button">Limpar filtros</button>
+            <button class="btn-quiet" id="btnClearFilters" type="button" data-i18n="btn_clear_filters">Limpar filtros</button>
         </div>
         <p class="result-count" id="resultCount"></p>
 
@@ -390,30 +406,30 @@
             <table class="stack-table">
                 <thead>
                     <tr>
-                        <th scope="col">Status</th>
-                        <th scope="col">Plataforma</th>
-                        <th scope="col">Estação / PA</th>
-                        <th scope="col">Operador</th>
-                        <th scope="col">Rede</th>
-                        <th scope="col">Carga da máquina</th>
-                        <th scope="col">MOS</th>
-                        <th scope="col">RTT | Jitter | Perda</th>
-                        <th scope="col">Chamada</th>
-                        <th scope="col">Causa provável</th>
-                        <th scope="col">Ações</th>
+                        <th scope="col" data-i18n="col_status">Status</th>
+                        <th scope="col" data-i18n="col_platform">Plataforma</th>
+                        <th scope="col" data-i18n="col_station">Estação / PA</th>
+                        <th scope="col" data-i18n="col_operator">Operador</th>
+                        <th scope="col" data-i18n="col_network">Rede</th>
+                        <th scope="col" data-i18n="col_load_full">Carga da máquina</th>
+                        <th scope="col" data-i18n="col_mos">MOS</th>
+                        <th scope="col" data-i18n="col_rtt">RTT | Jitter | Perda</th>
+                        <th scope="col" data-i18n="col_call">Chamada</th>
+                        <th scope="col" data-i18n="col_cause">Causa provável</th>
+                        <th scope="col" data-i18n="col_actions">Ações</th>
                     </tr>
                 </thead>
                 <tbody id="agentsTableBody">
-                    <tr><td colspan="11" class="empty">Aguardando conexão com o relay.</td></tr>
+                    <tr><td colspan="11" class="empty" data-i18n="empty_waiting">Aguardando conexão com o relay.</td></tr>
                 </tbody>
             </table>
         </div>
-        <nav class="pager" aria-label="Paginação da lista de PAs">
+        <nav class="pager" aria-label="Paginação da lista de PAs" data-i18n-aria="pager_aria">
             <span id="pagerInfo"></span>
             <span class="pager-btns">
-                <button class="btn-quiet" id="btnPrev" type="button">Anterior</button>
+                <button class="btn-quiet" id="btnPrev" type="button" data-i18n="pager_prev">Anterior</button>
                 <span id="pagerPage"></span>
-                <button class="btn-quiet" id="btnNext" type="button">Próxima</button>
+                <button class="btn-quiet" id="btnNext" type="button" data-i18n="pager_next">Próxima</button>
             </span>
         </nav>
     </div>
@@ -424,19 +440,19 @@
             <table class="stack-table">
                 <thead>
                     <tr>
-                        <th scope="col">Estação / PA</th>
-                        <th scope="col">Operador</th>
-                        <th scope="col">Pré-check de turno</th>
-                        <th scope="col">Pontos de atenção</th>
-                        <th scope="col">Latência das APIs do CCaaS (p95 · erros)</th>
+                        <th scope="col" data-i18n="health_station">Estação / PA</th>
+                        <th scope="col" data-i18n="health_operator">Operador</th>
+                        <th scope="col" data-i18n="health_precheck_col">Pré-check de turno</th>
+                        <th scope="col" data-i18n="health_attn_col">Pontos de atenção</th>
+                        <th scope="col" data-i18n="health_api_col">Latência das APIs do CCaaS (p95 · erros)</th>
                     </tr>
                 </thead>
                 <tbody id="healthTableBody">
-                    <tr><td colspan="5" class="empty">Nenhuma estação executou o pré-check ou reportou latência de API ainda.</td></tr>
+                    <tr><td colspan="5" class="empty" data-i18n="health_empty">Nenhuma estação executou o pré-check ou reportou latência de API ainda.</td></tr>
                 </tbody>
             </table>
         </div>
-        <p class="muted" id="healthNote" style="margin-top: var(--s3); font-size: var(--fs-sm);">A latência é agregada por servidor (hostname) em janelas de 30 s; endereços completos, caminhos e identificadores não são coletados.</p>
+        <p class="muted" id="healthNote" data-i18n="health_note" style="margin-top: var(--s3); font-size: var(--fs-sm);">A latência é agregada por servidor (hostname) em janelas de 30 s; endereços completos, caminhos e identificadores não são coletados.</p>
     </div>
 
     <!-- Aba 2: auditoria de chamadas -->
@@ -446,20 +462,20 @@
             <table class="stack-table">
                 <thead>
                     <tr>
-                        <th scope="col">Classificação</th>
-                        <th scope="col">Plataforma</th>
-                        <th scope="col">ID da interação</th>
-                        <th scope="col">Operador / PA</th>
-                        <th scope="col">Horário</th>
-                        <th scope="col">Duração</th>
-                        <th scope="col">MOS médio / mín.</th>
-                        <th scope="col">Jitter pico</th>
-                        <th scope="col">Perda</th>
-                        <th scope="col">Protocolo</th>
+                        <th scope="col" data-i18n="calls_col_class">Classificação</th>
+                        <th scope="col" data-i18n="calls_col_platform">Plataforma</th>
+                        <th scope="col" data-i18n="calls_col_id">ID da interação</th>
+                        <th scope="col" data-i18n="calls_col_op">Operador / PA</th>
+                        <th scope="col" data-i18n="calls_col_time">Horário</th>
+                        <th scope="col" data-i18n="calls_col_dur">Duração</th>
+                        <th scope="col" data-i18n="calls_col_mos">MOS médio / mín.</th>
+                        <th scope="col" data-i18n="calls_col_jitter">Jitter pico</th>
+                        <th scope="col" data-i18n="calls_col_loss">Perda</th>
+                        <th scope="col" data-i18n="calls_col_proto">Protocolo</th>
                     </tr>
                 </thead>
                 <tbody id="callsTableBody">
-                    <tr><td colspan="10" class="empty">Nenhuma chamada finalizada neste turno.</td></tr>
+                    <tr><td colspan="10" class="empty" data-i18n="calls_empty">Nenhuma chamada finalizada neste turno.</td></tr>
                 </tbody>
             </table>
         </div>
@@ -468,18 +484,18 @@
     <!-- Aba 3: BI -->
     <div id="tabContentBi" role="tabpanel" aria-labelledby="tabBiBtn" hidden>
         <div class="panel">
-            <h3>Fatores locais que afetam a qualidade de voz</h3>
-            <p>Indícios de Wi-Fi e falhas de áudio no posto do atendente podem degradar a voz antes de virar chamado técnico.</p>
+            <h3 data-i18n="bi_title">Fatores locais que afetam a qualidade de voz</h3>
+            <p data-i18n="bi_desc">Indícios de Wi-Fi e falhas de áudio no posto do atendente podem degradar a voz antes de virar chamado técnico.</p>
             <div class="bi-grid">
                 <div class="bi-item crit">
-                    <div class="bi-label">PAs com indício de Wi-Fi</div>
+                    <div class="bi-label" data-i18n="bi_wifi_label">PAs com indício de Wi-Fi</div>
                     <div class="bi-val" id="biWifiIssues">0 PAs</div>
-                    <div class="bi-hint">Indicação provável a partir dos dados de rede do navegador; não mede o sinal.</div>
+                    <div class="bi-hint" data-i18n="bi_wifi_hint">Indicação provável a partir dos dados de rede do navegador; não mede o sinal.</div>
                 </div>
                 <div class="bi-item info">
-                    <div class="bi-label">Falha de headset ou mudo</div>
+                    <div class="bi-label" data-i18n="bi_audio_label">Falha de headset ou mudo</div>
                     <div class="bi-val" id="biAudioIssues">0 PAs</div>
-                    <div class="bi-hint">PAs online com microfone, fone ou áudio com problema agora.</div>
+                    <div class="bi-hint" data-i18n="bi_audio_hint">PAs online com microfone, fone ou áudio com problema agora.</div>
                 </div>
             </div>
         </div>
@@ -490,8 +506,8 @@
 <div class="panel-backdrop" id="panelBackdrop" hidden></div>
 <aside class="agent-panel" id="agentPanel" role="dialog" aria-modal="true" aria-labelledby="apTitle" hidden>
     <div class="ap-head">
-        <h2 id="apTitle">Detalhes da PA</h2>
-        <button class="btn-quiet" id="btnClosePanel" type="button" aria-label="Fechar detalhes da PA">Fechar</button>
+        <h2 id="apTitle" data-i18n="ap_title">Detalhes da PA</h2>
+        <button class="btn-quiet" id="btnClosePanel" type="button" aria-label="Fechar detalhes da PA" data-i18n-aria="ap_close_aria" data-i18n="ap_close">Fechar</button>
     </div>
     <div class="ap-body" id="apBody"></div>
 </aside>
@@ -500,14 +516,533 @@
 <div class="toast-region" id="toastRegion" role="status" aria-live="polite" aria-atomic="false"></div>
 
 <script>
+        // Dicionários PT-BR / EN: as chaves devem ser idênticas (scripts/check-i18n.js).
+        const translations = {
+            pt: {
+                meta_title: "VoiceVanguard CCaaS — Console do supervisor",
+                auth_sub: "Acesso restrito ao console do supervisor",
+                auth_key_label: "Chave de supervisor do tenant",
+                auth_key_ph: "Chave de supervisor do seu tenant",
+                auth_btn: "Entrar no console",
+                auth_genesys_unavailable: "Login com Genesys não está configurado para este identificador.",
+                auth_genesys_refused: "Acesso negado: sua conta Genesys não tem o papel de supervisor do VoiceVanguard nesta organização.",
+                auth_validating: "Validando chave...",
+                auth_empty: "Informe a chave de supervisor do tenant para prosseguir.",
+                auth_invalid: "Chave inválida ou não autorizada. Verifique a chave de supervisor do tenant.",
+                auth_foot1: "Conexão cifrada em trânsito, com isolamento lógico entre tenants.",
+                auth_need_key: "Precisa de uma chave?",
+                auth_request: "Solicitar à engenharia",
+                brand_sub: "Observabilidade WebRTC multi-tenant",
+                badge_auth: "AUTENTICANDO",
+                conn_verifying: "Verificando credenciais...",
+                conn_waiting_login: "Aguardando login",
+                conn_connecting: "Conectando...",
+                conn_reconnecting: "Reconectando (tentativa {n})...",
+                conn_live: "Ao vivo",
+                conn_down_retry: "Desconectado — reconectando em {s}s (tentativa {n})",
+                conn_key_refused: "Chave recusada",
+                btn_reconnect: "Reconectar agora",
+                btn_logout: "Sair",
+                tabs_aria: "Seções do console",
+                tab_live: "Monitoramento ao vivo",
+                tab_calls: "Auditoria de chamadas",
+                tab_health: "Saúde da estação",
+                tab_bi: "Fatores locais",
+                stale: "Sem conexão com o relay: os dados abaixo podem estar desatualizados até a reconexão.",
+                kpi_connected: "PAs conectadas",
+                kpi_ok: "PAs com status OK",
+                kpi_mos: "MOS médio (G.107)",
+                kpi_jitter: "Jitter médio",
+                kpi_calls: "Chamadas auditadas",
+                kpi_good: "Chamadas excelentes ou boas",
+                hint_offline: "{n} offline",
+                hint_of: "{a} de {b}",
+                hint_calls_of: "{a} de {b} chamadas",
+                hint_sample: "Amostra insuficiente (mín. {n} chamadas)",
+                attn_initial: "Precisam de atenção agora: 0",
+                attn_title_one: "{n} PA precisa de atenção agora",
+                attn_title_other: "{n} PAs precisam de atenção agora",
+                attn_none: "Nenhuma PA precisa de atenção agora",
+                attn_sub: "{a} com falha de áudio · {r} com risco de queda em chamada",
+                btn_attn_only: "Ver só as que precisam de atenção",
+                btn_attn_all: "Mostrar todas as PAs",
+                filters_aria: "Filtros da lista de PAs",
+                flt_search: "Buscar por operador, estação ou ID",
+                flt_search_ph: "Ex.: Ana, PA-0123, ID da chamada",
+                flt_status: "Status",
+                st_all: "Todos",
+                st_attention: "Precisam de atenção",
+                st_ok: "OK",
+                st_incall: "Em chamada",
+                st_free: "Livres",
+                st_offline: "Offline",
+                flt_tower: "Torre",
+                flt_sort: "Ordenar por",
+                so_priority: "Prioridade (alertas primeiro)",
+                so_mos: "MOS (menor primeiro)",
+                so_rtt: "RTT (maior primeiro)",
+                so_jitter: "Jitter (maior primeiro)",
+                so_loss: "Perda (maior primeiro)",
+                so_station: "Estação (A–Z)",
+                so_operator: "Operador (A–Z)",
+                btn_clear_filters: "Limpar filtros",
+                col_status: "Status",
+                col_platform: "Plataforma",
+                col_station: "Estação / PA",
+                col_operator: "Operador",
+                col_network: "Rede",
+                col_load_full: "Carga da máquina",
+                col_load: "Carga",
+                col_mos: "MOS",
+                col_rtt: "RTT | Jitter | Perda",
+                col_call: "Chamada",
+                col_cause: "Causa provável",
+                col_actions: "Ações",
+                empty_waiting: "Aguardando conexão com o relay.",
+                empty_no_agents: "Nenhuma PA conectada a este tenant.",
+                empty_no_match: "Nenhuma PA corresponde aos filtros. Use \"Limpar filtros\".",
+                pager_aria: "Paginação da lista de PAs",
+                pager_prev: "Anterior",
+                pager_next: "Próxima",
+                pager_info: "Mostrando {a}–{b} de {n}",
+                pager_none: "Nenhuma PA para mostrar",
+                pager_page: "Página {p} de {n}",
+                count_one: "{n} de {m} PA",
+                count_other: "{n} de {m} PAs",
+                count_filtered: " (filtros ativos)",
+                badge_offline: "Offline",
+                badge_alert: "Alerta",
+                badge_risk: "Risco",
+                badge_ok: "OK",
+                call_on: "Em chamada ({id})",
+                call_free: "Livre",
+                call_no_id: "sem ID",
+                load_high: "Alta carga",
+                load_normal: "Normal",
+                mos_risk: "(risco de queda)",
+                na: "N/D",
+                na_lc: "n/d",
+                cmd_flag_queued: "Limpeza enfileirada para o pós-chamada",
+                btn_details: "Detalhes",
+                details_aria: "Abrir detalhes da PA {name}",
+                no_anomaly: "Sem anormalidades",
+                cause_more_one: "+{n} fator",
+                cause_more_other: "+{n} fatores",
+                cause_offline: "Estação sem conexão com o relay",
+                cause_loss: "perda de pacotes alta ({v}%)",
+                cause_jitter: "jitter alto ({v} ms)",
+                cause_rtt: "latência alta ({v} ms)",
+                cause_wifi: "Wi-Fi instável: {list}",
+                cause_ram: "Máquina com consumo alto de memória",
+                cause_low_mos: "Qualidade de voz baixa (MOS {v}) sem causa isolada nos dados recebidos",
+                cause_alert: "Alerta reportado pela estação, sem causa identificada nos dados recebidos",
+                net_wifi: "Wi-Fi",
+                net_wifi_cell: "Wi-Fi ou celular",
+                net_wifi_prob: "Wi-Fi (provável)",
+                net_wifi24: "Wi-Fi 2,4 GHz",
+                net_wifi5: "Wi-Fi 5 GHz",
+                net_eth: "Ethernet",
+                net_cell: "Celular",
+                net_stable: "Rede estável",
+                net_unknown: "Tipo de rede não informado",
+                audio_SEM_AUDIO_RECEBIDO: "Sem áudio recebido",
+                audio_SEM_AUDIO_ENVIADO: "Sem áudio enviado",
+                audio_MIC_DESCONECTADO: "Microfone desconectado",
+                audio_MIC_MUDO_SISTEMA: "Microfone mudo no sistema",
+                tower_label: "Torre:",
+                tower_all: "Todas as torres ({n})",
+                tower_select_aria: "Selecionar torre",
+                health_station: "Estação / PA",
+                health_operator: "Operador",
+                health_precheck_col: "Pré-check de turno",
+                health_attn_col: "Pontos de atenção",
+                health_api_col: "Latência das APIs do CCaaS (p95 · erros)",
+                dl_precheck: "Pré-check",
+                dl_attn: "Atenção",
+                dl_apis: "APIs do CCaaS",
+                health_empty: "Nenhuma estação executou o pré-check ou reportou latência de API ainda.",
+                health_note: "A latência é agregada por servidor (hostname) em janelas de 30 s; endereços completos, caminhos e identificadores não são coletados.",
+                health_limit: "Mostrando as {n} estações mais críticas de {total}. ",
+                health_not_run: "Não executado",
+                health_no_data: "Sem dados",
+                health_api_line: "{err} erro(s) em {count}",
+                pc_PRONTA: "Pronta",
+                pc_ATENCAO: "Atenção",
+                pc_NAO_PRONTA: "Não pronta",
+                pc_n_relay: "Servidor",
+                pc_n_rede: "Rede",
+                pc_n_rede_rtt: "Latência",
+                pc_n_rede_jitter: "Jitter",
+                pc_n_rede_perda: "Perda de pacotes",
+                pc_n_microfone: "Microfone",
+                pc_n_saida_audio: "Saída de áudio",
+                pc_n_conexao: "Conexão",
+                pc_n_hardware: "Equipamento",
+                pc_o_relay: "A estação não está conectada ao VoiceVanguard. Verifique a chave de licença com o suporte.",
+                pc_o_rede: "Não foi possível medir a rede até o servidor. Verifique a conexão e tente novamente.",
+                pc_o_rede_rtt: "Latência alta até o servidor. Prefira cabo de rede ou aproxime-se do roteador; evite VPN desnecessária.",
+                pc_o_rede_jitter: "Rede instável. Feche downloads/streaming no mesmo roteador e, se estiver em Wi-Fi 2,4 GHz, troque para 5 GHz.",
+                pc_o_rede_perda: "Há perda de pacotes. Reinicie o roteador ou use conexão por cabo antes de iniciar o turno.",
+                pc_o_microfone: "Nenhum microfone encontrado. Conecte o headset e libere o acesso ao microfone no navegador.",
+                pc_o_saida_audio: "Nenhuma saída de áudio encontrada. Verifique o headset ou o dispositivo de saída do sistema.",
+                pc_o_conexao: "O navegador classifica a conexão como lenta. Prefira rede fixa ou Wi-Fi mais estável.",
+                pc_o_hardware: "Equipamento abaixo do recomendado (4 núcleos e 4 GB). Feche aplicativos e abas desnecessários durante o atendimento.",
+                pcv_conectado: "conectado",
+                pcv_desconectado: "desconectado",
+                pcv_sem_medicao: "sem medição",
+                pcv_detectado: "detectado",
+                pcv_nao_detectado: "não detectado",
+                pcv_detectada: "detectada",
+                pcv_nao_detectada: "não detectada",
+                pcv_cores: "núcleos",
+                calls_col_class: "Classificação",
+                calls_col_platform: "Plataforma",
+                calls_col_id: "ID da interação",
+                calls_col_op: "Operador / PA",
+                calls_col_time: "Horário",
+                calls_col_dur: "Duração",
+                calls_col_mos: "MOS médio / mín.",
+                calls_col_jitter: "Jitter pico",
+                calls_col_loss: "Perda",
+                calls_col_proto: "Protocolo",
+                calls_empty: "Nenhuma chamada finalizada neste turno.",
+                calls_limit: "Mostrando as {n} chamadas mais recentes de {total}.",
+                calls_audio: "Áudio: {list}",
+                calls_cause: "Causa raiz: {c}",
+                cls_exc: "EXCELENTE",
+                cls_good: "BOA",
+                cls_deg: "DEGRADADA",
+                cls_crit: "CRÍTICA",
+                rc_REDE_HOMOLOGADA: "Rede dentro do esperado",
+                rc_INSTABILIDADE_WI_FI: "Instabilidade de Wi-Fi",
+                rc_CONGESTIONAMENTO_ROTA: "Congestionamento de rota",
+                rc_SOBRECARGA_CPU_OPERADOR: "Sobrecarga de CPU do operador",
+                rc_JITTER_INTERMITENTE: "Jitter intermitente",
+                rc_FALHA_AUDIO_ESTACAO: "Falha de áudio na estação",
+                dur_fmt: "{m}m {s}s",
+                bi_title: "Fatores locais que afetam a qualidade de voz",
+                bi_desc: "Indícios de Wi-Fi e falhas de áudio no posto do atendente podem degradar a voz antes de virar chamado técnico.",
+                bi_wifi_label: "PAs com indício de Wi-Fi",
+                bi_wifi_hint: "Indicação provável a partir dos dados de rede do navegador; não mede o sinal.",
+                bi_audio_label: "Falha de headset ou mudo",
+                bi_audio_hint: "PAs online com microfone, fone ou áudio com problema agora.",
+                bi_pas_one: "{n} PA",
+                bi_pas_other: "{n} PAs",
+                ap_title: "Detalhes da PA",
+                ap_close_aria: "Fechar detalhes da PA",
+                ap_close: "Fechar",
+                ap_gone_title: "PA indisponível",
+                ap_gone_body: "Esta PA não está mais na lista (saiu do relay ou foi removida).",
+                ap_h_status: "Situação",
+                ap_h_cause: "Causa provável",
+                ap_h_metrics: "Métricas",
+                ap_h_remed: "Remediação pós-chamada",
+                ap_status: "Status",
+                ap_platform: "Plataforma",
+                ap_tower: "Torre",
+                ap_agent_id: "ID da PA",
+                ap_call: "Chamada",
+                ap_last: "Última leitura",
+                ap_mos: "MOS (G.107)",
+                ap_rtt: "RTT",
+                ap_jitter: "Jitter",
+                ap_loss: "Perda de pacotes",
+                ap_network: "Rede",
+                ap_reported: "(reportado: {v})",
+                ap_protocol: "Protocolo",
+                ap_load: "Carga da máquina",
+                ap_no_anomaly: "Sem anormalidades nos dados recebidos.",
+                cmd_confirm_q: "Confirmar limpeza segura de cache na estação {st}?",
+                cmd_confirm_incall: "A PA está em chamada: o comando será enfileirado e só executa no pós-chamada.",
+                cmd_confirm_free: "A PA está livre: o comando será executado agora.",
+                cmd_confirm_btn: "Confirmar limpeza",
+                cmd_cancel: "Cancelar",
+                cmd_desc: "Remove o cache de telefonia da estação. Durante uma chamada ativa o comando não executa: fica enfileirado para o pós-chamada.",
+                cmd_clear: "Limpar cache",
+                cmd_offline: "Estação offline: indisponível.",
+                fb_no_conn: "Sem conexão com o relay: comando não enviado.",
+                toast_no_conn: "Sem conexão com o relay: o comando não foi enviado.",
+                fb_sent: "Comando enviado. Aguardando retorno da PA…",
+                toast_sent: "Limpeza de cache enviada para a estação {who}.",
+                fb_queued: "Enfileirado para o pós-chamada: a PA está em atendimento e a limpeza roda ao encerrar.",
+                toast_queued: "Estação {who}: limpeza enfileirada para o pós-chamada.",
+                fb_done: "Cache limpo com sucesso.",
+                toast_done: "Estação {who}: cache limpo com sucesso.",
+                fb_clear_failed: "Falha ao limpar o cache.",
+                fb_fail_default: "Ação não executada.",
+                fb_fail_default_lc: "ação não executada.",
+                toast_fail: "Estação {who}: {msg}",
+                toast_dismiss: "Dispensar aviso"
+            },
+            en: {
+                meta_title: "VoiceVanguard CCaaS — Supervisor console",
+                auth_sub: "Restricted access to the supervisor console",
+                auth_key_label: "Tenant supervisor key",
+                auth_key_ph: "Your tenant's supervisor key",
+                auth_btn: "Sign in to the console",
+                auth_genesys_unavailable: "Genesys sign-in is not configured for this identifier.",
+                auth_genesys_refused: "Access denied: your Genesys account does not have the VoiceVanguard supervisor role in this organization.",
+                auth_validating: "Validating key...",
+                auth_empty: "Enter the tenant supervisor key to continue.",
+                auth_invalid: "Invalid or unauthorized key. Check the tenant supervisor key.",
+                auth_foot1: "Connection encrypted in transit, with logical isolation between tenants.",
+                auth_need_key: "Need a key?",
+                auth_request: "Request one from engineering",
+                brand_sub: "Multi-tenant WebRTC observability",
+                badge_auth: "AUTHENTICATING",
+                conn_verifying: "Checking credentials...",
+                conn_waiting_login: "Waiting for sign-in",
+                conn_connecting: "Connecting...",
+                conn_reconnecting: "Reconnecting (attempt {n})...",
+                conn_live: "Live",
+                conn_down_retry: "Disconnected — reconnecting in {s}s (attempt {n})",
+                conn_key_refused: "Key rejected",
+                btn_reconnect: "Reconnect now",
+                btn_logout: "Sign out",
+                tabs_aria: "Console sections",
+                tab_live: "Live monitoring",
+                tab_calls: "Call audit",
+                tab_health: "Station health",
+                tab_bi: "Local factors",
+                stale: "No connection to the relay: the data below may be out of date until it reconnects.",
+                kpi_connected: "Connected seats",
+                kpi_ok: "Seats with OK status",
+                kpi_mos: "Average MOS (G.107)",
+                kpi_jitter: "Average jitter",
+                kpi_calls: "Audited calls",
+                kpi_good: "Excellent or good calls",
+                hint_offline: "{n} offline",
+                hint_of: "{a} of {b}",
+                hint_calls_of: "{a} of {b} calls",
+                hint_sample: "Not enough data (min. {n} calls)",
+                attn_initial: "Needing attention now: 0",
+                attn_title_one: "{n} seat needs attention now",
+                attn_title_other: "{n} seats need attention now",
+                attn_none: "No seat needs attention now",
+                attn_sub: "{a} with audio failure · {r} at risk of call quality drop",
+                btn_attn_only: "Show only those needing attention",
+                btn_attn_all: "Show all seats",
+                filters_aria: "Seat list filters",
+                flt_search: "Search by operator, station or ID",
+                flt_search_ph: "E.g.: Ana, PA-0123, call ID",
+                flt_status: "Status",
+                st_all: "All",
+                st_attention: "Needing attention",
+                st_ok: "OK",
+                st_incall: "On a call",
+                st_free: "Free",
+                st_offline: "Offline",
+                flt_tower: "Tower",
+                flt_sort: "Sort by",
+                so_priority: "Priority (alerts first)",
+                so_mos: "MOS (lowest first)",
+                so_rtt: "RTT (highest first)",
+                so_jitter: "Jitter (highest first)",
+                so_loss: "Loss (highest first)",
+                so_station: "Station (A–Z)",
+                so_operator: "Operator (A–Z)",
+                btn_clear_filters: "Clear filters",
+                col_status: "Status",
+                col_platform: "Platform",
+                col_station: "Station / Seat",
+                col_operator: "Operator",
+                col_network: "Network",
+                col_load_full: "Machine load",
+                col_load: "Load",
+                col_mos: "MOS",
+                col_rtt: "RTT | Jitter | Loss",
+                col_call: "Call",
+                col_cause: "Probable cause",
+                col_actions: "Actions",
+                empty_waiting: "Waiting for connection to the relay.",
+                empty_no_agents: "No seat connected to this tenant.",
+                empty_no_match: "No seat matches the filters. Use \"Clear filters\".",
+                pager_aria: "Seat list pagination",
+                pager_prev: "Previous",
+                pager_next: "Next",
+                pager_info: "Showing {a}–{b} of {n}",
+                pager_none: "No seats to show",
+                pager_page: "Page {p} of {n}",
+                count_one: "{n} of {m} seat",
+                count_other: "{n} of {m} seats",
+                count_filtered: " (filters active)",
+                badge_offline: "Offline",
+                badge_alert: "Alert",
+                badge_risk: "At risk",
+                badge_ok: "OK",
+                call_on: "On a call ({id})",
+                call_free: "Free",
+                call_no_id: "no ID",
+                load_high: "High load",
+                load_normal: "Normal",
+                mos_risk: "(drop risk)",
+                na: "N/A",
+                na_lc: "n/a",
+                cmd_flag_queued: "Cleanup queued for after the call",
+                btn_details: "Details",
+                details_aria: "Open seat details for {name}",
+                no_anomaly: "No anomalies",
+                cause_more_one: "+{n} factor",
+                cause_more_other: "+{n} factors",
+                cause_offline: "Station not connected to the relay",
+                cause_loss: "high packet loss ({v}%)",
+                cause_jitter: "high jitter ({v} ms)",
+                cause_rtt: "high latency ({v} ms)",
+                cause_wifi: "Unstable Wi-Fi: {list}",
+                cause_ram: "Machine with high memory usage",
+                cause_low_mos: "Low voice quality (MOS {v}) with no isolated cause in the received data",
+                cause_alert: "Alert reported by the station, with no cause identified in the received data",
+                net_wifi: "Wi-Fi",
+                net_wifi_cell: "Wi-Fi or cellular",
+                net_wifi_prob: "Wi-Fi (likely)",
+                net_wifi24: "Wi-Fi 2.4 GHz",
+                net_wifi5: "Wi-Fi 5 GHz",
+                net_eth: "Ethernet",
+                net_cell: "Cellular",
+                net_stable: "Stable network",
+                net_unknown: "Network type not reported",
+                audio_SEM_AUDIO_RECEBIDO: "No audio received",
+                audio_SEM_AUDIO_ENVIADO: "No audio sent",
+                audio_MIC_DESCONECTADO: "Microphone disconnected",
+                audio_MIC_MUDO_SISTEMA: "Microphone muted in the system",
+                tower_label: "Tower:",
+                tower_all: "All towers ({n})",
+                tower_select_aria: "Select tower",
+                health_station: "Station / Seat",
+                health_operator: "Operator",
+                health_precheck_col: "Shift pre-check",
+                health_attn_col: "Attention points",
+                health_api_col: "CCaaS API latency (p95 · errors)",
+                dl_precheck: "Pre-check",
+                dl_attn: "Attention",
+                dl_apis: "CCaaS APIs",
+                health_empty: "No station has run the pre-check or reported API latency yet.",
+                health_note: "Latency is aggregated per server (hostname) in 30 s windows; full URLs, paths and identifiers are not collected.",
+                health_limit: "Showing the {n} most critical stations out of {total}. ",
+                health_not_run: "Not run",
+                health_no_data: "No data",
+                health_api_line: "{err} error(s) in {count}",
+                pc_PRONTA: "Ready",
+                pc_ATENCAO: "Attention",
+                pc_NAO_PRONTA: "Not ready",
+                pc_n_relay: "Server",
+                pc_n_rede: "Network",
+                pc_n_rede_rtt: "Latency",
+                pc_n_rede_jitter: "Jitter",
+                pc_n_rede_perda: "Packet loss",
+                pc_n_microfone: "Microphone",
+                pc_n_saida_audio: "Audio output",
+                pc_n_conexao: "Connection",
+                pc_n_hardware: "Equipment",
+                pc_o_relay: "The station is not connected to VoiceVanguard. Check the license key with support.",
+                pc_o_rede: "Could not measure the network to the server. Check the connection and try again.",
+                pc_o_rede_rtt: "High latency to the server. Prefer a network cable or move closer to the router; avoid unnecessary VPN.",
+                pc_o_rede_jitter: "Unstable network. Close downloads/streaming on the same router and, if on 2.4 GHz Wi-Fi, switch to 5 GHz.",
+                pc_o_rede_perda: "There is packet loss. Restart the router or use a wired connection before starting the shift.",
+                pc_o_microfone: "No microphone found. Connect the headset and allow microphone access in the browser.",
+                pc_o_saida_audio: "No audio output found. Check the headset or the system output device.",
+                pc_o_conexao: "The browser classifies the connection as slow. Prefer a wired network or a more stable Wi-Fi.",
+                pc_o_hardware: "Equipment below the recommended spec (4 cores and 4 GB). Close unnecessary apps and tabs during service.",
+                pcv_conectado: "connected",
+                pcv_desconectado: "disconnected",
+                pcv_sem_medicao: "no measurement",
+                pcv_detectado: "detected",
+                pcv_nao_detectado: "not detected",
+                pcv_detectada: "detected",
+                pcv_nao_detectada: "not detected",
+                pcv_cores: "cores",
+                calls_col_class: "Rating",
+                calls_col_platform: "Platform",
+                calls_col_id: "Interaction ID",
+                calls_col_op: "Operator / Seat",
+                calls_col_time: "Time",
+                calls_col_dur: "Duration",
+                calls_col_mos: "MOS avg / min.",
+                calls_col_jitter: "Peak jitter",
+                calls_col_loss: "Loss",
+                calls_col_proto: "Protocol",
+                calls_empty: "No calls finished in this shift.",
+                calls_limit: "Showing the {n} most recent calls out of {total}.",
+                calls_audio: "Audio: {list}",
+                calls_cause: "Root cause: {c}",
+                cls_exc: "EXCELLENT",
+                cls_good: "GOOD",
+                cls_deg: "DEGRADED",
+                cls_crit: "CRITICAL",
+                rc_REDE_HOMOLOGADA: "Network within expected range",
+                rc_INSTABILIDADE_WI_FI: "Wi-Fi instability",
+                rc_CONGESTIONAMENTO_ROTA: "Route congestion",
+                rc_SOBRECARGA_CPU_OPERADOR: "Operator CPU overload",
+                rc_JITTER_INTERMITENTE: "Intermittent jitter",
+                rc_FALHA_AUDIO_ESTACAO: "Station audio failure",
+                dur_fmt: "{m}m {s}s",
+                bi_title: "Local factors that affect voice quality",
+                bi_desc: "Signs of Wi-Fi and audio failures at the agent's seat can degrade voice before it becomes a support ticket.",
+                bi_wifi_label: "Seats showing signs of Wi-Fi",
+                bi_wifi_hint: "Likely indication based on the browser's network data; it does not measure signal strength.",
+                bi_audio_label: "Headset failure or muted",
+                bi_audio_hint: "Online seats with a microphone, headset or audio problem right now.",
+                bi_pas_one: "{n} seat",
+                bi_pas_other: "{n} seats",
+                ap_title: "Seat details",
+                ap_close_aria: "Close seat details",
+                ap_close: "Close",
+                ap_gone_title: "Seat unavailable",
+                ap_gone_body: "This seat is no longer in the list (it left the relay or was removed).",
+                ap_h_status: "Status",
+                ap_h_cause: "Probable cause",
+                ap_h_metrics: "Metrics",
+                ap_h_remed: "Post-call remediation",
+                ap_status: "Status",
+                ap_platform: "Platform",
+                ap_tower: "Tower",
+                ap_agent_id: "Seat ID",
+                ap_call: "Call",
+                ap_last: "Last reading",
+                ap_mos: "MOS (G.107)",
+                ap_rtt: "RTT",
+                ap_jitter: "Jitter",
+                ap_loss: "Packet loss",
+                ap_network: "Network",
+                ap_reported: "(reported: {v})",
+                ap_protocol: "Protocol",
+                ap_load: "Machine load",
+                ap_no_anomaly: "No anomalies in the received data.",
+                cmd_confirm_q: "Confirm safe cache cleanup on station {st}?",
+                cmd_confirm_incall: "The seat is on a call: the command will be queued and only runs after the call.",
+                cmd_confirm_free: "The seat is free: the command will run now.",
+                cmd_confirm_btn: "Confirm cleanup",
+                cmd_cancel: "Cancel",
+                cmd_desc: "Removes the station's telephony cache. During an active call the command does not run: it is queued for after the call.",
+                cmd_clear: "Clear cache",
+                cmd_offline: "Station offline: unavailable.",
+                fb_no_conn: "No connection to the relay: command not sent.",
+                toast_no_conn: "No connection to the relay: the command was not sent.",
+                fb_sent: "Command sent. Waiting for the seat to respond…",
+                toast_sent: "Cache cleanup sent to station {who}.",
+                fb_queued: "Queued for after the call: the seat is in service and the cleanup runs when it ends.",
+                toast_queued: "Station {who}: cleanup queued for after the call.",
+                fb_done: "Cache cleared successfully.",
+                toast_done: "Station {who}: cache cleared successfully.",
+                fb_clear_failed: "Failed to clear the cache.",
+                fb_fail_default: "Action not performed.",
+                fb_fail_default_lc: "action not performed.",
+                toast_fail: "Station {who}: {msg}",
+                toast_dismiss: "Dismiss notice"
+            }
+        };
+
     let activeTenantKey = null;
+    let activeOauth = null; // { token, region } do login com Genesys
+    const hasCred = () => !!(activeTenantKey || activeOauth);
     let activeTenantName = null;
     let ws = null;
     let agentsMap = new Map();   // chave = torre|agentId
     let stationsMap = new Map();
     let callsList = [];
     let initTowers = [];
-    const cmdFeedback = new Map(); // chave da PA -> { state, text, ts }
+    let hasData = false;         // true depois do primeiro INIT_STATE
+    const cmdFeedback = new Map(); // chave da PA -> { state, key, params, raw, ts }
 
     const PAGE_SIZE = 50;
     const MIN_SAMPLE_CALLS = 5;
@@ -522,6 +1057,62 @@
     }
     const akey = (o) => `${o.tower || ''}|${o.agentId}`;
 
+    /* ---------- Idioma (PT-BR / EN) ---------- */
+    let lang = 'pt';
+    const LOCALES = { pt: 'pt-BR', en: 'en-US' };
+    const loc = () => LOCALES[lang];
+
+    // Tradução com interpolação {nome}; cai no português e, por fim, na própria chave.
+    function t(key, params) {
+        let s = translations[lang][key];
+        if (s === undefined) s = translations.pt[key];
+        if (s === undefined) return key;
+        if (params) s = s.replace(/\{(\w+)\}/g, (m, k) => (k in params ? params[k] : m));
+        return s;
+    }
+    // Plural simples: chave_one / chave_other.
+    const tn = (base, n, params) => t(`${base}_${n === 1 ? 'one' : 'other'}`, Object.assign({ n }, params));
+    const fmtNum = (n, min = 0, max = min) => new Intl.NumberFormat(loc(), { minimumFractionDigits: min, maximumFractionDigits: max }).format(n);
+    const tHas = (key) => Object.prototype.hasOwnProperty.call(translations.pt, key);
+
+    function applyDom() {
+        document.querySelectorAll('[data-i18n]').forEach(el => { el.textContent = t(el.getAttribute('data-i18n')); });
+        document.querySelectorAll('[data-i18n-ph]').forEach(el => el.setAttribute('placeholder', t(el.getAttribute('data-i18n-ph'))));
+        document.querySelectorAll('[data-i18n-aria]').forEach(el => el.setAttribute('aria-label', t(el.getAttribute('data-i18n-aria'))));
+        document.querySelectorAll('[data-i18n-title]').forEach(el => el.setAttribute('title', t(el.getAttribute('data-i18n-title'))));
+        document.querySelectorAll('[data-i18n-val]').forEach(el => { if (el.dataset.dirty !== '1') el.value = t(el.getAttribute('data-i18n-val')); });
+    }
+
+    function setLang(l, persist) {
+        lang = translations[l] ? l : 'pt';
+        if (persist) { try { localStorage.setItem('vv_lang', lang); } catch (e) {} }
+        document.documentElement.lang = LOCALES[lang];
+        document.title = t('meta_title');
+        document.querySelectorAll('.lang-btn').forEach(b => {
+            const on = b.dataset.lang === lang;
+            b.classList.toggle('active', on);
+            b.setAttribute('aria-pressed', String(on));
+        });
+        applyDom();
+        setConn(connState.kind, connState.key, connState.params);
+        $('towerBox').innerHTML = '';
+        if (hasData) renderAll();
+    }
+
+    function detectLang() {
+        try {
+            const q = (new URLSearchParams(location.search).get('lang') || '').trim().toLowerCase();
+            if (q && !q.includes('{{')) {
+                if (q.startsWith('pt')) return 'pt';
+                if (q.startsWith('en')) return 'en';
+            }
+        } catch (e) {}
+        let saved = null;
+        try { saved = localStorage.getItem('vv_lang'); } catch (e) {}
+        if (saved === 'pt' || saved === 'en') return saved;
+        return String(navigator.language || 'pt').toLowerCase().startsWith('pt') ? 'pt' : 'en';
+    }
+
     /* ---------- Avisos na tela ---------- */
     function showToast(msg, kind = 'ok') {
         const el = document.createElement('div');
@@ -530,7 +1121,7 @@
         span.textContent = msg;
         const close = document.createElement('button');
         close.type = 'button';
-        close.setAttribute('aria-label', 'Dispensar aviso');
+        close.setAttribute('aria-label', t('toast_dismiss'));
         close.textContent = '×';
         close.addEventListener('click', () => el.remove());
         el.append(span, close);
@@ -541,13 +1132,19 @@
     }
 
     /* ---------- Login ---------- */
-    function showAuthError(msg) { const box = $('authErrorBox'); box.textContent = msg; box.style.display = 'block'; }
-    function hideAuthError() { $('authErrorBox').style.display = 'none'; }
+    function showAuthError(key) { const box = $('authErrorBox'); box.setAttribute('data-i18n', key); box.textContent = t(key); box.style.display = 'block'; }
+    function hideAuthError() { const box = $('authErrorBox'); box.removeAttribute('data-i18n'); box.style.display = 'none'; }
     function showLoginModal() {
         hideAuthError();
         $('authOverlay').style.display = 'flex';
         $('inputTenantKey').focus();
-        setConn('down', 'Aguardando login');
+        setConn('down', 'conn_waiting_login');
+    }
+    function setLoginBtn(key, disabled) {
+        const btn = $('btnSubmitLogin');
+        btn.disabled = disabled;
+        btn.setAttribute('data-i18n', key);
+        btn.textContent = t(key);
     }
 
     async function validateTenantKey(key) {
@@ -564,11 +1161,9 @@
 
     async function authenticateSupervisor() {
         const key = $('inputTenantKey').value.trim();
-        if (!key) { showAuthError("Informe a chave de supervisor do tenant para prosseguir."); return; }
+        if (!key) { showAuthError('auth_empty'); return; }
 
-        const btn = $('btnSubmitLogin');
-        btn.disabled = true;
-        btn.textContent = "Validando chave...";
+        setLoginBtn('auth_validating', true);
         hideAuthError();
 
         const result = await validateTenantKey(key);
@@ -583,33 +1178,68 @@
             updateTenantDisplay(key, result.tenant);
             connectWs();
         } else {
-            showAuthError("Chave inválida ou não autorizada. Verifique a chave de supervisor do tenant.");
+            showAuthError('auth_invalid');
         }
-        btn.disabled = false;
-        btn.textContent = "Entrar no console";
+        setLoginBtn('auth_btn', false);
+    }
+
+    // Login com Genesys Cloud (OAuth implicit grant): o token fica só na aba (sessionStorage) e é validado pelo servidor.
+    // Automático: só dispara quando o console abre no Genesys com ?tenant=<id> na URL do Client App.
+    async function startGenesysLogin(tenantId) {
+        let cfg = null;
+        try {
+            const r = await fetch('/api/auth-config?tenant=' + encodeURIComponent(tenantId));
+            if (r.ok) cfg = await r.json();
+        } catch (e) { /* tratado abaixo */ }
+        if (!cfg || !cfg.clientId || !cfg.region) { showAuthError('auth_genesys_unavailable'); return; }
+        const arr = new Uint8Array(16); crypto.getRandomValues(arr);
+        const state = Array.from(arr, b => b.toString(16).padStart(2, '0')).join('');
+        sessionStorage.setItem('vv_oauth_state', state);
+        sessionStorage.setItem('vv_oauth_region', cfg.region);
+        sessionStorage.setItem('vv_tenant_name', cfg.tenant);
+        const redirect = location.origin + location.pathname;
+        location.assign(`https://login.${cfg.region}/oauth/authorize?client_id=${encodeURIComponent(cfg.clientId)}&response_type=token&redirect_uri=${encodeURIComponent(redirect)}&state=${state}`);
+    }
+
+    // Lê o token devolvido pelo Genesys no fragmento da URL e o remove do histórico imediatamente.
+    function consumeOauthRedirect() {
+        if (!/access_token=/.test(location.hash)) return false;
+        const params = new URLSearchParams(location.hash.slice(1));
+        history.replaceState(null, '', location.pathname + location.search);
+        const token = params.get('access_token');
+        const expected = sessionStorage.getItem('vv_oauth_state');
+        sessionStorage.removeItem('vv_oauth_state');
+        const region = sessionStorage.getItem('vv_oauth_region');
+        if (!token || !region || !expected || params.get('state') !== expected) return false;
+        sessionStorage.setItem('vv_oauth_token', token);
+        return true;
     }
 
     function logoutSupervisor() {
-        ['vv_tenant_key', 'vv_tenant_name', 'vv_tenant_plan', 'vv_logged_in'].forEach(k => sessionStorage.removeItem(k));
+        try { sessionStorage.setItem('vv_no_auto', '1'); } catch (e) {}
+        ['vv_tenant_key', 'vv_tenant_name', 'vv_tenant_plan', 'vv_logged_in', 'vv_oauth_token', 'vv_oauth_region', 'vv_oauth_state'].forEach(k => sessionStorage.removeItem(k));
         clearTimeout(reconnectTimer); clearInterval(countdownTimer);
         if (ws) { try { ws.close(); } catch (e) {} }
         location.reload();
     }
 
     function updateTenantDisplay(key, name) {
+        $('tenantBadge').removeAttribute('data-i18n');
         $('tenantBadge').textContent = (name || 'TENANT').split(/\s+/)[0].toUpperCase().slice(0, 12); // nunca exibir parte da chave
         $('tenantOrgDisplay').textContent = name || '--';
     }
 
     /* ---------- Conexão ao vivo (verde / âmbar / vermelho, sempre com texto) ---------- */
-    function setConn(kind, text) {
+    let connState = { kind: 'connecting', key: 'conn_verifying', params: null };
+    function setConn(kind, key, params) {
+        connState = { kind, key, params };
         const cls = { live: 'is-live', connecting: 'is-connecting', down: 'is-down' }[kind];
         const dot = $('liveDotIndicator');
         dot.className = `live-dot ${cls}`;
         $('connPill').className = `conn-pill ${kind}`;
-        $('connStatus').textContent = text;
-        $('btnReconnect').hidden = kind !== 'down' || !activeTenantKey;
-        $('staleBanner').hidden = !(kind === 'down' && activeTenantKey);
+        $('connStatus').textContent = t(key, params);
+        $('btnReconnect').hidden = kind !== 'down' || !hasCred();
+        $('staleBanner').hidden = !(kind === 'down' && hasCred());
     }
 
     let reconnectTimer = null, countdownTimer = null, attempt = 0;
@@ -619,29 +1249,29 @@
         attempt++;
         const delay = Math.min(30, 2 * Math.pow(2, Math.min(attempt - 1, 4)));
         let left = delay;
-        const label = () => setConn('down', `Desconectado — reconectando em ${left}s (tentativa ${attempt})`);
+        const label = () => setConn('down', 'conn_down_retry', { s: left, n: attempt });
         label();
         countdownTimer = setInterval(() => { left = Math.max(0, left - 1); label(); }, 1000);
         reconnectTimer = setTimeout(() => {
             clearInterval(countdownTimer);
-            if (activeTenantKey && sessionStorage.getItem('vv_logged_in')) connectWs();
+            if (hasCred() && sessionStorage.getItem('vv_logged_in')) connectWs();
         }, delay * 1000);
     }
 
     function connectWs() {
-        if (!activeTenantKey) return;
+        if (!hasCred()) return;
         clearTimeout(reconnectTimer); clearInterval(countdownTimer);
         if (ws) { const old = ws; ws = null; try { old.close(); } catch (e) {} }
 
         const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
         const wsUrl = `${protocol}//${location.host}`;
-        setConn('connecting', attempt ? `Reconectando (tentativa ${attempt})...` : 'Conectando...');
+        if (attempt) setConn('connecting', 'conn_reconnecting', { n: attempt }); else setConn('connecting', 'conn_connecting');
         const sock = new WebSocket(wsUrl);
         ws = sock;
 
         sock.onopen = () => {
             if (sock !== ws) return;
-            sock.send(JSON.stringify({ type: 'AUTH', key: activeTenantKey }));
+            sock.send(JSON.stringify(activeOauth ? { type: 'AUTH', oauth: activeOauth } : { type: 'AUTH', key: activeTenantKey }));
         };
 
         sock.onmessage = (event) => {
@@ -650,7 +1280,8 @@
                 const msg = JSON.parse(event.data);
                 if (msg.type === 'INIT_STATE') {
                     attempt = 0;
-                    setConn('live', 'Ao vivo');
+                    hasData = true;
+                    setConn('live', 'conn_live');
                     agentsMap.clear(); stationsMap.clear();
                     if (Array.isArray(msg.agents)) msg.agents.forEach(a => agentsMap.set(akey(a), a));
                     callsList = Array.isArray(msg.callHistory) ? msg.callHistory : [];
@@ -678,7 +1309,8 @@
         sock.onclose = (ev) => {
             if (sock !== ws) return;
             if (ev.code === 4001) {
-                setConn('down', 'Chave recusada');
+                if (activeOauth) { try { sessionStorage.setItem('vv_login_error', 'auth_genesys_refused'); } catch (e) {} }
+                setConn('down', 'conn_key_refused');
                 logoutSupervisor();
                 return;
             }
@@ -687,52 +1319,55 @@
     }
 
     /* ---------- Rede e causa provável (apenas dados já recebidos) ---------- */
+    // Retorna { kind, key } (key = chave do dicionário do rótulo).
     function netInfo(a) {
         const raw = String(a.networkType || '').toUpperCase();
         const norm = raw.replace(/[^A-Z0-9.]/g, '');
         if (/WI_?FI|WIFI|WLAN/.test(raw.replace(/-/g, '_')) || norm.includes('WIFI')) {
-            let label = 'Wi-Fi';
-            if (/OR_CELLULAR|CELULAR|CELLULAR/.test(raw)) label = 'Wi-Fi ou celular';
-            else if (/PROVAVEL/.test(raw)) label = 'Wi-Fi (provável)';
-            else if (/2[._]?4/.test(raw)) label = 'Wi-Fi 2,4 GHz';
-            else if (/(^|[^0-9])5([._]?0)?($|[^0-9])/.test(raw.replace(/WI_?FI/, ''))) label = 'Wi-Fi 5 GHz';
-            return { kind: 'wifi', label };
+            let key = 'net_wifi';
+            if (/OR_CELLULAR|CELULAR|CELLULAR/.test(raw)) key = 'net_wifi_cell';
+            else if (/PROVAVEL/.test(raw)) key = 'net_wifi_prob';
+            else if (/2[._]?4/.test(raw)) key = 'net_wifi24';
+            else if (/(^|[^0-9])5([._]?0)?($|[^0-9])/.test(raw.replace(/WI_?FI/, ''))) key = 'net_wifi5';
+            return { kind: 'wifi', key };
         }
-        if (/ETHERNET|CABO|WIRED|LAN/.test(raw)) return { kind: 'eth', label: 'Ethernet' };
-        if (/CELL|LTE|4G|5G|3G/.test(raw)) return { kind: 'cell', label: 'Celular' };
-        if (raw === 'REDE_ESTAVEL') return { kind: 'unk', label: 'Rede estável' };
-        return { kind: 'unk', label: 'Tipo de rede não informado' };
+        if (/ETHERNET|CABO|WIRED|LAN/.test(raw)) return { kind: 'eth', key: 'net_eth' };
+        if (/CELL|LTE|4G|5G|3G/.test(raw)) return { kind: 'cell', key: 'net_cell' };
+        if (raw === 'REDE_ESTAVEL') return { kind: 'unk', key: 'net_stable' };
+        return { kind: 'unk', key: 'net_unknown' };
     }
 
+    // Os códigos vêm do servidor e não mudam; só o rótulo é traduzido.
     const AUDIO_ISSUE_LABELS = {
-        SEM_AUDIO_RECEBIDO: 'Sem áudio recebido',
-        SEM_AUDIO_ENVIADO: 'Sem áudio enviado',
-        MIC_DESCONECTADO: 'Microfone desconectado',
-        MIC_MUDO_SISTEMA: 'Microfone mudo no sistema'
+        SEM_AUDIO_RECEBIDO: 'audio_SEM_AUDIO_RECEBIDO',
+        SEM_AUDIO_ENVIADO: 'audio_SEM_AUDIO_ENVIADO',
+        MIC_DESCONECTADO: 'audio_MIC_DESCONECTADO',
+        MIC_MUDO_SISTEMA: 'audio_MIC_MUDO_SISTEMA'
     };
+    const audioLabel = (code) => Object.prototype.hasOwnProperty.call(AUDIO_ISSUE_LABELS, code) ? t(AUDIO_ISSUE_LABELS[code]) : undefined;
 
     function isOffline(a) { return a.status === 'OFFLINE'; }
     function isRescue(a) { return !!a.callActive && Number(a.mosScore) < RESCUE_MOS; }
-    function hasAudioIssue(a) { return !!AUDIO_ISSUE_LABELS[a.audioIssue]; }
+    function hasAudioIssue(a) { return Object.prototype.hasOwnProperty.call(AUDIO_ISSUE_LABELS, a.audioIssue); }
     function needsAttention(a) { return !isOffline(a) && (a.status === 'ALERTA' || hasAudioIssue(a) || isRescue(a)); }
 
     // Retorna [{ text, crit }]; vazio = nada anormal nos dados recebidos.
     function causesOf(a) {
-        if (isOffline(a)) return [{ text: 'Estação sem conexão com o relay', crit: false }];
+        if (isOffline(a)) return [{ text: t('cause_offline'), crit: false }];
         const out = [];
-        if (hasAudioIssue(a)) out.push({ text: AUDIO_ISSUE_LABELS[a.audioIssue], crit: true });
+        if (hasAudioIssue(a)) out.push({ text: audioLabel(a.audioIssue), crit: true });
         const loss = Number(a.lossPct), jit = Number(a.jitterMs), rtt = Number(a.rttMs);
         const net = [];
-        if (loss >= 2) net.push(`perda de pacotes alta (${loss}%)`);
-        if (jit > 30) net.push(`jitter alto (${jit} ms)`);
-        if (rtt > 150) net.push(`latência alta (${rtt} ms)`);
+        if (loss >= 2) net.push(t('cause_loss', { v: loss }));
+        if (jit > 30) net.push(t('cause_jitter', { v: jit }));
+        if (rtt > 150) net.push(t('cause_rtt', { v: rtt }));
         if (net.length) {
-            const txt = netInfo(a).kind === 'wifi' ? `Wi-Fi instável: ${net.join(', ')}` : net.join(', ').replace(/^./, c => c.toUpperCase());
+            const txt = netInfo(a).kind === 'wifi' ? t('cause_wifi', { list: net.join(', ') }) : net.join(', ').replace(/^./, c => c.toUpperCase());
             out.push({ text: txt, crit: loss >= 5 || jit > 60 });
         }
-        if (a.cpuStress === 'ALTO_CONSUMO_RAM') out.push({ text: 'Máquina com consumo alto de memória', crit: false });
-        if (!out.length && isRescue(a)) out.push({ text: `Qualidade de voz baixa (MOS ${a.mosScore}) sem causa isolada nos dados recebidos`, crit: true });
-        if (!out.length && a.status === 'ALERTA') out.push({ text: 'Alerta reportado pela estação, sem causa identificada nos dados recebidos', crit: false });
+        if (a.cpuStress === 'ALTO_CONSUMO_RAM') out.push({ text: t('cause_ram'), crit: false });
+        if (!out.length && isRescue(a)) out.push({ text: t('cause_low_mos', { v: a.mosScore }), crit: true });
+        if (!out.length && a.status === 'ALERTA') out.push({ text: t('cause_alert'), crit: false });
         return out;
     }
 
@@ -740,7 +1375,7 @@
     function allTowers() {
         const set = new Set(initTowers);
         agentsMap.forEach(a => { if (a.tower) set.add(String(a.tower)); });
-        return Array.from(set).sort((x, y) => x.localeCompare(y, 'pt-BR'));
+        return Array.from(set).sort((x, y) => x.localeCompare(y, loc()));
     }
     const towerOk = (o) => !ui.tower || String(o.tower || '') === ui.tower;
 
@@ -751,12 +1386,12 @@
         if (towers.length === 0) { box.hidden = true; fld.hidden = true; return; }
         box.hidden = false;
         if (towers.length === 1) {
-            box.innerHTML = `<span class="muted">Torre:</span> <span class="org-name">${esc(towers[0])}</span>`;
+            box.innerHTML = `<span class="muted">${esc(t('tower_label'))}</span> <span class="org-name">${esc(towers[0])}</span>`;
             fld.hidden = true;
             return;
         }
-        const opts = [`<option value="">Todas as torres (${towers.length})</option>`].concat(towers.map(t => `<option value="${esc(t)}"${t === ui.tower ? ' selected' : ''}>${esc(t)}</option>`)).join('');
-        if (!box.querySelector('select')) box.innerHTML = `<label for="towerSelect" class="muted">Torre:</label> <select id="towerSelect" aria-label="Selecionar torre"></select>`;
+        const opts = [`<option value="">${esc(t('tower_all', { n: towers.length }))}</option>`].concat(towers.map(x => `<option value="${esc(x)}"${x === ui.tower ? ' selected' : ''}>${esc(x)}</option>`)).join('');
+        if (!box.querySelector('select')) box.innerHTML = `<label for="towerSelect" class="muted">${esc(t('tower_label'))}</label> <select id="towerSelect" aria-label="${esc(t('tower_select_aria'))}"></select>`;
         const sel = box.querySelector('select');
         if (sel.dataset.sig !== opts) { sel.innerHTML = opts; sel.dataset.sig = opts; }
         sel.value = ui.tower;
@@ -781,7 +1416,7 @@
     function sortAgents(list) {
         const num = (v, d) => { const n = parseFloat(v); return isNaN(n) ? d : n; };
         const txt = (v) => String(v || '');
-        const byStation = (x, y) => txt(x.station).localeCompare(txt(y.station), 'pt-BR', { numeric: true });
+        const byStation = (x, y) => txt(x.station).localeCompare(txt(y.station), loc(), { numeric: true });
         const cmp = {
             priority: (x, y) => {
                 const rank = (a) => needsAttention(a) ? 0 : (isOffline(a) ? 2 : 1);
@@ -792,7 +1427,7 @@
             jitter: (x, y) => num(y.jitterMs, -1) - num(x.jitterMs, -1) || byStation(x, y),
             loss: (x, y) => num(y.lossPct, -1) - num(x.lossPct, -1) || byStation(x, y),
             station: byStation,
-            operator: (x, y) => txt(x.operator).localeCompare(txt(y.operator), 'pt-BR') || byStation(x, y)
+            operator: (x, y) => txt(x.operator).localeCompare(txt(y.operator), loc()) || byStation(x, y)
         }[ui.sort] || byStation;
         return list.sort(cmp);
     }
@@ -814,12 +1449,31 @@
         }
     }
 
+    /* Pré-check: o servidor envia id/status/valor/orientacao em português; localizamos por id. */
+    const PRECHECK_BADGE = { PRONTA: 'badge-ok', ATENCAO: 'badge-warn', NAO_PRONTA: 'badge-danger' };
+    const PRECHECK_VALUE_KEYS = {
+        'conectado': 'pcv_conectado', 'desconectado': 'pcv_desconectado', 'sem medição': 'pcv_sem_medicao',
+        'detectado': 'pcv_detectado', 'não detectado': 'pcv_nao_detectado',
+        'detectada': 'pcv_detectada', 'não detectada': 'pcv_nao_detectada'
+    };
+    const pcLabel = (s) => tHas('pc_' + s) ? t('pc_' + s) : s;
+    const pcName = (id) => tHas('pc_n_' + id) ? t('pc_n_' + id) : id;
+    function pcHint(i) {
+        if (i.status === 'ok') return '';
+        return tHas('pc_o_' + i.id) ? t('pc_o_' + i.id) : (i.orientacao || '');
+    }
+    function pcValue(v) {
+        const s = String(v ?? '');
+        if (Object.prototype.hasOwnProperty.call(PRECHECK_VALUE_KEYS, s)) return t(PRECHECK_VALUE_KEYS[s]);
+        return s.replace(/(\d+|\?) núcleos/, (m, n) => `${n} ${t('pcv_cores')}`);
+    }
+
     function renderHealth() {
         const tbody = $('healthTableBody');
         const all = Array.from(stationsMap.values()).filter(towerOk);
         if (all.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="5" class="empty">Nenhuma estação executou o pré-check ou reportou latência de API ainda.</td></tr>`;
-            $('healthNote').textContent = 'A latência é agregada por servidor (hostname) em janelas de 30 s; endereços completos, caminhos e identificadores não são coletados.';
+            tbody.innerHTML = `<tr><td colspan="5" class="empty">${esc(t('health_empty'))}</td></tr>`;
+            $('healthNote').textContent = t('health_note');
             return;
         }
         const sev = { NAO_PRONTA: 0, ATENCAO: 1, PRONTA: 2 };
@@ -829,55 +1483,53 @@
         tbody.innerHTML = list.map(st => {
             const pc = st.precheck;
             const pcCell = pc
-                ? `<span class="badge ${PRECHECK_BADGE[pc.status] || 'badge-warn'}">${esc(PRECHECK_LABELS[pc.status] || pc.status)}</span> <span class="muted">${esc(new Date(pc.checkedAt).toLocaleTimeString('pt-BR'))}</span>`
-                : `<span class="muted">Não executado</span>`;
-            const issues = pc ? pc.itens.filter(i => i.status !== 'ok').map(i => `${esc(PRECHECK_ITEM_NAMES[i.id] || i.id)}: ${esc(i.valor)}`).join(' · ') : '';
+                ? `<span class="badge ${PRECHECK_BADGE[pc.status] || 'badge-warn'}">${esc(pcLabel(pc.status))}</span> <span class="muted">${esc(fmtDate(pc.checkedAt))}</span>`
+                : `<span class="muted">${esc(t('health_not_run'))}</span>`;
+            const issues = pc ? (pc.itens || []).filter(i => i.status !== 'ok').map(i => {
+                const hint = pcHint(i);
+                return `<div class="pc-item"><b>${esc(pcName(i.id))}</b>: ${esc(pcValue(i.valor))}${hint ? `<div class="pc-hint">${esc(hint)}</div>` : ''}</div>`;
+            }).join('') : '';
+            const issuesBlock = issues ? `<div class="cell-block">${issues}</div>` : '';
             const apiCell = st.api && st.api.hosts.length
-                ? st.api.hosts.map(h => `<div>${esc(h.host)} — <b>${esc(h.p95Ms)} ms</b> · ${esc(h.errors)} erro(s) em ${esc(h.count)}</div>`).join('')
-                : `<span class="muted">Sem dados</span>`;
+                ? st.api.hosts.map(h => `<div>${esc(h.host)} — <b>${esc(h.p95Ms)} ms</b> · ${esc(t('health_api_line', { err: h.errors, count: h.count }))}</div>`).join('')
+                : `<span class="muted">${esc(t('health_no_data'))}</span>`;
+            const apiBlock = `<div class="cell-block">${apiCell}</div>`;
             return `<tr>
-                <td data-label="Estação / PA"><b>${esc(st.station)}</b></td>
-                <td data-label="Operador">${esc(st.operator)}</td>
-                <td data-label="Pré-check">${pcCell}</td>
-                <td data-label="Atenção">${issues || '<span class="muted">—</span>'}</td>
-                <td data-label="APIs do CCaaS">${apiCell}</td>
+                <td data-label="${esc(t('health_station'))}"><b>${esc(st.station)}</b></td>
+                <td data-label="${esc(t('health_operator'))}">${esc(st.operator)}</td>
+                <td data-label="${esc(t('dl_precheck'))}">${pcCell}</td>
+                <td data-label="${esc(t('dl_attn'))}">${issuesBlock || '<span class="muted">—</span>'}</td>
+                <td data-label="${esc(t('dl_apis'))}">${apiBlock}</td>
             </tr>`;
         }).join('');
-        $('healthNote').textContent = (all.length > LIMIT ? `Mostrando as ${LIMIT} estações mais críticas de ${all.length}. ` : '') +
-            'A latência é agregada por servidor (hostname) em janelas de 30 s; endereços completos, caminhos e identificadores não são coletados.';
+        $('healthNote').textContent = (all.length > LIMIT ? t('health_limit', { n: LIMIT, total: all.length }) : '') + t('health_note');
     }
-    const PRECHECK_LABELS = { PRONTA: 'Pronta', ATENCAO: 'Atenção', NAO_PRONTA: 'Não pronta' };
-    const PRECHECK_BADGE = { PRONTA: 'badge-ok', ATENCAO: 'badge-warn', NAO_PRONTA: 'badge-danger' };
-    const PRECHECK_ITEM_NAMES = {
-        relay: 'Servidor', rede: 'Rede', rede_rtt: 'Latência', rede_jitter: 'Jitter', rede_perda: 'Perda de pacotes',
-        microfone: 'Microfone', saida_audio: 'Saída de áudio', conexao: 'Conexão', hardware: 'Equipamento'
-    };
 
     function statusBadge(a) {
-        if (isOffline(a)) return `<span class="badge badge-offline"><span class="badge-sym" aria-hidden="true">○</span>Offline</span>`;
-        if (needsAttention(a)) return `<span class="badge badge-danger"><span class="badge-sym" aria-hidden="true">▲</span>${a.status === 'ALERTA' || !isRescue(a) ? 'Alerta' : 'Risco'}</span>`;
-        return `<span class="badge badge-ok"><span class="badge-sym" aria-hidden="true">✓</span>OK</span>`;
+        if (isOffline(a)) return `<span class="badge badge-offline"><span class="badge-sym" aria-hidden="true">○</span>${esc(t('badge_offline'))}</span>`;
+        if (needsAttention(a)) return `<span class="badge badge-danger"><span class="badge-sym" aria-hidden="true">▲</span>${esc(a.status === 'ALERTA' || !isRescue(a) ? t('badge_alert') : t('badge_risk'))}</span>`;
+        return `<span class="badge badge-ok"><span class="badge-sym" aria-hidden="true">✓</span>${esc(t('badge_ok'))}</span>`;
     }
 
     function netBadge(a) {
         const n = netInfo(a);
         const cls = n.kind === 'wifi' ? 'badge-warn' : 'badge-neutral';
-        return `<span class="badge ${cls}">${esc(n.label)}</span>`;
+        return `<span class="badge ${cls}">${esc(t(n.key))}</span>`;
     }
 
     function causeCell(a) {
         const c = causesOf(a);
-        if (!c.length) return `<span class="muted">Sem anormalidades</span>`;
-        return `<div class="cause">${esc(c[0].text)}${c.length > 1 ? ` <span class="more">+${c.length - 1} fator(es)</span>` : ''}</div>`;
+        if (!c.length) return `<span class="muted">${esc(t('no_anomaly'))}</span>`;
+        return `<div class="cause">${esc(c[0].text)}${c.length > 1 ? ` <span class="more">${esc(tn('cause_more', c.length - 1))}</span>` : ''}</div>`;
     }
 
     function renderLive(agents) {
         const online = agents.filter(a => !isOffline(a));
-        $('cardTotalAgents').textContent = online.length;
-        $('hintTotalAgents').textContent = agents.length > online.length ? `${agents.length - online.length} offline` : '';
+        $('cardTotalAgents').textContent = fmtNum(online.length);
+        $('hintTotalAgents').textContent = agents.length > online.length ? t('hint_offline', { n: fmtNum(agents.length - online.length) }) : '';
         const okCount = online.filter(a => !needsAttention(a)).length;
-        $('cardAgentsOk').textContent = online.length ? `${Math.round((okCount / online.length) * 100)}%` : '—';
-        $('hintAgentsOk').textContent = online.length ? `${okCount} de ${online.length}` : '';
+        $('cardAgentsOk').textContent = online.length ? `${fmtNum(Math.round((okCount / online.length) * 100))}%` : '—';
+        $('hintAgentsOk').textContent = online.length ? t('hint_of', { a: fmtNum(okCount), b: fmtNum(online.length) }) : '';
 
         let totalMos = 0, mosN = 0, totalJ = 0, jN = 0, wifi = 0;
         online.forEach(a => {
@@ -885,24 +1537,23 @@
             const j = parseFloat(a.jitterMs); if (!isNaN(j)) { totalJ += j; jN++; }
         });
         online.forEach(a => { if (netInfo(a).kind === 'wifi') wifi++; });
-        $('cardAvgMos').textContent = mosN ? (totalMos / mosN).toFixed(2) : '—';
-        $('cardAvgJitter').textContent = jN ? `${(totalJ / jN).toFixed(1)}ms` : '—';
-        $('biWifiIssues').textContent = `${wifi} PAs`;
-        $('biAudioIssues').textContent = `${online.filter(hasAudioIssue).length} PAs`;
+        $('cardAvgMos').textContent = mosN ? fmtNum(totalMos / mosN, 2) : '—';
+        $('cardAvgJitter').textContent = jN ? `${fmtNum(totalJ / jN, 1)}ms` : '—';
+        $('biWifiIssues').textContent = tn('bi_pas', wifi, { n: fmtNum(wifi) });
+        const audioN = online.filter(hasAudioIssue).length;
+        $('biAudioIssues').textContent = tn('bi_pas', audioN, { n: fmtNum(audioN) });
 
         // Faixa de atenção
         const attn = online.filter(needsAttention);
         const bar = $('attentionBar');
         bar.className = 'attention ' + (attn.length ? 'has-alert' : 'is-clear');
-        $('attentionTitle').textContent = attn.length
-            ? `${attn.length} ${attn.length === 1 ? 'PA precisa' : 'PAs precisam'} de atenção agora`
-            : 'Nenhuma PA precisa de atenção agora';
+        $('attentionTitle').textContent = attn.length ? tn('attn_title', attn.length, { n: fmtNum(attn.length) }) : t('attn_none');
         const aud = attn.filter(hasAudioIssue).length, resc = attn.filter(isRescue).length;
-        $('attentionSub').textContent = attn.length ? `${aud} com falha de áudio · ${resc} com risco de queda em chamada` : '';
+        $('attentionSub').textContent = attn.length ? t('attn_sub', { a: fmtNum(aud), r: fmtNum(resc) }) : '';
         const btnA = $('btnAttention');
         btnA.hidden = attn.length === 0 && ui.status !== 'attention';
         btnA.setAttribute('aria-pressed', String(ui.status === 'attention'));
-        btnA.textContent = ui.status === 'attention' ? 'Mostrar todas as PAs' : 'Ver só as que precisam de atenção';
+        btnA.textContent = ui.status === 'attention' ? t('btn_attn_all') : t('btn_attn_only');
 
         // Lista filtrada, ordenada e paginada
         const q = ui.q.trim().toLowerCase();
@@ -912,9 +1563,9 @@
         const from = ui.page * PAGE_SIZE;
         const slice = list.slice(from, from + PAGE_SIZE);
 
-        $('resultCount').textContent = agents.length === 0 ? '' : `${list.length} de ${agents.length} PAs${(q || ui.status !== 'all') ? ' (filtros ativos)' : ''}`;
-        $('pagerInfo').textContent = list.length ? `Mostrando ${from + 1}–${from + slice.length} de ${list.length}` : 'Nenhuma PA para mostrar';
-        $('pagerPage').textContent = `Página ${ui.page + 1} de ${pages}`;
+        $('resultCount').textContent = agents.length === 0 ? '' : tn('count', agents.length, { n: fmtNum(list.length), m: fmtNum(agents.length) }) + ((q || ui.status !== 'all') ? t('count_filtered') : '');
+        $('pagerInfo').textContent = list.length ? t('pager_info', { a: fmtNum(from + 1), b: fmtNum(from + slice.length), n: fmtNum(list.length) }) : t('pager_none');
+        $('pagerPage').textContent = t('pager_page', { p: fmtNum(ui.page + 1), n: fmtNum(pages) });
         $('btnPrev').disabled = ui.page <= 0;
         $('btnNext').disabled = ui.page >= pages - 1;
         document.querySelector('.pager').hidden = list.length <= PAGE_SIZE;
@@ -922,59 +1573,63 @@
         const tbody = $('agentsTableBody');
         keepFocus(tbody, 'data-open-agent', () => {
             if (agents.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="11" class="empty">Nenhuma PA conectada a este tenant.</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="11" class="empty">${esc(t('empty_no_agents'))}</td></tr>`;
             } else if (slice.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="11" class="empty">Nenhuma PA corresponde aos filtros. Use "Limpar filtros".</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="11" class="empty">${esc(t('empty_no_match'))}</td></tr>`;
             } else {
                 tbody.innerHTML = slice.map(a => {
                     const key = akey(a);
-                    const audioLabel = AUDIO_ISSUE_LABELS[a.audioIssue];
-                    const audioFlag = audioLabel ? `<div class="txt-crit">${esc(audioLabel)}</div>` : '';
-                    const callStatus = (a.callActive ? `<span class="txt-ok">Em chamada (${esc((a.currentCallId || '').slice(-6))})</span>` : `<span class="muted">Livre</span>`) + audioFlag;
+                    const al = audioLabel(a.audioIssue);
+                    const audioFlag = al ? `<div class="txt-crit">${esc(al)}</div>` : '';
+                    const callStatus = (a.callActive ? `<span class="txt-ok">${esc(t('call_on', { id: (a.currentCallId || '').slice(-6) }))}</span>` : `<span class="muted">${esc(t('call_free'))}</span>`) + audioFlag;
                     const cpuBadge = a.cpuStress === 'ALTO_CONSUMO_RAM'
-                        ? `<span class="badge badge-danger">Alta carga</span>` : `<span class="badge badge-neutral">Normal</span>`;
+                        ? `<span class="badge badge-danger">${esc(t('load_high'))}</span>` : `<span class="badge badge-neutral">${esc(t('load_normal'))}</span>`;
                     const rescue = isRescue(a);
                     const mosDisplay = rescue
-                        ? `<b class="txt-crit">${esc(a.mosScore)} (risco de queda)</b>`
-                        : `<b>${esc(a.mosScore ?? 'N/D')}</b> <span class="muted">/ 4.50</span>`;
+                        ? `<b class="txt-crit">${esc(a.mosScore)} ${esc(t('mos_risk'))}</b>`
+                        : `<b>${esc(a.mosScore ?? t('na'))}</b> <span class="muted">/ 4.50</span>`;
                     const fb = cmdFeedback.get(key);
-                    const cmdFlag = fb && fb.state === 'queued' ? `<span class="cmd-flag">Limpeza enfileirada para o pós-chamada</span>` : '';
+                    const cmdFlag = fb && fb.state === 'queued' ? `<span class="cmd-flag">${esc(t('cmd_flag_queued'))}</span>` : '';
                     const name = `${a.station || a.agentId}${a.operator ? ' — ' + a.operator : ''}`;
                     return `<tr class="${rescue ? 'row-crit' : (needsAttention(a) ? 'row-attn' : '')}${ui.selected === key ? ' row-selected' : ''}">
-                        <td data-label="Status">${statusBadge(a)}</td>
-                        <td data-label="Plataforma"><span class="plat">${esc(a.platform || 'WebRTC')}</span></td>
-                        <td data-label="Estação / PA"><b>${esc(a.station)}</b>${a.tower ? ` <span class="muted">· ${esc(a.tower)}</span>` : ''}</td>
-                        <td data-label="Operador">${esc(a.operator)}</td>
-                        <td data-label="Rede">${netBadge(a)}</td>
-                        <td data-label="Carga">${cpuBadge}</td>
-                        <td data-label="MOS">${mosDisplay}</td>
-                        <td data-label="RTT | Jitter | Perda" class="num">${esc(a.rttMs || 0)} ms | ${esc(a.jitterMs || 0)} ms | ${esc(a.lossPct || 0)}%</td>
-                        <td data-label="Chamada">${callStatus}</td>
-                        <td data-label="Causa provável">${causeCell(a)}</td>
-                        <td class="cell-action">${cmdFlag}<button class="btn-action" type="button" data-open-agent="${esc(key)}" aria-label="Abrir detalhes da PA ${esc(name)}">Detalhes</button></td>
+                        <td data-label="${esc(t('col_status'))}">${statusBadge(a)}</td>
+                        <td data-label="${esc(t('col_platform'))}"><span class="plat">${esc(a.platform || 'WebRTC')}</span></td>
+                        <td data-label="${esc(t('col_station'))}"><b>${esc(a.station)}</b>${a.tower ? ` <span class="muted">· ${esc(a.tower)}</span>` : ''}</td>
+                        <td data-label="${esc(t('col_operator'))}">${esc(a.operator)}</td>
+                        <td data-label="${esc(t('col_network'))}">${netBadge(a)}</td>
+                        <td data-label="${esc(t('col_load'))}">${cpuBadge}</td>
+                        <td data-label="${esc(t('col_mos'))}">${mosDisplay}</td>
+                        <td data-label="${esc(t('col_rtt'))}" class="num">${esc(a.rttMs || 0)} ms | ${esc(a.jitterMs || 0)} ms | ${esc(a.lossPct || 0)}%</td>
+                        <td data-label="${esc(t('col_call'))}">${callStatus}</td>
+                        <td data-label="${esc(t('col_cause'))}">${causeCell(a)}</td>
+                        <td class="cell-action">${cmdFlag}<button class="btn-action" type="button" data-open-agent="${esc(key)}" aria-label="${esc(t('details_aria', { name }))}">${esc(t('btn_details'))}</button></td>
                     </tr>`;
                 }).join('');
             }
         });
     }
 
+    const CLASS_KEYS = { 'EXCELENTE': 'cls_exc', 'BOA': 'cls_good', 'DEGRADADA': 'cls_deg', 'CRÍTICA': 'cls_crit' };
+    const classLabel = (c) => Object.prototype.hasOwnProperty.call(CLASS_KEYS, c) ? t(CLASS_KEYS[c]) : c;
+    const rootCauseLabel = (c) => tHas('rc_' + c) ? t('rc_' + c) : c;
+
     function renderCalls() {
         const calls = callsList.filter(towerOk);
-        $('cardTotalCalls').textContent = calls.length;
+        $('cardTotalCalls').textContent = fmtNum(calls.length);
         const good = calls.filter(c => c.classificacao === 'EXCELENTE' || c.classificacao === 'BOA').length;
         if (calls.length >= MIN_SAMPLE_CALLS) {
-            $('cardSuccessCalls').textContent = `${Math.round((good / calls.length) * 100)}%`;
-            $('hintSuccessCalls').textContent = `${good} de ${calls.length} chamadas`;
+            $('cardSuccessCalls').textContent = `${fmtNum(Math.round((good / calls.length) * 100))}%`;
+            $('hintSuccessCalls').textContent = t('hint_calls_of', { a: fmtNum(good), b: fmtNum(calls.length) });
         } else {
-            $('cardSuccessCalls').textContent = calls.length ? `${good} de ${calls.length}` : '—';
-            $('hintSuccessCalls').textContent = `Amostra insuficiente (mín. ${MIN_SAMPLE_CALLS} chamadas)`;
+            $('cardSuccessCalls').textContent = calls.length ? t('hint_of', { a: fmtNum(good), b: fmtNum(calls.length) }) : '—';
+            $('hintSuccessCalls').textContent = t('hint_sample', { n: MIN_SAMPLE_CALLS });
         }
 
         const SHOW = 50;
-        $('callsCount').textContent = calls.length > SHOW ? `Mostrando as ${SHOW} chamadas mais recentes de ${calls.length}.` : '';
+        $('callsCount').textContent = calls.length > SHOW ? t('calls_limit', { n: SHOW, total: fmtNum(calls.length) }) : '';
         const tbody = $('callsTableBody');
         if (calls.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="10" class="empty">Nenhuma chamada finalizada neste turno.</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="10" class="empty">${esc(t('calls_empty'))}</td></tr>`;
             return;
         }
         tbody.innerHTML = calls.slice(0, SHOW).map(c => {
@@ -982,18 +1637,22 @@
             const sym = c.classificacao === 'CRÍTICA' ? '▲' : (c.classificacao === 'DEGRADADA' ? '!' : '✓');
             const durMin = Math.floor((c.durationSeconds || 0) / 60);
             const durSec = (c.durationSeconds || 0) % 60;
+            const audioLine = (c.incidentesAudio && c.incidentesAudio.length)
+                ? `<div class="txt-crit" style="font-size: var(--fs-xs); margin-top: 2px;">${esc(t('calls_audio', { list: c.incidentesAudio.map(code => audioLabel(code) || code).join(', ') }))}</div>` : '';
+            const rcLine = (c.causaRaiz && c.causaRaiz !== 'N/D' && c.causaRaiz !== 'REDE_HOMOLOGADA')
+                ? `<div class="muted" style="font-size: var(--fs-xs); margin-top: 2px;">${esc(t('calls_cause', { c: rootCauseLabel(c.causaRaiz) }))}</div>` : '';
             return `
                 <tr>
-                    <td data-label="Classificação"><span class="badge ${tagClass}"><span class="badge-sym" aria-hidden="true">${sym}</span>${esc(c.classificacao)}</span>${(c.incidentesAudio && c.incidentesAudio.length) ? `<div class="txt-crit" style="font-size: var(--fs-xs); margin-top: 2px;">Áudio: ${esc(c.incidentesAudio.map(code => AUDIO_ISSUE_LABELS[code] || code).join(', '))}</div>` : ''}</td>
-                    <td data-label="Plataforma"><span class="plat">${esc(c.platform || 'WebRTC')}</span></td>
-                    <td data-label="ID da interação"><code>${esc(c.interactionId)}</code></td>
-                    <td data-label="Operador / PA">${esc(c.operator)} (${esc(c.station)})</td>
-                    <td data-label="Horário">${esc(c.startTime ? new Date(c.startTime).toLocaleTimeString('pt-BR') : '--:--')}</td>
-                    <td data-label="Duração">${durMin}m ${durSec}s</td>
-                    <td data-label="MOS médio / mín."><b>${esc(c.mosMedio)}</b> / ${esc(c.mosMinimo)}</td>
-                    <td data-label="Jitter pico">${esc(c.jitterPicoMs)}ms</td>
-                    <td data-label="Perda">${esc(c.perdaPacotesPct)}%</td>
-                    <td data-label="Protocolo">${esc(c.protocolo)}</td>
+                    <td data-label="${esc(t('calls_col_class'))}"><span class="badge ${tagClass}"><span class="badge-sym" aria-hidden="true">${sym}</span>${esc(classLabel(c.classificacao))}</span>${audioLine}${rcLine}</td>
+                    <td data-label="${esc(t('calls_col_platform'))}"><span class="plat">${esc(c.platform || 'WebRTC')}</span></td>
+                    <td data-label="${esc(t('calls_col_id'))}"><code>${esc(c.interactionId)}</code></td>
+                    <td data-label="${esc(t('calls_col_op'))}">${esc(c.operator)} (${esc(c.station)})</td>
+                    <td data-label="${esc(t('calls_col_time'))}">${esc(c.startTime ? fmtDate(c.startTime, '--:--') : '--:--')}</td>
+                    <td data-label="${esc(t('calls_col_dur'))}">${esc(t('dur_fmt', { m: durMin, s: durSec }))}</td>
+                    <td data-label="${esc(t('calls_col_mos'))}"><b>${esc(c.mosMedio)}</b> / ${esc(c.mosMinimo)}</td>
+                    <td data-label="${esc(t('calls_col_jitter'))}">${esc(c.jitterPicoMs)}ms</td>
+                    <td data-label="${esc(t('calls_col_loss'))}">${esc(c.perdaPacotesPct)}%</td>
+                    <td data-label="${esc(t('calls_col_proto'))}">${esc(c.protocolo)}</td>
                 </tr>`;
         }).join('');
     }
@@ -1030,7 +1689,8 @@
         }
     }
 
-    function fmtDate(v) { const d = new Date(v); return isNaN(d) ? '—' : d.toLocaleTimeString('pt-BR'); }
+    function fmtDate(v, fallback = '—') { const d = new Date(v); return isNaN(d) ? fallback : d.toLocaleTimeString(loc()); }
+    const fbText = (fb) => fb.key ? t(fb.key, fb.params) : fb.raw;
 
     function renderPanel() {
         const panel = $('agentPanel');
@@ -1039,8 +1699,8 @@
         const body = $('apBody');
         keepFocus(body, 'data-keep', () => {
             if (!a) {
-                $('apTitle').textContent = 'PA indisponível';
-                body.innerHTML = `<p>Esta PA não está mais na lista (saiu do relay ou foi removida).</p>`;
+                $('apTitle').textContent = t('ap_gone_title');
+                body.innerHTML = `<p>${esc(t('ap_gone_body'))}</p>`;
                 return;
             }
             const n = netInfo(a);
@@ -1049,40 +1709,40 @@
             $('apTitle').textContent = `${a.station || a.agentId}${a.operator ? ' — ' + a.operator : ''}`;
             const causeHtml = causes.length
                 ? causes.map(c => `<li class="${c.crit ? 'crit' : ''}">${esc(c.text)}</li>`).join('')
-                : `<li class="none">Sem anormalidades nos dados recebidos.</li>`;
+                : `<li class="none">${esc(t('ap_no_anomaly'))}</li>`;
             let cmdHtml;
             if (ui.confirming === ui.selected) {
-                cmdHtml = `<p><b>Confirmar limpeza segura de cache na estação ${esc(a.station || a.agentId)}?</b><br>${a.callActive ? 'A PA está em chamada: o comando será enfileirado e só executa no pós-chamada.' : 'A PA está livre: o comando será executado agora.'}</p>
-                    <div class="row"><button class="btn-danger" type="button" data-confirm-clear data-keep="confirm">Confirmar limpeza</button>
-                    <button class="btn-quiet" type="button" data-cancel-clear data-keep="cancel">Cancelar</button></div>`;
+                cmdHtml = `<p><b>${esc(t('cmd_confirm_q', { st: a.station || a.agentId }))}</b><br>${esc(a.callActive ? t('cmd_confirm_incall') : t('cmd_confirm_free'))}</p>
+                    <div class="row"><button class="btn-danger" type="button" data-confirm-clear data-keep="confirm">${esc(t('cmd_confirm_btn'))}</button>
+                    <button class="btn-quiet" type="button" data-cancel-clear data-keep="cancel">${esc(t('cmd_cancel'))}</button></div>`;
             } else {
-                cmdHtml = `<p>Remove o cache de telefonia da estação. Durante uma chamada ativa o comando não executa: fica enfileirado para o pós-chamada.</p>
-                    <div class="row"><button class="btn-action" type="button" data-clear-agent="${esc(ui.selected)}" data-keep="clear" ${isOffline(a) ? 'disabled' : ''}>Limpar cache</button></div>${isOffline(a) ? '<p class="muted" style="margin-top:8px">Estação offline: indisponível.</p>' : ''}`;
+                cmdHtml = `<p>${esc(t('cmd_desc'))}</p>
+                    <div class="row"><button class="btn-action" type="button" data-clear-agent="${esc(ui.selected)}" data-keep="clear" ${isOffline(a) ? 'disabled' : ''}>${esc(t('cmd_clear'))}</button></div>${isOffline(a) ? `<p class="muted" style="margin-top:8px">${esc(t('cmd_offline'))}</p>` : ''}`;
             }
-            const fbHtml = fb ? `<div class="cmd-state ${esc(fb.state)}" data-cmd-state>${esc(fb.text)} <span class="muted">(${esc(fmtDate(fb.ts))})</span></div>` : '';
+            const fbHtml = fb ? `<div class="cmd-state ${esc(fb.state)}" data-cmd-state>${esc(fbText(fb))} <span class="muted">(${esc(fmtDate(fb.ts))})</span></div>` : '';
             body.innerHTML = `
-                <h3>Situação</h3>
+                <h3>${esc(t('ap_h_status'))}</h3>
                 <dl class="ap-dl">
-                    <dt>Status</dt><dd>${statusBadge(a)}</dd>
-                    <dt>Plataforma</dt><dd>${esc(a.platform || 'WebRTC')}</dd>
-                    ${a.tower ? `<dt>Torre</dt><dd>${esc(a.tower)}</dd>` : ''}
-                    <dt>ID da PA</dt><dd><code>${esc(a.agentId)}</code></dd>
-                    <dt>Chamada</dt><dd>${a.callActive ? `Em chamada (${esc(a.currentCallId || 'sem ID')})` : 'Livre'}</dd>
-                    <dt>Última leitura</dt><dd>${esc(fmtDate(a.lastSeen))}</dd>
+                    <dt>${esc(t('ap_status'))}</dt><dd>${statusBadge(a)}</dd>
+                    <dt>${esc(t('ap_platform'))}</dt><dd>${esc(a.platform || 'WebRTC')}</dd>
+                    ${a.tower ? `<dt>${esc(t('ap_tower'))}</dt><dd>${esc(a.tower)}</dd>` : ''}
+                    <dt>${esc(t('ap_agent_id'))}</dt><dd><code>${esc(a.agentId)}</code></dd>
+                    <dt>${esc(t('ap_call'))}</dt><dd>${esc(a.callActive ? t('call_on', { id: a.currentCallId || t('call_no_id') }) : t('call_free'))}</dd>
+                    <dt>${esc(t('ap_last'))}</dt><dd>${esc(fmtDate(a.lastSeen))}</dd>
                 </dl>
-                <h3>Causa provável</h3>
+                <h3>${esc(t('ap_h_cause'))}</h3>
                 <ul class="ap-causes">${causeHtml}</ul>
-                <h3>Métricas</h3>
+                <h3>${esc(t('ap_h_metrics'))}</h3>
                 <dl class="ap-dl">
-                    <dt>MOS (G.107)</dt><dd>${esc(a.mosScore ?? 'N/D')} / 4.50</dd>
-                    <dt>RTT</dt><dd>${esc(a.rttMs || 0)} ms</dd>
-                    <dt>Jitter</dt><dd>${esc(a.jitterMs || 0)} ms</dd>
-                    <dt>Perda de pacotes</dt><dd>${esc(a.lossPct || 0)}%</dd>
-                    <dt>Rede</dt><dd>${esc(n.label)} <span class="muted">(reportado: ${esc(a.networkType || 'n/d')})</span></dd>
-                    <dt>Protocolo</dt><dd>${esc(a.protocol || 'n/d')}</dd>
-                    <dt>Carga da máquina</dt><dd>${a.cpuStress === 'ALTO_CONSUMO_RAM' ? 'Alta carga' : 'Normal'}</dd>
+                    <dt>${esc(t('ap_mos'))}</dt><dd>${esc(a.mosScore ?? t('na'))} / 4.50</dd>
+                    <dt>${esc(t('ap_rtt'))}</dt><dd>${esc(a.rttMs || 0)} ms</dd>
+                    <dt>${esc(t('ap_jitter'))}</dt><dd>${esc(a.jitterMs || 0)} ms</dd>
+                    <dt>${esc(t('ap_loss'))}</dt><dd>${esc(a.lossPct || 0)}%</dd>
+                    <dt>${esc(t('ap_network'))}</dt><dd>${esc(t(n.key))} <span class="muted">${esc(t('ap_reported', { v: a.networkType || t('na_lc') }))}</span></dd>
+                    <dt>${esc(t('ap_protocol'))}</dt><dd>${esc(a.protocol || t('na_lc'))}</dd>
+                    <dt>${esc(t('ap_load'))}</dt><dd>${esc(a.cpuStress === 'ALTO_CONSUMO_RAM' ? t('load_high') : t('load_normal'))}</dd>
                 </dl>
-                <h3>Remediação pós-chamada</h3>
+                <h3>${esc(t('ap_h_remed'))}</h3>
                 <div class="ap-cmd">${cmdHtml}${fbHtml}</div>`;
         });
     }
@@ -1091,32 +1751,40 @@
         const a = agentsMap.get(key);
         if (!a) return;
         if (!ws || ws.readyState !== WebSocket.OPEN) {
-            cmdFeedback.set(key, { state: 'fail', text: 'Sem conexão com o relay: comando não enviado.', ts: Date.now() });
-            showToast('Sem conexão com o relay: o comando não foi enviado.', 'err');
+            cmdFeedback.set(key, { state: 'fail', key: 'fb_no_conn', ts: Date.now() });
+            showToast(t('toast_no_conn'), 'err');
             renderPanel();
             return;
         }
         ws.send(JSON.stringify({ type: 'SUPERVISOR_COMMAND', targetAgentId: a.agentId, command: 'SAFE_CACHE_CLEAR' }));
-        cmdFeedback.set(key, { state: 'sent', text: 'Comando enviado. Aguardando retorno da PA…', ts: Date.now() });
-        showToast(`Limpeza de cache enviada para a estação ${a.station || a.agentId}.`, 'ok');
+        cmdFeedback.set(key, { state: 'sent', key: 'fb_sent', ts: Date.now() });
+        showToast(t('toast_sent', { who: a.station || a.agentId }), 'ok');
     }
 
+    // Resultado do comando: localiza por result.code; sem code, usa os campos legados e message como fallback.
     function handleCommandFeedback(msg) {
         const key = `${msg.tower || ''}|${msg.agentId}`;
         const r = msg.result || {};
         const a = agentsMap.get(key);
         const who = (a && a.station) || String(msg.agentId);
-        let fb;
-        if (r.inCall) {
-            fb = { state: 'queued', text: 'Enfileirado para o pós-chamada: a PA está em atendimento e a limpeza roda ao encerrar.' };
-            showToast(`Estação ${who}: limpeza enfileirada para o pós-chamada.`, 'warn');
-        } else if (r.success) {
-            fb = { state: 'done', text: 'Cache limpo com sucesso.' };
-            showToast(`Estação ${who}: cache limpo com sucesso.`, 'ok');
-        } else {
-            fb = { state: 'fail', text: r.message || 'Ação não executada.' };
-            showToast(`Estação ${who}: ${r.message || 'ação não executada.'}`, 'err');
+        let outcome = r.code;
+        if (outcome !== 'IN_CALL_QUEUED' && outcome !== 'CACHE_CLEARED' && outcome !== 'CLEAR_FAILED') {
+            outcome = r.inCall ? 'IN_CALL_QUEUED' : (r.success ? 'CACHE_CLEARED' : 'CLEAR_FAILED');
         }
+        let fb, toast;
+        if (outcome === 'IN_CALL_QUEUED') {
+            fb = { state: 'queued', key: 'fb_queued' };
+            toast = ['toast_queued', { who }, 'warn'];
+        } else if (outcome === 'CACHE_CLEARED') {
+            fb = { state: 'done', key: 'fb_done' };
+            toast = ['toast_done', { who }, 'ok'];
+        } else {
+            if (r.code === 'CLEAR_FAILED') fb = { state: 'fail', key: 'fb_clear_failed' };
+            else if (r.message) fb = { state: 'fail', raw: String(r.message) };
+            else fb = { state: 'fail', key: 'fb_fail_default' };
+            toast = ['toast_fail', { who, msg: fb.key ? (fb.key === 'fb_fail_default' ? t('fb_fail_default_lc') : t(fb.key)) : fb.raw }, 'err'];
+        }
+        showToast(t(toast[0], toast[1]), toast[2]);
         fb.ts = Date.now();
         cmdFeedback.set(key, fb);
         scheduleRender();
@@ -1136,6 +1804,7 @@
     function resetPageAndRender() { ui.page = 0; renderAll(); }
 
     document.querySelectorAll('.tab-btn').forEach(b => b.addEventListener('click', () => switchTab(b.dataset.tab)));
+    document.querySelectorAll('.lang-btn').forEach(b => b.addEventListener('click', () => setLang(b.dataset.lang, true)));
     $('btnSubmitLogin').addEventListener('click', authenticateSupervisor);
     $('btnLogout').addEventListener('click', logoutSupervisor);
     $('btnReconnect').addEventListener('click', () => { attempt = 0; connectWs(); });
@@ -1183,8 +1852,21 @@
         }
     });
 
+    setLang(detectLang(), false);
+
     // Inicialização e Route Guard Estrito
     (async function initAuthGuard() {
+        consumeOauthRedirect();
+        const oauthToken = sessionStorage.getItem('vv_oauth_token');
+        if (oauthToken) {
+            activeOauth = { token: oauthToken, region: sessionStorage.getItem('vv_oauth_region') };
+            sessionStorage.setItem('vv_logged_in', 'true');
+            updateTenantDisplay(null, sessionStorage.getItem('vv_tenant_name'));
+            connectWs();
+            return;
+        }
+        const loginError = sessionStorage.getItem('vv_login_error');
+        sessionStorage.removeItem('vv_login_error');
         const candidateKey = sessionStorage.getItem('vv_tenant_key'); // chaves nunca são aceitas via URL (vazam em logs e histórico)
         if (candidateKey) {
             const check = await validateTenantKey(candidateKey);
@@ -1201,6 +1883,9 @@
             }
         }
         showLoginModal();
+        if (loginError) showAuthError(loginError);
+        const tenantParam = (new URLSearchParams(location.search).get('tenant') || '').toUpperCase();
+        if (tenantParam && /^[A-Z0-9_-]{1,64}$/.test(tenantParam) && !loginError && !sessionStorage.getItem('vv_no_auto')) startGenesysLogin(tenantParam);
     })();
 </script>
 

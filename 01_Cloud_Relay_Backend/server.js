@@ -20,6 +20,7 @@ const http = require('http');
 const path = require('path');
 const fs = require('fs');
 const crypto = require('crypto');
+const https = require('https');
 const { WebSocketServer, WebSocket } = require('ws');
 
 const PORT = process.env.PORT !== undefined ? Number(process.env.PORT) : 9090;
@@ -31,6 +32,7 @@ const OFFLINE_TTL_MS = 24 * 60 * 60 * 1000;
 const AUTH_WINDOW_MS = 60000;
 const AUTH_MAX_FAILURES = 20;
 const COMMAND_WHITELIST = new Set(['SAFE_CACHE_CLEAR']);
+const COMMAND_CODES = new Set(['IN_CALL_QUEUED', 'CACHE_CLEARED', 'CLEAR_FAILED']);
 const CALL_CLASSES = new Set(['EXCELENTE', 'BOA', 'DEGRADADA', 'CRÍTICA']);
 const AUDIO_ISSUES = new Set(['NONE', 'MIC_DESCONECTADO', 'MIC_MUDO_SISTEMA', 'SEM_AUDIO_RECEBIDO', 'SEM_AUDIO_ENVIADO']);
 const PRECHECK_STATUS = new Set(['PRONTA', 'ATENCAO', 'NAO_PRONTA']);
@@ -53,7 +55,7 @@ const TOWER_ID_PATTERN = /^[A-Za-z0-9_-]{1,32}$/;
 // Somente desenvolvimento local. Nomes fictícios; NUNCA usados em produção.
 function devTenants() {
     const base = [
-        ['GENESYS-ALLIANCE-EVAL', 'Genesys AppFoundry Alliance Evaluation', 250, 'Enterprise Partner'],
+        ['GENESYS-ALLIANCE-EVAL', 'Genesys AppFoundry Alliance Evaluation', 250, 'Enterprise'],
         ['BPO-APEX-GLOBAL', 'Apex BPO Solutions', 500, 'Enterprise'],
         ['BPO-NEXUS-CORP', 'Nexus Contact Center', 1000, 'Enterprise'],
         ['BPO-STELLAR-CX', 'Stellar Customer Experience', 750, 'Enterprise']
@@ -94,6 +96,7 @@ function validKey(k) { return typeof k === 'string' && k.length >= 8; }
 function buildKeyIndex(tenants) {
     const index = new Map();
     const meta = new Map();
+    const genesys = new Map(); // `${region}|${orgId}` -> { tenantId, roles, towers, clientId }
     const addKey = (tenantId, key, entry) => {
         const h = sha256(key);
         if (index.has(h)) throw new Error(`Tenant ${tenantId}: chave duplicada na configuração.`);
@@ -111,7 +114,7 @@ function buildKeyIndex(tenants) {
             throw new Error(`Tenant ${tenantId}: agentKey e supervisorKey devem ser distintas e ter ao menos 8 caracteres.`);
         }
         const sups = Array.isArray(t.supervisors) ? t.supervisors : [];
-        if (towerIds.length && !hasLegacy && sups.length === 0) {
+        if (towerIds.length && !hasLegacy && sups.length === 0 && t.genesys === undefined) {
             throw new Error(`Tenant ${tenantId}: defina ao menos um supervisor para as torres.`);
         }
         meta.set(tenantId, {
@@ -130,6 +133,18 @@ function buildKeyIndex(tenants) {
             if (!validKey(t.widgetKey)) throw new Error(`Tenant ${tenantId}: widgetKey deve ter ao menos 8 caracteres.`);
             addKey(tenantId, t.widgetKey, { role: 'widget', tower: null, towers: '*' });
         }
+        if (t.genesys !== undefined) {
+            const g = t.genesys;
+            const roles = g && Array.isArray(g.supervisorRoles) ? g.supervisorRoles.filter(r => typeof r === 'string' && r) : [];
+            if (!g || typeof g.orgId !== 'string' || !/^[0-9a-fA-F-]{36}$/.test(g.orgId) || !GENESYS_REGIONS.has(g.region) || roles.length === 0) {
+                throw new Error(`Tenant ${tenantId}: genesys exige orgId (UUID), region conhecida e supervisorRoles não vazio.`);
+            }
+            const gTowers = g.towers === undefined || g.towers === '*' ? '*' : (Array.isArray(g.towers) ? g.towers : []);
+            if (gTowers !== '*') for (const id of gTowers) if (!towerIds.includes(id)) throw new Error(`Tenant ${tenantId}: genesys referencia torre inexistente: ${id}`);
+            const gk = `${g.region}|${g.orgId.toLowerCase()}`;
+            if (genesys.has(gk)) throw new Error(`Tenant ${tenantId}: organização Genesys já vinculada a outro tenant.`);
+            genesys.set(gk, { tenantId, roles: roles.map(r => r.toLowerCase()), towers: gTowers, clientId: typeof g.clientId === 'string' ? g.clientId : '', region: g.region });
+        }
         for (const sup of sups) {
             if (!sup || !validKey(sup.key)) throw new Error(`Tenant ${tenantId}: chave de supervisor deve ter ao menos 8 caracteres.`);
             const towers = sup.towers === '*' ? '*' : (Array.isArray(sup.towers) ? sup.towers : []);
@@ -139,7 +154,42 @@ function buildKeyIndex(tenants) {
             addKey(tenantId, sup.key, { role: 'supervisor', tower: null, towers, supervisorName: String(sup.name || 'Supervisor') });
         }
     }
-    return { index, meta };
+    return { index, meta, genesys };
+}
+
+// ---------------------------------------------------------------------------
+// Login do supervisor com Genesys Cloud (OAuth implicit grant)
+// O console recebe o token do Genesys e o envia na mensagem AUTH; o servidor o valida
+// chamando a API do próprio Genesys, em um host de uma lista fixa (sem SSRF), e só libera
+// o tenant cuja organização (orgId) e região conferem e cujo usuário tem um dos papéis configurados.
+// ---------------------------------------------------------------------------
+
+const GENESYS_REGIONS = new Set([
+    'mypurecloud.com', 'mypurecloud.ie', 'mypurecloud.de', 'mypurecloud.jp', 'mypurecloud.com.au',
+    'usw2.pure.cloud', 'use2.pure.cloud', 'cac1.pure.cloud', 'euw2.pure.cloud', 'euc2.pure.cloud',
+    'aps1.pure.cloud', 'apne2.pure.cloud', 'apne3.pure.cloud', 'sae1.pure.cloud', 'mec1.pure.cloud'
+]);
+const OAUTH_TOKEN_PATTERN = /^[A-Za-z0-9._~+\/=-]{16,2048}$/;
+const OAUTH_SESSION_MAX_MS = 12 * 60 * 60 * 1000;
+
+function genesysUsersMe(token, region) {
+    return new Promise((resolve, reject) => {
+        const req = https.request({
+            host: `api.${region}`, path: '/api/v2/users/me?expand=authorization', method: 'GET',
+            headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' }, timeout: 5000
+        }, (res) => {
+            let body = '';
+            res.setEncoding('utf8');
+            res.on('data', (c) => { body += c; if (body.length > 256 * 1024) req.destroy(new Error('resposta grande demais')); });
+            res.on('end', () => {
+                if (res.statusCode !== 200) return reject(new Error(`HTTP ${res.statusCode}`));
+                try { resolve(JSON.parse(body)); } catch (e) { reject(new Error('resposta inválida')); }
+            });
+        });
+        req.on('timeout', () => req.destroy(new Error('timeout')));
+        req.on('error', reject);
+        req.end();
+    });
 }
 
 function canSee(ws, tower) {
@@ -366,9 +416,10 @@ const SECURITY_HEADERS = {
     ].join('; ')
 };
 
-function createRelay() {
+function createRelay(options = {}) {
     const tenants = loadTenants();
-    const { index: keyIndex, meta: tenantMeta } = buildKeyIndex(tenants);
+    const { index: keyIndex, meta: tenantMeta, genesys: genesysIndex } = buildKeyIndex(tenants);
+    const genesysFetch = options.genesysFetch || genesysUsersMe;
     if (keyIndex.size === 0) throw new Error('Nenhum tenant ativo configurado.');
 
     // tenantId -> { supervisors: Set(ws), agents: Map(agentId, data), callHistory: [] }
@@ -503,6 +554,21 @@ function createRelay() {
             return;
         }
 
+        // Configuração pública do login com Genesys (clientId do OAuth e região; nada secreto)
+        if (url.pathname === '/api/auth-config') {
+            const ip = clientIp(req);
+            if (isRateLimited(ip)) {
+                sendJson(res, 429, { error: 'Muitas tentativas. Aguarde um minuto.' }, { 'Retry-After': '60' });
+                return;
+            }
+            const tid = url.searchParams.get('tenant');
+            const t = typeof tid === 'string' && TENANT_ID_PATTERN.test(tid) ? tenants[tid] : null;
+            const g = t && t.active !== false && t.genesys && typeof t.genesys.clientId === 'string' && t.genesys.clientId ? t.genesys : null;
+            if (!g) { recordFailure(ip); sendJson(res, 404, { error: 'Login com Genesys não configurado.' }); return; }
+            sendJson(res, 200, { provider: 'genesys', region: g.region, clientId: g.clientId, tenant: String(t.name || tid) });
+            return;
+        }
+
         // Roteamento estático: '/' -> landing; '/app', '/login' -> console (o acesso aos dados é validado no WebSocket)
         let target;
         if (url.pathname === '/app' || url.pathname === '/app.html' || url.pathname === '/login' || url.pathname === '/dashboard') target = 'app.html';
@@ -561,10 +627,10 @@ function createRelay() {
 
         let authTimer = null;
 
-        function completeAuth(rawKey, rawAgentId, viaMessage = false, rawConversationId = null) {
+        function completeAuth(rawKey, rawAgentId, viaMessage = false, rawConversationId = null, presetFound = null) {
             if (authTimer) { clearTimeout(authTimer); authTimer = null; }
-            // O papel vem da chave apresentada, nunca de parâmetro declarado pelo cliente.
-            const found = lookupKey(rawKey);
+            // O papel vem da chave apresentada (ou do login Genesys validado no servidor), nunca de parâmetro declarado pelo cliente.
+            const found = presetFound || lookupKey(rawKey);
             if (!found) {
                 recordFailure(ip);
                 reject(ws, 4001, 'Invalid Key', 'Chave inválida ou não autorizada.');
@@ -649,6 +715,31 @@ function createRelay() {
             return true;
         }
 
+        // Login do supervisor com Genesys: o token é validado na API do Genesys antes de qualquer acesso.
+        function authWithGenesys(oauth) {
+            if (authTimer) { clearTimeout(authTimer); authTimer = null; }
+            const deny = () => { recordFailure(ip); reject(ws, 4001, 'Invalid Key', 'Chave inválida ou não autorizada.'); };
+            if (ws.authPending) return;
+            const token = oauth && oauth.token, region = oauth && oauth.region;
+            if (typeof token !== 'string' || !OAUTH_TOKEN_PATTERN.test(token) || typeof region !== 'string' || !GENESYS_REGIONS.has(region) || genesysIndex.size === 0) { deny(); return; }
+            ws.authPending = true;
+            Promise.resolve().then(() => genesysFetch(token, region)).then((me) => {
+                ws.authPending = false;
+                if (ws.readyState !== WebSocket.OPEN) return;
+                const orgId = me && me.organization && typeof me.organization.id === 'string' ? me.organization.id.toLowerCase() : '';
+                const g = genesysIndex.get(`${region}|${orgId}`);
+                const roles = me && me.authorization && Array.isArray(me.authorization.roles) ? me.authorization.roles.map(r => String(r && r.name || '').toLowerCase()) : [];
+                if (!g || !roles.some(r => g.roles.includes(r))) { deny(); return; }
+                const name = typeof me.name === 'string' && me.name ? me.name.slice(0, 64) : 'Supervisor';
+                const ok = completeAuth(null, null, true, null, { tenantId: g.tenantId, role: 'supervisor', tower: null, towers: g.towers, supervisorName: name });
+                if (ok) {
+                    const t = setTimeout(() => { try { ws.close(4002, 'Session Expired'); } catch (e) {} }, OAUTH_SESSION_MAX_MS);
+                    t.unref();
+                    ws.on('close', () => clearTimeout(t));
+                }
+            }).catch(() => { ws.authPending = false; if (ws.readyState === WebSocket.OPEN) deny(); });
+        }
+
         if (url.searchParams.has('key')) {
             if (!urlKeyAllowed()) {
                 recordFailure(ip);
@@ -697,6 +788,7 @@ function createRelay() {
                     reject(ws, 4001, 'Invalid Key', 'Chave inválida ou não autorizada.');
                     return;
                 }
+                if (data.oauth !== undefined) { authWithGenesys(data.oauth); return; }
                 completeAuth(data.key, data.agentId, true, data.conversationId);
                 return;
             }
@@ -820,7 +912,7 @@ function createRelay() {
                                 client.pendingCommands = client.pendingCommands || new Set();
                                 client.pendingCommands.add(data.command);
                                 broadcast(room, { type: 'AGENT_COMMAND_FEEDBACK', agentId: target, tower: client.tower,
-                                    result: { success: false, inCall: true, message: 'Agente em chamada ativa. Comando enfileirado para o pós-chamada.', timestamp: new Date().toISOString(), origin: 'server_in_call_lock' } }, client.tower);
+                                    result: { success: false, inCall: true, code: 'IN_CALL_QUEUED', message: 'Agente em chamada ativa. Comando enfileirado para o pós-chamada.', timestamp: new Date().toISOString(), origin: 'server_in_call_lock' } }, client.tower);
                             } else {
                                 client.send(JSON.stringify({ type: 'EXECUTE_COMMAND', command: data.command, origin: 'supervisor_remote' }));
                             }
@@ -839,6 +931,7 @@ function createRelay() {
                         result: {
                             success: r.success === true,
                             inCall: r.inCall === true,
+                            code: oneOf(r.code, COMMAND_CODES, ''),
                             message: str(r.message, 200, ''),
                             timestamp: isoOrNull(r.timestamp),
                             origin: str(r.origin, 32, '')

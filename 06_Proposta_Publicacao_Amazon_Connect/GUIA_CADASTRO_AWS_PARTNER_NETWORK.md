@@ -63,7 +63,7 @@ Depois de cadastrado no Software Path, você submete a solução para o programa
 * **O que a AWS audita:**
   1. O software roda com o **Amazon Connect Contact Control Panel (CCP)** via browser? *(Sim, via extensão Chromium e API getStats).*
   2. O software vincula a chamada ao identificador oficial da AWS (`ContactId`)? *(Sim).*
-  3. O software respeita a privacidade de dados (não grava áudio sem autorização)? *(Sim, Zero Voice Recording; projetado seguindo as diretrizes da LGPD/GDPR, sem certificação).*
+  3. O software respeita a privacidade de dados (não grava áudio sem autorização)? *(Sim, Zero Voice Recording; projetado seguindo as diretrizes da LGPD/GDPR).*
 * **Entregável Técnico:** Você anexa o documento:  
   `VoiceVanguard_Amazon_Connect_Ready_Pitch.pdf` (gerado a partir de `VoiceVanguard_Amazon_Connect_Ready_Pitch.html`).
 

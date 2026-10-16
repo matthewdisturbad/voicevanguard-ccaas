@@ -1,0 +1,10 @@
+{
+  "extDescription": {
+    "message": "Observabilidade de qualidade de voz (MOS estimado) para Genesys Cloud CX, Amazon Connect e NICE CXone. Não captura áudio.",
+    "description": "Descrição da extensão na loja e na página de extensões (máximo de 132 caracteres)."
+  },
+  "extActionTitle": {
+    "message": "VoiceVanguard CCaaS",
+    "description": "Dica do botão na barra de ferramentas."
+  }
+}
