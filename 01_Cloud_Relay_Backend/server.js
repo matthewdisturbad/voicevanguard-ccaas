@@ -8,6 +8,9 @@
  *   TENANTS_JSON  Tenants e chaves (obrigatório em NODE_ENV=production). Formato:
  *                 {"TENANT-ID":{"name":"..","plan":"..","maxAgents":100,"active":true,
  *                               "agentKey":"<segredo>","supervisorKey":"<segredo>"}}
+ *                 Torres (operações) opcionais dentro do tenant — ver docs/ROTEAMENTO_POR_TORRE.md:
+ *                   "towers":{"FRAUDES":{"agentKey":"<segredo>"}},
+ *                   "supervisors":[{"key":"<segredo>","name":"..","towers":["FRAUDES"]|"*"}]
  *   DATA_DIR      Diretório do histórico (padrão ./data_store; use um Volume em produção)
  *   TRUST_PROXY   "1" para usar X-Forwarded-For no rate limit (atrás do proxy do Railway)
  *   CORS_ORIGIN   Origem permitida para a API REST (padrão: nenhuma, same-origin)
@@ -35,6 +38,7 @@ const PING_MAX_PER_WINDOW = 40;
 const PING_WINDOW_MS = 10000;
 const ID_PATTERN = /^[A-Za-z0-9_-]{1,32}$/;
 const TENANT_ID_PATTERN = /^[A-Za-z0-9_-]{1,64}$/;
+const TOWER_ID_PATTERN = /^[A-Za-z0-9_-]{1,32}$/;
 
 // ---------------------------------------------------------------------------
 // Tenants e chaves (agente e supervisor possuem credenciais distintas)
@@ -72,25 +76,60 @@ function sha256(s) {
     return crypto.createHash('sha256').update(String(s)).digest('hex');
 }
 
-// hash(chave) -> { tenantId, role }. Lookup por hash em Map evita __proto__ e comparações diretas.
+// hash(chave) -> { tenantId, role, tower, towers }. Lookup por hash em Map evita __proto__ e comparações diretas.
+// Torre (operação): a própria operação define quem vai para a sua torre — a agentKey da torre
+// (instalada via GPO/Intune nas PAs daquela OU) determina a torre; o agente nunca a escolhe.
+// Tenants sem `towers` mantêm o modelo simples (agentKey/supervisorKey = todo o tenant).
+function validKey(k) { return typeof k === 'string' && k.length >= 8; }
+
 function buildKeyIndex(tenants) {
     const index = new Map();
     const meta = new Map();
+    const addKey = (tenantId, key, entry) => {
+        const h = sha256(key);
+        if (index.has(h)) throw new Error(`Tenant ${tenantId}: chave duplicada na configuração.`);
+        index.set(h, { tenantId, ...entry });
+    };
     for (const [tenantId, t] of Object.entries(tenants)) {
         if (!TENANT_ID_PATTERN.test(tenantId) || !t || t.active === false) continue;
-        if (typeof t.agentKey !== 'string' || typeof t.supervisorKey !== 'string' ||
-            t.agentKey.length < 8 || t.supervisorKey.length < 8 || t.agentKey === t.supervisorKey) {
+        const towerIds = t.towers && typeof t.towers === 'object' ? Object.keys(t.towers) : [];
+        for (const id of towerIds) {
+            if (!TOWER_ID_PATTERN.test(id)) throw new Error(`Tenant ${tenantId}: id de torre inválido: ${id}`);
+            if (!t.towers[id] || !validKey(t.towers[id].agentKey)) throw new Error(`Tenant ${tenantId}/${id}: agentKey da torre deve ter ao menos 8 caracteres.`);
+        }
+        const hasLegacy = t.agentKey !== undefined || t.supervisorKey !== undefined || towerIds.length === 0;
+        if (hasLegacy && (!validKey(t.agentKey) || !validKey(t.supervisorKey) || t.agentKey === t.supervisorKey)) {
             throw new Error(`Tenant ${tenantId}: agentKey e supervisorKey devem ser distintas e ter ao menos 8 caracteres.`);
+        }
+        const sups = Array.isArray(t.supervisors) ? t.supervisors : [];
+        if (towerIds.length && !hasLegacy && sups.length === 0) {
+            throw new Error(`Tenant ${tenantId}: defina ao menos um supervisor para as torres.`);
         }
         meta.set(tenantId, {
             name: String(t.name || tenantId),
             plan: String(t.plan || 'Standard'),
-            maxAgents: Number.isFinite(t.maxAgents) && t.maxAgents > 0 ? t.maxAgents : 100
+            maxAgents: Number.isFinite(t.maxAgents) && t.maxAgents > 0 ? t.maxAgents : 100,
+            towers: towerIds
         });
-        index.set(sha256(t.agentKey), { tenantId, role: 'agent' });
-        index.set(sha256(t.supervisorKey), { tenantId, role: 'supervisor' });
+        if (hasLegacy) {
+            addKey(tenantId, t.agentKey, { role: 'agent', tower: null, towers: '*' });
+            addKey(tenantId, t.supervisorKey, { role: 'supervisor', tower: null, towers: '*', supervisorName: 'Supervisor' });
+        }
+        for (const id of towerIds) addKey(tenantId, t.towers[id].agentKey, { role: 'agent', tower: id, towers: [id] });
+        for (const sup of sups) {
+            if (!sup || !validKey(sup.key)) throw new Error(`Tenant ${tenantId}: chave de supervisor deve ter ao menos 8 caracteres.`);
+            const towers = sup.towers === '*' ? '*' : (Array.isArray(sup.towers) ? sup.towers : []);
+            if (towers !== '*') {
+                for (const id of towers) if (!towerIds.includes(id)) throw new Error(`Tenant ${tenantId}: supervisor referencia torre inexistente: ${id}`);
+            }
+            addKey(tenantId, sup.key, { role: 'supervisor', tower: null, towers, supervisorName: String(sup.name || 'Supervisor') });
+        }
     }
     return { index, meta };
+}
+
+function canSee(ws, tower) {
+    return ws.towers === '*' || ws.towers.includes(tower);
 }
 
 // ---------------------------------------------------------------------------
@@ -250,6 +289,8 @@ const MIME_TYPES = {
     '.ico': 'image/x-icon'
 };
 
+const GENESYS_FRAME_ANCESTORS = "'self' https://*.pure.cloud https://*.mypurecloud.com https://*.mypurecloud.ie https://*.mypurecloud.de https://*.mypurecloud.jp https://*.mypurecloud.com.au";
+
 const SECURITY_HEADERS = {
     'X-Content-Type-Options': 'nosniff',
     'X-Frame-Options': 'DENY',
@@ -288,17 +329,27 @@ function createRelay() {
     }
 
     // Registro de saúde da estação (pré-check e latência de API), separado da telemetria de voz
-    function updateStation(room, agentId, base, patch) {
-        const prev = room.stations.get(agentId) || { agentId, precheck: null, api: null };
+    function updateStation(room, tower, agentId, base, patch) {
+        const prev = room.stations.get(akey(tower, agentId)) || { agentId, precheck: null, api: null };
         const rec = {
             ...prev,
+            tower,
             station: str(base.station, 64, agentId),
             operator: str(base.operator, 64, 'Operador'),
             ...patch,
             lastSeen: new Date().toISOString()
         };
-        room.stations.set(agentId, rec);
+        room.stations.set(akey(tower, agentId), rec);
         return rec;
+    }
+
+    // Libera comandos enfileirados pelo In-Call Lock quando a chamada termina
+    function flushPending(room, agentWs) {
+        if (!agentWs.pendingCommands || agentWs.readyState !== WebSocket.OPEN) return;
+        for (const command of agentWs.pendingCommands) {
+            agentWs.send(JSON.stringify({ type: 'EXECUTE_COMMAND', command, origin: 'supervisor_remote_queued' }));
+        }
+        agentWs.pendingCommands.clear();
     }
 
     function lookupKey(key) {
@@ -306,12 +357,16 @@ function createRelay() {
         return keyIndex.get(sha256(key)) || null;
     }
 
-    function broadcast(room, obj) {
+    // Entrega apenas aos supervisores que enxergam a torre do evento (dados guardados uma vez por tenant)
+    function broadcast(room, obj, tower = null) {
         const msg = JSON.stringify(obj);
         for (const sup of room.supervisors) {
-            if (sup.readyState === WebSocket.OPEN) sup.send(msg);
+            if (sup.readyState === WebSocket.OPEN && canSee(sup, tower)) sup.send(msg);
         }
     }
+
+    // Chave interna: PAs de torres diferentes podem repetir o agentId sem colidir
+    const akey = (tower, agentId) => `${tower || ''}|${agentId}`;
 
     function sendJson(res, status, body, extraHeaders = {}) {
         res.writeHead(status, { 'Content-Type': 'application/json', ...extraHeaders });
@@ -368,9 +423,17 @@ function createRelay() {
 
         // Roteamento estático: '/' -> landing; '/app', '/login' -> console (o acesso aos dados é validado no WebSocket)
         let target;
-        if (url.pathname === '/app' || url.pathname === '/app.html' || url.pathname === '/login') target = 'app.html';
+        if (url.pathname === '/app' || url.pathname === '/app.html' || url.pathname === '/login' || url.pathname === '/dashboard') target = 'app.html';
+        else if (url.pathname === '/widget') target = 'widget.html';
+        else if (url.pathname === '/privacy') target = 'privacy.html';
         else if (url.pathname === '/' || url.pathname === '/index.html') target = 'index.html';
         else target = url.pathname.replace(/^\/+/, '');
+
+        // Páginas embutidas no Genesys Cloud (Client App/Interaction Widget) podem ser enquadradas apenas por domínios Genesys
+        if (url.pathname === '/dashboard' || url.pathname === '/widget') {
+            res.removeHeader('X-Frame-Options');
+            res.setHeader('Content-Security-Policy', SECURITY_HEADERS['Content-Security-Policy'].replace("frame-ancestors 'none'", `frame-ancestors ${GENESYS_FRAME_ANCESTORS}`));
+        }
 
         const filePath = path.resolve(publicDir, target);
         if (filePath !== publicDir && !filePath.startsWith(publicDir + path.sep)) {
@@ -416,7 +479,7 @@ function createRelay() {
             return;
         }
 
-        const { tenantId, role: clientType } = found;
+        const { tenantId, role: clientType, tower, towers } = found;
         const meta = tenantMeta.get(tenantId);
         const room = getRoom(tenantId);
 
@@ -428,7 +491,7 @@ function createRelay() {
                 : `PA-${crypto.randomBytes(4).toString('hex').toUpperCase()}`;
 
             for (const c of wss.clients) {
-                if (c !== ws && c.readyState === WebSocket.OPEN && c.tenantId === tenantId && c.clientType === 'agent' && c.agentId === agentId) {
+                if (c !== ws && c.readyState === WebSocket.OPEN && c.tenantId === tenantId && c.clientType === 'agent' && c.tower === tower && c.agentId === agentId) {
                     reject(ws, 4009, 'Duplicate Agent', 'agentId já conectado neste tenant.');
                     return;
                 }
@@ -445,6 +508,8 @@ function createRelay() {
 
         ws.tenantId = tenantId;
         ws.clientType = clientType;
+        ws.tower = tower;
+        ws.towers = towers;
         ws.agentId = agentId;
         ws.isAlive = true;
         ws.on('pong', () => { ws.isAlive = true; });
@@ -455,9 +520,10 @@ function createRelay() {
             ws.send(JSON.stringify({
                 type: 'INIT_STATE',
                 tenant: meta.name,
-                agents: Array.from(room.agents.values()),
-                stations: Array.from(room.stations.values()),
-                callHistory: room.callHistory.slice(0, 50)
+                agents: Array.from(room.agents.values()).filter(a => canSee(ws, a.tower)),
+                stations: Array.from(room.stations.values()).filter(a => canSee(ws, a.tower)),
+                callHistory: room.callHistory.filter(c => canSee(ws, c.tower)).slice(0, 50),
+                towers: towers === '*' ? meta.towers : towers
             }));
         } else {
             console.log(`[+] Agente conectado | ID: ${agentId} | Tenant: ${tenantId}`);
@@ -474,6 +540,7 @@ function createRelay() {
                     if (mos === null) return; // sem MOS válido não há telemetria a registrar
                     const record = {
                         agentId,
+                        tower,
                         platform: str(data.platform, 64, 'VoIP WebRTC'),
                         platformCode: str(data.platformCode, 32, 'WEBRTC'),
                         operator: str(data.operator, 64, 'Operador'),
@@ -493,8 +560,9 @@ function createRelay() {
                         currentCallId: str(data.currentCallId, 128, ''),
                         lastSeen: new Date().toISOString()
                     };
-                    room.agents.set(agentId, record);
-                    broadcast(room, { type: 'TELEMETRY_UPDATE', payload: record });
+                    room.agents.set(akey(tower, agentId), record);
+                    broadcast(room, { type: 'TELEMETRY_UPDATE', payload: record }, tower);
+                    if (!record.callActive) flushPending(room, ws);
                     return;
                 }
 
@@ -503,6 +571,7 @@ function createRelay() {
                     if (mosMedio === null) return;
                     const record = {
                         interactionId: str(data.interactionId, 128, 'CALL-UUID'),
+                        tower,
                         platform: str(data.platform, 64, 'VoIP WebRTC'),
                         platformCode: str(data.platformCode, 32, 'WEBRTC'),
                         agentId,
@@ -530,7 +599,10 @@ function createRelay() {
                     room.callHistory.unshift(record);
                     if (room.callHistory.length > MAX_HISTORY) room.callHistory.pop();
                     saveTenantHistory(tenantId, room.callHistory);
-                    broadcast(room, { type: 'NEW_CALL_AUDIT', payload: record });
+                    broadcast(room, { type: 'NEW_CALL_AUDIT', payload: record }, tower);
+                    const cur = room.agents.get(akey(tower, agentId));
+                    if (cur) cur.callActive = false;
+                    flushPending(room, ws);
                     return;
                 }
 
@@ -545,14 +617,14 @@ function createRelay() {
                 }
 
                 if (clientType === 'agent' && data.type === 'SHIFT_PRECHECK') {
-                    const rec = updateStation(room, agentId, data, { precheck: sanitizePrecheck(data) });
-                    broadcast(room, { type: 'STATION_HEALTH_UPDATE', payload: rec });
+                    const rec = updateStation(room, tower, agentId, data, { precheck: sanitizePrecheck(data) });
+                    broadcast(room, { type: 'STATION_HEALTH_UPDATE', payload: rec }, tower);
                     return;
                 }
 
                 if (clientType === 'agent' && data.type === 'API_LATENCY') {
-                    const rec = updateStation(room, agentId, data, { api: sanitizeApiLatency(data) });
-                    broadcast(room, { type: 'STATION_HEALTH_UPDATE', payload: rec });
+                    const rec = updateStation(room, tower, agentId, data, { api: sanitizeApiLatency(data) });
+                    broadcast(room, { type: 'STATION_HEALTH_UPDATE', payload: rec }, tower);
                     return;
                 }
 
@@ -561,9 +633,18 @@ function createRelay() {
                     if (typeof target !== 'string' || !ID_PATTERN.test(target)) return;
                     if (!COMMAND_WHITELIST.has(data.command)) return;
                     for (const client of wss.clients) {
-                        if (client.tenantId === tenantId && client.clientType === 'agent' &&
+                        if (client.tenantId === tenantId && client.clientType === 'agent' && canSee(ws, client.tower) &&
                             client.agentId === target && client.readyState === WebSocket.OPEN) {
-                            client.send(JSON.stringify({ type: 'EXECUTE_COMMAND', command: data.command, origin: 'supervisor_remote' }));
+                            const state = room.agents.get(akey(client.tower, target));
+                            if (state && state.callActive) {
+                                // In-Call Lock no servidor: enfileira para o wrap-up e avisa os supervisores da torre
+                                client.pendingCommands = client.pendingCommands || new Set();
+                                client.pendingCommands.add(data.command);
+                                broadcast(room, { type: 'AGENT_COMMAND_FEEDBACK', agentId: target, tower: client.tower,
+                                    result: { success: false, inCall: true, message: 'Agente em chamada ativa. Comando enfileirado para o pós-chamada.', timestamp: new Date().toISOString(), origin: 'server_in_call_lock' } }, client.tower);
+                            } else {
+                                client.send(JSON.stringify({ type: 'EXECUTE_COMMAND', command: data.command, origin: 'supervisor_remote' }));
+                            }
                         }
                     }
                     console.log(`[AUDIT] Tenant ${tenantId} comando ${data.command} -> ${target}`);
@@ -575,6 +656,7 @@ function createRelay() {
                     broadcast(room, {
                         type: 'AGENT_COMMAND_FEEDBACK',
                         agentId,
+                        tower,
                         result: {
                             success: r.success === true,
                             inCall: r.inCall === true,
@@ -582,7 +664,7 @@ function createRelay() {
                             timestamp: isoOrNull(r.timestamp),
                             origin: str(r.origin, 32, '')
                         }
-                    });
+                    }, tower);
                 }
             } catch (err) {
                 console.error('Erro ao processar mensagem WebSocket:', err.message);
@@ -594,14 +676,14 @@ function createRelay() {
                 room.supervisors.delete(ws);
                 console.log(`[-] Supervisor desconectado | Tenant: ${tenantId}`);
             } else {
-                const ag = room.agents.get(agentId);
-                // Só marca OFFLINE se não houver outra conexão viva com o mesmo agentId
-                const stillConnected = Array.from(wss.clients).some(c => c !== ws && c.tenantId === tenantId && c.agentId === agentId && c.readyState === WebSocket.OPEN);
+                const ag = room.agents.get(akey(tower, agentId));
+                // Só marca OFFLINE se não houver outra conexão viva com o mesmo agentId na mesma torre
+                const stillConnected = Array.from(wss.clients).some(c => c !== ws && c.tenantId === tenantId && c.tower === tower && c.agentId === agentId && c.readyState === WebSocket.OPEN);
                 if (ag && !stillConnected) {
                     ag.status = 'OFFLINE';
                     ag.callActive = false;
                     ag.lastSeen = new Date().toISOString();
-                    broadcast(room, { type: 'TELEMETRY_UPDATE', payload: ag });
+                    broadcast(room, { type: 'TELEMETRY_UPDATE', payload: ag }, tower);
                 }
                 console.log(`[-] Agente desconectado | ID: ${agentId}`);
             }

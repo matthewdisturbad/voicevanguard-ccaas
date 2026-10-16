@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>VoiceVanguard Interaction Widget</title>
+<style>body{font-family:system-ui,sans-serif;margin:0;padding:12px;background:#0b1b3a;color:#e8eefc}small{opacity:.7}</style></head>
+<body>
+<strong>VoiceVanguard</strong>
+<p id="info">Conversa: <span id="cid">-</span></p>
+<small>Widget somente leitura. Nenhum áudio é capturado; apenas estatísticas de rede (RTP).</small>
+<script>
+const q = new URLSearchParams(location.search);
+document.getElementById('cid').textContent = (q.get('conversationId') || '-').replace(/[^\w-]/g, '');
+</script>
+</body></html>

@@ -1,5 +1,5 @@
 /**
- * VoiceDoctor CCaaS - Universal WebRTC Interceptor & Call Quality Engine
+ * VoiceVanguard CCaaS - Universal WebRTC Interceptor & Call Quality Engine
  * Compatibilidade Universal com qualquer plataforma de voz em nuvem:
  * - Genesys Cloud
  * - Amazon Connect

@@ -1,5 +1,5 @@
 {
-  "name": "VoiceVanguard WebRTC Sentinel",
+  "name": "VoiceVanguard CCaaS",
   "description": "Monitoramento em tempo real de qualidade de voz (MOS ITU-T G.107), diagnóstico de rede de agentes e auditoria WebRTC para Genesys Cloud.",
   "version": "1.0.0",
   "author": {
@@ -10,26 +10,20 @@
   "integrationType": "embedded-client-app",
   "applicationType": "standalone",
   "display": {
-    "name": "VoiceVanguard Sentinel",
+    "name": "VoiceVanguard CCaaS",
     "icon": {
-      "vector": "https://voicevanguard.trustco.pro/assets/icon.svg",
-      "24x24": "https://voicevanguard.trustco.pro/assets/icon-24.png",
-      "48x48": "https://voicevanguard.trustco.pro/assets/icon-48.png"
+      "vector": "https://voicevanguard.trustco.pro/assets/icon.svg"
     },
     "category": "Workforce Engagement Management"
   },
-  "url": "https://voicevanguard.trustco.pro/dashboard?tenant={{pcOrganization.id}}&lang={{pcLangTag}}&env={{pcEnvironment}}",
-  "sandbox": "allow-scripts allow-same-origin allow-forms allow-popups allow-downloads",
-  "permissions": [
-    "analytics:conversationDetail:view",
-    "telephony:plugin:all",
-    "user:profile:view"
-  ],
+  "url": "https://voicevanguard.trustco.pro/dashboard?org={{pcOrganization.id}}&lang={{pcLangTag}}&env={{pcEnvironment}}",
+  "sandbox": "allow-scripts allow-same-origin allow-forms",
+  "permissions": [],
   "monetization": {
     "model": "PUPM",
     "currency": "USD",
-    "pricePerUserPerMonth": 5.50,
-    "trialPeriodDays": 30,
+    "pricePerUserPerMonth": 5.0,
+    "trialPeriodDays": 14,
     "billingType": "genesys-invoice"
   },
   "clientAppConfiguration": {
@@ -39,7 +33,10 @@
     "advanced": {
       "enableInteractionWidget": true,
       "interactionWidgetUrl": "https://voicevanguard.trustco.pro/widget?conversationId={{pcConversationId}}&agent={{pcAgentId}}",
-      "interactionWidgetTypes": ["voice", "callback"]
+      "interactionWidgetTypes": [
+        "voice",
+        "callback"
+      ]
     }
   }
 }

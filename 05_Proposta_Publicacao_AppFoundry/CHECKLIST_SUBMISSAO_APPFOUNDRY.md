@@ -13,7 +13,7 @@ Utilize esta lista de verificação passo a passo para submeter a solução ao p
 
 ## 🔒 2. Requisitos de Segurança & Compliance (SecOps)
 - [ ] **Política de Privacidade Publicada:** URL pública detalhando que o app não grava dados de áudio nem coleta informações sensíveis de cartões/clientes (apenas telemetria de rede e navegador).
-- [ ] **Comunicação Criptografada (TLS 1.3):** 100% dos endpoints em produção com certificado SSL válido (HTTPS e WSS).
+- [ ] **Comunicação Criptografada (TLS):** 100% dos endpoints em produção com certificado válido (HTTPS e WSS). Anexar relatório SSL Labs com a versão mínima medida antes de citar "TLS 1.3".
 - [ ] **Multi-Tenant Data Isolation:** Garantia arquitetural de que dados de um cliente (`TenantKey`) não vazam para outro.
 
 ---
@@ -41,6 +41,6 @@ Utilize esta lista de verificação passo a passo para submeter a solução ao p
 
 ## 💰 5. Precificação e Contrato Comercial
 - [ ] **Modalidade no AppFoundry:** Escolher entre:
-  - **Premium App (Recomendado):** A Genesys cobra o cliente final na fatura mensal do Genesys Cloud e repassa a sua parte líquida (80% a 85%).
+  - **Premium App (Recomendado):** A Genesys cobra o cliente final na fatura mensal do Genesys Cloud e repassa a sua parte líquida (percentual a confirmar no contrato).
   - **Standard App (BYOL - Bring Your Own License):** O cliente contrata e paga direto no seu site/Stripe, usando o AppFoundry apenas como vitrine.
 - [ ] **Preço Base Definido:** \$5,00 USD / PA / mês com período de testes de 14 dias.

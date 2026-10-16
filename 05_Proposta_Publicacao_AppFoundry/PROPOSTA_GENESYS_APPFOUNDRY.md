@@ -1,27 +1,27 @@
-# VoiceDoctor CCaaS &bull; Proposta Oficial de Submissão e Parceria
+# VoiceVanguard CCaaS &bull; Proposta Oficial de Submissão e Parceria
 ## Genesys AppFoundry &bull; Technology Partner Program (ISV)
 
 ---
 
 ### 1. Resumo Executivo da Solução (Listing Profile)
 
-* **Nome Comercial do Produto:** VoiceDoctor CCaaS &bull; Universal WebRTC QoE & Agent Health Monitor
+* **Nome Comercial do Produto:** VoiceVanguard CCaaS &bull; Universal WebRTC QoE & Agent Health Monitor
 * **Categoria Principal no AppFoundry:** Voice & Media Observability / Agent Assist & Productivity / Workforce Optimization (WFO)
 * **Público-Alvo:** Contact Centers Enterprise, BPOs (Business Process Outsourcers), Operações em Home Office / Híbridas e Equipes de Sustentação N2/N3.
 * **Modelo de Integração:** Genesys Cloud Client App Integration (Iframe nativo no Supervisor) + Chromium Extension (Manifest V3 corporativo) + Cloud Multi-Tenant Hub.
 * **Proposta de Valor em Uma Linha (Tagline):**
-  > *"Reduza em até 80% falsos chamados de suporte e identifique instantaneamente a causa raiz de áudio robótico, Wi-Fi residencial, concorrência de abas e falhas de microfone antes que virem queixas de clientes."*
+  > *"Identifique rapidamente a causa raiz de áudio robótico, mudo ou unidirecional (Wi-Fi residencial, concorrência de abas, falhas de microfone) e reduza chamados de suporte indevidos à plataforma. Meta a validar em piloto."*
 
 ---
 
 ### 2. O Problema de Negócio (The Customer Pain Point)
 
-1. **A "Guerra das Falsas Culpas":** Operadores remotos sofrem com voz metálica, delay e quedas de chamadas e abrem chamados queixando-se da plataforma Genesys Cloud. No entanto, mais de 75% dos problemas decorrem de fatores locais:
+1. **A "Guerra das Falsas Culpas":** Operadores remotos sofrem com voz metálica, delay e quedas de chamadas e abrem chamados queixando-se da plataforma Genesys Cloud. No entanto, uma parcela relevante dos problemas decorre de fatores locais (percentual a ser medido em piloto):
    * Uso indevido de Wi-Fi doméstico com perda de pacotes e jitter elevado.
    * Concorrência de abas abertas da Genesys no mesmo navegador.
    * Fones USB genéricos, travamento de driver de áudio ou microfone mutado no Windows.
 2. **Falta de Correlação por Chamada:** Quando o cliente final reclama de um atendimento ruim, os gestores levam horas cruzando logs para descobrir qual era a qualidade exata de rede daquela ligação específica.
-3. **Custo Operacional de Sustentação:** Cada falso chamado N1/N2 custa em média de R$ 25 a R$ 50 em horas técnicas, sobrecarregando a equipe de TI da contratante.
+3. **Custo Operacional de Sustentação:** Cada falso chamado N1/N2 consome horas técnicas (custo a ser medido em piloto), sobrecarregando a equipe de TI da contratante.
 
 ---
 
@@ -40,12 +40,12 @@ O produto adota o modelo de cobrança recorrente faturado diretamente na conta G
 
 | Plano | Faixa de Posições (PAs) | Preço Mensal por Usuário (PUPM) | Faturamento Estimado (Exemplo) |
 | :--- | :--- | :--- | :--- |
-| **Starter / Team** | Até 250 PAs | **$6,50 USD** (~R$ 35,00) / PA / mês | ~$1.625 USD / mês |
-| **Professional** | 251 a 1.500 PAs | **$5,00 USD** (~R$ 27,00) / PA / mês | ~$5.000 USD / mês (1.000 PAs) |
-| **Enterprise / BPO** | Acima de 1.500 PAs | **$4,00 USD** (~R$ 22,00) / PA / mês | ~$20.000 USD / mês (5.000 PAs) |
+| **Starter / Team** | Até 250 PAs | **$6,50 USD**  / PA / mês | ~$1.625 USD / mês |
+| **Professional** | 251 a 1.500 PAs | **$5,00 USD**  / PA / mês | ~$5.000 USD / mês (1.000 PAs) |
+| **Enterprise / BPO** | Acima de 1.500 PAs | **$4,00 USD**  / PA / mês | ~$20.000 USD / mês (5.000 PAs) |
 
-* **Período de Teste Gratuito (Free Trial):** 14 dias para até 25 PAs da organização.
-* **Divisão de Receita (Take-Rate):** Genesys retém entre 15% e 20%; ISV (VoiceDoctor) recebe entre 80% e 85% líquido.
+* **Período de Teste Gratuito (Free Trial):** 14 dias (mesmo valor do manifesto). No manifesto do AppFoundry vale o preço único de US$ 5,00 por usuário/mês; as faixas por volume acima valem para contratos diretos.
+* **Divisão de Receita (Take-Rate):** a ser confirmado no contrato de Technology Partner da Genesys.
 
 ---
 
@@ -53,7 +53,7 @@ O produto adota o modelo de cobrança recorrente faturado diretamente na conta G
 
 * **Zero Escuta de Áudio:** O software **NÃO grava nem trafega áudio** das ligações. Ele extrai exclusivamente métricas estatísticas e numéricas de rede e performance do navegador.
 * **Isolamento Multi-Tenant:** Cada cliente possui um identificador criptográfico (`TenantKey`) isolado; dados de uma BPO nunca são acessíveis por outra.
-* **Tráfego Criptografado:** 100% das comunicações trafegam via HTTPS / WSS (WebSockets com TLS 1.3 na porta 443).
+* **Tráfego Criptografado:** 100% das comunicações trafegam via HTTPS / WSS (WebSockets sobre TLS na porta 443; a versão mínima de TLS será comprovada com relatório SSL Labs antes da submissão).
 * **Conformidade de Cookies:** A limpeza cirúrgica de cache preserva tokens de sessão e autenticação do Genesys Cloud.
 
 ---

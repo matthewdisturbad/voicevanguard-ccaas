@@ -7,7 +7,7 @@
 
 ## 1. O Problema Crítico
 Nos contact centers modernos (Genesys Cloud CX, Amazon Connect, Twilio, Webex, Five9), a telefonia opera 100% no navegador do atendente via WebRTC. Isso gera três desafios graves que aumentam custos operacionais e frustram clientes:
-1. **O "Fantasma" da Ligação Muda/Robô:** Operadores e supervisores culpam a infraestrutura de telefonia, quando 85% das falhas são causadas por instabilidade no Wi-Fi doméstico do operador, saturação de CPU local da máquina ou bufferbloat de rede.
+1. **O "Fantasma" da Ligação Muda/Robô:** Operadores e supervisores culpam a infraestrutura de telefonia, quando grande parte das falhas é causada por instabilidade no Wi-Fi doméstico do operador, saturação de CPU local da máquina ou bufferbloat de rede.
 2. **Tempo Excessivo de Resolução do N1/N2 de TI:** Diagnosticar problemas intermitentes de voz exige abertura de chamados demorados, coleta complexa de dumps SIP e perda de produtividade da PA.
 3. **Degradação de Navegador por Cache Acumulado:** Centenas de abas abertas e gigabytes de cache acumulados degradam o processo Chromium ao longo da jornada, causando travamentos e quedas súbitas de chamada.
 
@@ -27,7 +27,7 @@ graph LR
 - **Cálculo de MOS em Tempo Real (ITU-T G.107):** Avalia a qualidade percebida da chamada de 1.00 a 4.50 nota a cada segundo da interação.
 - **Auditoria de Chamadas com ConversationID / CallSid:** Vincula automaticamente o histórico da chamada ao operador e estação.
 - **Limpeza Segura de Cache com Trava Operacional:** O supervisor dispara a limpeza de cache da PA remotamente com 1 clique. Se o agente estiver em atendimento, o sistema aguarda o término da chamada para não derrubar a ligação.
-- **Total Compliance LGPD / GDPR:** **Zero escuta e zero gravação de áudio.** Apenas telemetria estatística de rede.
+- **Privacidade por design (segue as diretrizes da LGPD/GDPR):** **Zero escuta e zero gravação de áudio.** Apenas telemetria estatística de rede.
 
 ---
 
@@ -36,13 +36,13 @@ graph LR
 ### Preço de Subscrição (PUPM - Per User Per Month)
 | Plano | Faixa de PAs | Preço / PA / mês | SLA de Suporte |
 | :--- | :--- | :--- | :--- |
-| **Standard** | Até 500 PAs | **\$6,50 USD** | 8x5 Comercial |
-| **Enterprise** | 501 a 2.500 PAs | **\$5,50 USD** | 24x7 Crítico |
-| **Global BPO** | Acima de 2.500 PAs | **\$4,50 USD** | Dedicado + Custom Webhooks |
+| **Starter / Team** | Até 250 PAs | **\$6,50 USD** | Comercial |
+| **Professional** | 251 a 1.500 PAs | **\$5,00 USD** | Comercial |
+| **Enterprise / BPO** | Acima de 1.500 PAs | **\$4,00 USD** | Dedicado |
 
 ### Exemplo de Receita Recorrente (ARR):
-- **1 BPO Médio (1.000 PAs):** \$5.500/mês &rarr; **\$66.000 USD/ano** (~R\$ 360.000/ano).
-- **5 Clientes AppFoundry (5.000 PAs):** \$27.500/mês &rarr; **\$330.000 USD/ano** (~R\$ 1,8 milhão/ano).
+- **1 BPO Médio (1.000 PAs a \$5,00):** \$5.000/mês &rarr; **\$60.000 USD/ano**.
+- **5.000 PAs a \$4,00:** \$20.000/mês &rarr; **\$240.000 USD/ano** (receita bruta, antes de impostos e retenção do canal).
 
 ---
 
