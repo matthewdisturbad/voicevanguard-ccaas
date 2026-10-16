@@ -80,7 +80,7 @@ Depois de cadastrado no Software Path, você submete a solução para o programa
 
 ## 3. Resumo dos Documentos Criados na sua Máquina
 
-Pasta: 📂 **`C:\Users\david\.gemini\antigravity\scratch\VoiceDoctor-CCaaS\06_Proposta_Publicacao_Amazon_Connect\`**
+Pasta: 📂 **`06_Proposta_Publicacao_Amazon_Connect/`** (neste repositório)
 
 | Arquivo | Função |
 | :--- | :--- |

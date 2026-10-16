@@ -3,148 +3,172 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>VoiceVanguard CCaaS &bull; Enterprise Operations Center</title>
-    
-    <!-- Favicon SVG Moderno com Escudo & Áudio -->
-    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%230284c7'%3E%3Cpath d='M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm-1 6h2v6h-2V7zm0 8h2v2h-2v-2z'/%3E%3C/svg%3E">
+    <meta name="color-scheme" content="light dark">
+    <title>VoiceVanguard CCaaS — Console do supervisor</title>
+
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%231d5fd1'%3E%3Cpath d='M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm-1 6h2v6h-2V7zm0 8h2v2h-2v-2z'/%3E%3C/svg%3E">
 
     <style>
         :root {
-            --primary: #0284c7;
-            --primary-dark: #0369a1;
-            --bg: #f8fafc;
+            --bg: #f6f7f9;
             --surface: #ffffff;
-            --border: #e2e8f0;
-            --text-main: #0f172a;
-            --text-muted: #64748b;
-            --ok: #16a34a;
-            --warn: #eab308;
-            --danger: #dc2626;
+            --surface-2: #eef0f4;
+            --border: #dde1e7;
+            --border-strong: #c3c9d2;
+            --text: #14181f;
+            --text-2: #434b59;
+            --text-3: #596273;
+            --accent: #1d5fd1;
+            --accent-hover: #174ca8;
+            --accent-tint: #e8f0fc;
+            --on-accent: #ffffff;
+            --ok: #1a7f4b;
+            --ok-tint: #e4f4ea;
+            --warn: #8a5a00;
+            --warn-tint: #fbf0d6;
+            --crit: #b42028;
+            --crit-tint: #fbe6e7;
+            --overlay: rgba(20, 24, 31, 0.6);
+            --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+            --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+            --fs-xs: 0.75rem; --fs-sm: 0.8125rem; --fs-md: 0.9375rem; --fs-lg: 1.125rem; --fs-xl: 1.5rem;
+            --s1: 4px; --s2: 8px; --s3: 12px; --s4: 16px; --s5: 24px; --s6: 32px; --s7: 48px;
+            --radius: 6px;
+        }
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --bg: #0f1217; --surface: #171c24; --surface-2: #1e242e;
+                --border: #29303b; --border-strong: #3a4352;
+                --text: #e8ebf0; --text-2: #b0b8c5; --text-3: #929cab;
+                --accent: #7aa7f5; --accent-hover: #9bbcf8; --accent-tint: #1b2740; --on-accent: #0f1217;
+                --ok: #4cc38a; --ok-tint: #12281d;
+                --warn: #e2ac45; --warn-tint: #2c2412;
+                --crit: #ff8087; --crit-tint: #331a1d;
+                --overlay: rgba(0, 0, 0, 0.7);
+            }
         }
 
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-        body { background: var(--bg); color: var(--text-main); min-height: 100vh; display: flex; flex-direction: column; }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: var(--font-sans); font-size: var(--fs-md); line-height: 1.5; background: var(--bg); color: var(--text); min-height: 100vh; display: flex; flex-direction: column; -webkit-font-smoothing: antialiased; }
+        :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+        svg { flex-shrink: 0; }
+        code { font-family: var(--font-mono); font-size: var(--fs-xs); }
 
-        /* Top Bar */
-        header {
-            background: #0f172a;
-            color: white;
-            padding: 14px 24px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-bottom: 3px solid var(--primary);
-        }
-        .brand { display: flex; align-items: center; gap: 12px; }
-        .brand-logo { 
-            background: linear-gradient(135deg, #0284c7, #38bdf8); 
-            width: 36px; height: 36px; border-radius: 8px; 
-            display: flex; align-items: center; justify-content: center; 
-            font-size: 20px; box-shadow: 0 2px 8px rgba(2, 132, 199, 0.4); 
-        }
-        .brand-badge { background: #1e293b; border: 1px solid #334155; padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: 700; color: #38bdf8; text-transform: uppercase; }
-        .tenant-status-box { display: flex; align-items: center; gap: 14px; }
-        .live-dot { width: 8px; height: 8px; border-radius: 50%; background: #22c55e; display: inline-block; box-shadow: 0 0 8px #22c55e; }
-        .btn-top {
-            padding: 6px 12px; background: #1e293b; color: #cbd5e1; border: 1px solid #334155;
-            border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; transition: all 0.2s;
-            display: inline-flex; align-items: center; gap: 6px;
-        }
-        .btn-top:hover { background: #334155; color: white; }
+        /* Barra superior */
+        header { background: var(--surface); border-bottom: 1px solid var(--border); padding: var(--s3) var(--s5); display: flex; justify-content: space-between; align-items: center; gap: var(--s4); flex-wrap: wrap; }
+        .brand { display: flex; align-items: center; gap: var(--s3); flex-wrap: wrap; }
+        .brand-mark { color: var(--accent); }
+        .brand h1 { font-size: var(--fs-md); font-weight: 600; line-height: 1.2; }
+        .brand-sub { font-size: var(--fs-xs); color: var(--text-3); }
+        .brand-badge { border: 1px solid var(--border-strong); padding: 2px var(--s2); border-radius: 4px; font-size: var(--fs-xs); font-weight: 600; color: var(--text-2); letter-spacing: 0.04em; }
+        .tenant-status-box { display: flex; align-items: center; gap: var(--s3); flex-wrap: wrap; font-size: var(--fs-sm); color: var(--text-2); }
+        .live-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--text-3); display: inline-block; }
+        .org-name { font-weight: 600; color: var(--text); }
+        .btn-top { padding: var(--s1) var(--s3); background: transparent; color: var(--text); border: 1px solid var(--border-strong); border-radius: var(--radius); font: inherit; font-size: var(--fs-sm); font-weight: 500; cursor: pointer; }
+        .btn-top:hover { background: var(--surface-2); }
 
-        /* Container & Tabs */
-        .container { max-width: 1400px; width: 100%; margin: 20px auto; padding: 0 20px; flex: 1; }
-        .tabs { display: flex; gap: 8px; border-bottom: 2px solid var(--border); margin-bottom: 20px; }
-        .tab-btn { padding: 12px 20px; border: none; background: none; font-size: 14px; font-weight: 600; color: var(--text-muted); cursor: pointer; border-bottom: 3px solid transparent; }
-        .tab-btn.active { color: var(--primary); border-bottom-color: var(--primary); }
+        /* Conteúdo e abas */
+        .container { max-width: 1400px; width: 100%; margin: 0 auto; padding: var(--s5) var(--s5) var(--s6); flex: 1; min-width: 0; }
+        .tabs { display: flex; gap: var(--s1); border-bottom: 1px solid var(--border); margin-bottom: var(--s5); overflow-x: auto; }
+        .tab-btn { padding: var(--s3) var(--s4); border: none; background: none; font: inherit; font-size: var(--fs-sm); font-weight: 500; color: var(--text-3); cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px; white-space: nowrap; }
+        .tab-btn:hover { color: var(--text); }
+        .tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); font-weight: 600; }
 
-        /* Cards Grid */
-        .cards-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 14px; margin-bottom: 24px; }
+        /* Indicadores */
+        .cards-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: var(--s3); margin-bottom: var(--s5); }
         @media (max-width: 1100px) { .cards-grid { grid-template-columns: repeat(3, 1fr); } }
-        @media (max-width: 600px) { .cards-grid { grid-template-columns: 1fr; } }
-        .card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.04); }
-        .card-label { font-size: 12px; font-weight: 600; color: var(--text-muted); margin-bottom: 6px; }
-        .card-val { font-size: 24px; font-weight: 700; }
+        @media (max-width: 600px) { .cards-grid { grid-template-columns: repeat(2, 1fr); } header, .container { padding-left: var(--s4); padding-right: var(--s4); } }
+        .card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: var(--s4); }
+        .card-label { font-size: var(--fs-xs); font-weight: 500; color: var(--text-3); margin-bottom: var(--s1); }
+        .card-val { font-size: var(--fs-xl); font-weight: 600; line-height: 1.2; font-variant-numeric: tabular-nums; }
 
-        /* Table */
-        .table-box { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; box-shadow: 0 1px 4px rgba(0,0,0,0.04); }
-        table { width: 100%; border-collapse: collapse; text-align: left; font-size: 13px; }
-        th { background: #f1f5f9; padding: 12px 14px; font-weight: 600; color: #475569; border-bottom: 1px solid var(--border); }
-        td { padding: 12px 14px; border-bottom: 1px solid var(--border); vertical-align: middle; }
-        tr:hover { background: #f8fafc; }
+        /* Tabelas densas */
+        .table-box { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; overflow-x: auto; }
+        table { width: 100%; min-width: 980px; border-collapse: collapse; text-align: left; font-size: var(--fs-sm); font-variant-numeric: tabular-nums; }
+        th { background: var(--surface-2); padding: var(--s2) var(--s3); font-size: var(--fs-xs); font-weight: 600; color: var(--text-2); border-bottom: 1px solid var(--border); white-space: nowrap; }
+        td { padding: var(--s2) var(--s3); border-bottom: 1px solid var(--border); vertical-align: middle; }
+        tbody tr:last-child td { border-bottom: none; }
+        tbody tr:hover { background: var(--surface-2); }
+        tr.row-crit { background: var(--crit-tint); }
+        td.empty { text-align: center; color: var(--text-3); padding: var(--s6) var(--s4); }
+        .plat { font-weight: 500; color: var(--text-2); }
+        .num { white-space: nowrap; }
+        .muted { color: var(--text-3); }
+        .txt-ok { color: var(--ok); font-weight: 600; }
+        .txt-crit { color: var(--crit); font-weight: 600; }
 
-        /* Badges & Actions */
-        .badge { padding: 4px 8px; border-radius: 12px; font-size: 11px; font-weight: 700; display: inline-block; }
-        .badge-ok { background: #dcfce7; color: #15803d; }
-        .badge-warn { background: #fef9c3; color: #a16207; }
-        .badge-danger { background: #fee2e2; color: #b91c1c; }
-        .badge-offline { background: #f1f5f9; color: #64748b; }
+        /* Estados (texto + cor, nunca só cor) */
+        .badge { padding: 2px var(--s2); border-radius: 4px; font-size: var(--fs-xs); font-weight: 600; display: inline-block; white-space: nowrap; }
+        .badge-ok { background: var(--ok-tint); color: var(--ok); }
+        .badge-warn { background: var(--warn-tint); color: var(--warn); }
+        .badge-danger { background: var(--crit-tint); color: var(--crit); }
+        .badge-offline { background: var(--surface-2); color: var(--text-3); }
+        .badge-neutral { background: var(--surface-2); color: var(--text-2); font-weight: 500; }
 
-        .btn-action { padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: 600; border: none; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; }
-        .btn-clear { background: #e0f2fe; color: #0369a1; }
-        .btn-clear:hover { background: #bae6fd; }
+        .btn-action { padding: var(--s1) var(--s3); border-radius: var(--radius); font: inherit; font-size: var(--fs-xs); font-weight: 600; border: 1px solid var(--border-strong); background: transparent; color: var(--text); cursor: pointer; white-space: nowrap; }
+        .btn-action:hover { background: var(--accent-tint); border-color: var(--accent); color: var(--accent); }
 
-        /* Modal de Login / Route Guard Estrito */
-        #authOverlay {
-            position: fixed; inset: 0; background: rgba(15, 23, 42, 0.92); backdrop-filter: blur(10px);
-            display: flex; align-items: center; justify-content: center; z-index: 9999;
-        }
-        .auth-card {
-            background: white; width: 100%; max-width: 440px; border-radius: 12px;
-            box-shadow: 0 20px 25px -5px rgba(0,0,0,0.3), 0 10px 10px -5px rgba(0,0,0,0.2);
-            overflow: hidden; border: 1px solid #cbd5e1;
-        }
-        .auth-header {
-            background: #0f172a; color: white; padding: 26px 24px; text-align: center;
-            border-bottom: 3px solid var(--primary);
-        }
-        .auth-body { padding: 28px; }
-        .auth-form-group { margin-bottom: 18px; }
-        .auth-form-group label { display: block; font-size: 12px; font-weight: 600; color: #475569; margin-bottom: 6px; }
-        .auth-form-group input { 
-            width: 100%; padding: 11px 14px; border-radius: 6px; 
-            border: 1px solid #cbd5e1; background: #f8fafc; color: #0f172a; font-size: 14px; font-family: monospace;
-        }
-        .auth-form-group input:focus { outline: none; border-color: var(--primary); background: white; }
-        .auth-error {
-            background: #fee2e2; border: 1px solid #fecaca; color: #b91c1c;
-            padding: 10px 12px; border-radius: 6px; font-size: 12px; font-weight: 600;
-            margin-bottom: 16px; display: none;
-        }
-        .btn-login {
-            width: 100%; padding: 13px; background: var(--primary); color: white; border: none;
-            border-radius: 6px; font-size: 14px; font-weight: 700; cursor: pointer; transition: background 0.2s;
-        }
-        .btn-login:hover { background: var(--primary-dark); }
-        .btn-login:disabled { background: #94a3b8; cursor: not-allowed; }
+        /* BI */
+        .panel { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: var(--s5); }
+        .panel h3 { font-size: var(--fs-lg); font-weight: 600; margin-bottom: var(--s2); }
+        .panel > p { color: var(--text-2); font-size: var(--fs-sm); max-width: 70ch; margin-bottom: var(--s5); }
+        .bi-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--s4); }
+        @media (max-width: 800px) { .bi-grid { grid-template-columns: 1fr; } }
+        .bi-item { background: var(--bg); border: 1px solid var(--border); border-left-width: 3px; border-radius: var(--radius); padding: var(--s4); }
+        .bi-item.crit { border-left-color: var(--crit); }
+        .bi-item.warn { border-left-color: var(--warn); }
+        .bi-item.info { border-left-color: var(--accent); }
+        .bi-label { font-size: var(--fs-sm); font-weight: 600; margin-bottom: var(--s1); }
+        .bi-val { font-size: var(--fs-xl); font-weight: 600; font-variant-numeric: tabular-nums; }
+        .bi-hint { font-size: var(--fs-xs); color: var(--text-3); margin-top: var(--s1); }
+
+        /* Login / route guard */
+        #authOverlay { position: fixed; inset: 0; background: var(--overlay); display: flex; align-items: center; justify-content: center; padding: var(--s4); z-index: 9999; overflow-y: auto; }
+        .auth-card { background: var(--surface); width: 100%; max-width: 420px; border-radius: 8px; border: 1px solid var(--border-strong); }
+        .auth-header { padding: var(--s5) var(--s5) var(--s4); border-bottom: 1px solid var(--border); }
+        .auth-header .brand-mark { margin-bottom: var(--s3); display: block; }
+        .auth-header h2 { font-size: var(--fs-lg); font-weight: 600; }
+        .auth-header p { font-size: var(--fs-sm); color: var(--text-3); margin-top: var(--s1); }
+        .auth-body { padding: var(--s5); }
+        .auth-form-group { margin-bottom: var(--s4); }
+        .auth-form-group label { display: block; font-size: var(--fs-sm); font-weight: 600; color: var(--text-2); margin-bottom: var(--s1); }
+        .auth-form-group input { width: 100%; padding: var(--s2) var(--s3); border-radius: var(--radius); border: 1px solid var(--border-strong); background: var(--bg); color: var(--text); font-size: var(--fs-md); font-family: inherit; }
+        .auth-form-group input[type="password"] { font-family: var(--font-mono); }
+        .auth-form-group input:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; border-color: var(--accent); }
+        .auth-error { background: var(--crit-tint); border: 1px solid var(--crit); color: var(--crit); padding: var(--s2) var(--s3); border-radius: var(--radius); font-size: var(--fs-sm); font-weight: 600; margin-bottom: var(--s4); display: none; }
+        .btn-login { width: 100%; padding: var(--s3); background: var(--accent); color: var(--on-accent); border: 1px solid var(--accent); border-radius: var(--radius); font: inherit; font-size: var(--fs-md); font-weight: 600; cursor: pointer; }
+        .btn-login:hover { background: var(--accent-hover); }
+        .btn-login:disabled { background: var(--surface-2); border-color: var(--border-strong); color: var(--text-3); cursor: not-allowed; }
+        .auth-foot { margin-top: var(--s4); font-size: var(--fs-xs); color: var(--text-3); line-height: 1.6; }
+        .auth-foot a { color: var(--accent); text-decoration: underline; }
     </style>
 </head>
 <body>
 
-<!-- Modal de Autenticação Estrita Enterprise -->
+<!-- Autenticação do supervisor -->
 <div id="authOverlay" style="display: none;">
-    <div class="auth-card">
+    <div class="auth-card" role="dialog" aria-labelledby="authTitle">
         <div class="auth-header">
-            <div style="font-size: 34px; margin-bottom: 8px;">🛡️</div>
-            <h2 style="font-size: 20px; font-weight: 700;">VoiceVanguard CCaaS</h2>
-            <p style="font-size: 12px; color: #94a3b8; margin-top: 4px;">Acesso Restrito ao Painel de Operações Enterprise</p>
+            <svg class="brand-mark" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2.5L4 6v5.5c0 4.7 3.3 8.7 8 10 4.7-1.3 8-5.3 8-10V6l-8-3.5z"/><path d="M8.5 12h1.8l1.2-3 1.8 6 1.2-3h1"/></svg>
+            <h2 id="authTitle">VoiceVanguard CCaaS</h2>
+            <p>Acesso restrito ao console do supervisor</p>
         </div>
         <div class="auth-body">
-            <div id="authErrorBox" class="auth-error"></div>
+            <div id="authErrorBox" class="auth-error" role="alert"></div>
             <div class="auth-form-group">
-                <label for="inputTenantKey">Chave de Licença do Tenant (Enterprise Tenant Key):</label>
-                <input type="text" id="inputTenantKey" placeholder="Ex: GENESYS-ALLIANCE-EVAL" autocomplete="off" autocorrect="off" autocapitalize="characters">
+                <label for="inputTenantKey">Chave de supervisor do tenant</label>
+                <input type="password" id="inputTenantKey" placeholder="Chave de supervisor do seu tenant" autocomplete="off" autocorrect="off">
             </div>
             <div class="auth-form-group">
-                <label for="inputSupervisorName">Identificação do Supervisor:</label>
-                <input type="text" id="inputSupervisorName" value="Supervisor Principal" placeholder="Nome ou Matrícula">
+                <label for="inputSupervisorName">Identificação do supervisor</label>
+                <input type="text" id="inputSupervisorName" value="Supervisor Principal" placeholder="Nome ou matrícula">
             </div>
             <button id="btnSubmitLogin" class="btn-login" onclick="authenticateSupervisor()">
-                Validar Licença & Acessar Console →
+                Entrar no console
             </button>
-            <div style="margin-top: 18px; text-align: center; font-size: 11px; color: #94a3b8; line-height: 1.5;">
-                Protegido por criptografia TLS 1.3 com isolamento lógico multi-tenant.<br>
-                Precisa de uma chave corporativa? <a href="mailto:contato@trustco.pro?subject=VoiceVanguard%20Enterprise%20Tenant%20Request" style="color:var(--primary); text-decoration: underline;">Solicitar à Engenharia</a>
+            <div class="auth-foot">
+                Conexão cifrada em trânsito, com isolamento lógico entre tenants.<br>
+                Precisa de uma chave? <a href="mailto:contato@trustco.pro?subject=VoiceVanguard%20Tenant%20Request">Solicitar à engenharia</a>
             </div>
         </div>
     </div>
@@ -152,61 +176,59 @@
 
 <header>
     <div class="brand">
-        <div class="brand-logo">🛡️</div>
+        <svg class="brand-mark" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2.5L4 6v5.5c0 4.7 3.3 8.7 8 10 4.7-1.3 8-5.3 8-10V6l-8-3.5z"/><path d="M8.5 12h1.8l1.2-3 1.8 6 1.2-3h1"/></svg>
         <div>
-            <h1 style="font-size: 17px; font-weight: 700; letter-spacing: -0.3px;">VoiceVanguard CCaaS</h1>
-            <div style="font-size: 11.5px; color: #94a3b8;">Observabilidade WebRTC Multi-Tenant &bull; Genesys Cloud CX</div>
+            <h1>VoiceVanguard CCaaS</h1>
+            <div class="brand-sub">Observabilidade WebRTC multi-tenant</div>
         </div>
         <span class="brand-badge" id="tenantBadge">AUTENTICANDO</span>
     </div>
 
     <div class="tenant-status-box">
-        <span class="live-dot" id="liveDotIndicator"></span>
-        <span style="font-size: 12px; color: #cbd5e1;" id="connStatus">Verificando credenciais...</span>
-        <span id="tenantOrgDisplay" style="font-size: 12.5px; font-weight: 600; color: #38bdf8; background: #1e293b; padding: 4px 10px; border-radius: 6px; border: 1px solid #334155;">--</span>
-        <button class="btn-top" onclick="logoutSupervisor()">
-            🔒 Sair
-        </button>
+        <span class="live-dot" id="liveDotIndicator" aria-hidden="true"></span>
+        <span id="connStatus" role="status">Verificando credenciais...</span>
+        <span id="tenantOrgDisplay" class="org-name">--</span>
+        <button class="btn-top" onclick="logoutSupervisor()">Sair</button>
     </div>
 </header>
 
-<div class="container">
-    <!-- Tabs -->
-    <div class="tabs">
-        <button class="tab-btn active" id="tabLiveBtn" onclick="switchTab('live')">📡 Monitoramento ao Vivo (PAs)</button>
-        <button class="tab-btn" id="tabCallsBtn" onclick="switchTab('calls')">📞 Auditoria de Chamadas (Interações)</button>
-        <button class="tab-btn" id="tabBiBtn" onclick="switchTab('bi')">📊 BI & Causa Raiz</button>
+<main class="container">
+    <div class="tabs" role="group" aria-label="Seções do console">
+        <button class="tab-btn active" id="tabLiveBtn" onclick="switchTab('live')">Monitoramento ao vivo</button>
+        <button class="tab-btn" id="tabCallsBtn" onclick="switchTab('calls')">Auditoria de chamadas</button>
+        <button class="tab-btn" id="tabHealthBtn" onclick="switchTab('health')">Saúde da estação</button>
+        <button class="tab-btn" id="tabBiBtn" onclick="switchTab('bi')">BI e causa raiz</button>
     </div>
 
-    <!-- Cards Superiores -->
+    <!-- Indicadores -->
     <div class="cards-grid">
         <div class="card">
-            <div class="card-label">PAs Conectadas</div>
-            <div class="card-val" id="cardTotalAgents" style="color:var(--primary);">0</div>
+            <div class="card-label">PAs conectadas</div>
+            <div class="card-val" id="cardTotalAgents">0</div>
         </div>
         <div class="card">
-            <div class="card-label">Conformidade (OK)</div>
-            <div class="card-val" id="cardAgentsOk" style="color:var(--ok);">100%</div>
+            <div class="card-label">PAs com status OK</div>
+            <div class="card-val" id="cardAgentsOk">—</div>
         </div>
         <div class="card">
-            <div class="card-label">MOS Médio (G.107)</div>
-            <div class="card-val" id="cardAvgMos" style="color:#059669;">4.40</div>
+            <div class="card-label">MOS médio (G.107)</div>
+            <div class="card-val" id="cardAvgMos">—</div>
         </div>
         <div class="card">
-            <div class="card-label">Jitter Médio</div>
-            <div class="card-val" id="cardAvgJitter" style="color:#7c3aed;">0.0ms</div>
+            <div class="card-label">Jitter médio</div>
+            <div class="card-val" id="cardAvgJitter">—</div>
         </div>
         <div class="card">
-            <div class="card-label">Chamadas Auditadas</div>
-            <div class="card-val" id="cardTotalCalls" style="color:#0284c7;">0</div>
+            <div class="card-label">Chamadas auditadas</div>
+            <div class="card-val" id="cardTotalCalls">0</div>
         </div>
         <div class="card">
-            <div class="card-label">Taxa de Êxito Voz</div>
-            <div class="card-val" id="cardSuccessCalls" style="color:var(--ok);">100%</div>
+            <div class="card-label">Chamadas excelentes ou boas</div>
+            <div class="card-val" id="cardSuccessCalls">—</div>
         </div>
     </div>
 
-    <!-- ABA 1: Live Monitor de PAs -->
+    <!-- Aba 1: monitoramento de PAs -->
     <div id="tabContentLive">
         <div class="table-box">
             <table>
@@ -216,22 +238,43 @@
                         <th>Plataforma</th>
                         <th>Estação / PA</th>
                         <th>Operador</th>
-                        <th>Interface de Rede</th>
-                        <th>Stress Máquina</th>
-                        <th>Qualidade Voz (MOS)</th>
-                        <th>Latência / Jitter</th>
-                        <th>Chamada Ativa</th>
-                        <th>Ações Remotas</th>
+                        <th>Rede</th>
+                        <th>Carga da máquina</th>
+                        <th>MOS</th>
+                        <th>RTT | Jitter</th>
+                        <th>Chamada</th>
+                        <th>Ações</th>
                     </tr>
                 </thead>
                 <tbody id="agentsTableBody">
-                    <tr><td colspan="10" style="text-align:center; color:var(--text-muted); padding:30px;">Aguardando check-in de PAs na chave deste Tenant...</td></tr>
+                    <tr><td colspan="10" class="empty">Aguardando conexão com o relay.</td></tr>
                 </tbody>
             </table>
         </div>
     </div>
 
-    <!-- ABA 2: Auditoria de Chamadas -->
+    <!-- Aba: saúde da estação (pré-check de turno e latência das APIs do agent desktop) -->
+    <div id="tabContentHealth" style="display:none;">
+        <div class="table-box">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Estação / PA</th>
+                        <th>Operador</th>
+                        <th>Pré-check de turno</th>
+                        <th>Pontos de atenção</th>
+                        <th>Latência das APIs do CCaaS (p95 · erros)</th>
+                    </tr>
+                </thead>
+                <tbody id="healthTableBody">
+                    <tr><td colspan="5" class="empty">Nenhuma estação executou o pré-check ou reportou latência de API ainda.</td></tr>
+                </tbody>
+            </table>
+        </div>
+        <p class="muted" style="margin-top: var(--s3); font-size: var(--fs-sm);">A latência é agregada por servidor (hostname) em janelas de 30 s; endereços completos, caminhos e identificadores não são coletados.</p>
+    </div>
+
+    <!-- Aba 2: auditoria de chamadas -->
     <div id="tabContentCalls" style="display:none;">
         <div class="table-box">
             <table>
@@ -239,47 +282,47 @@
                     <tr>
                         <th>Classificação</th>
                         <th>Plataforma</th>
-                        <th>ID da Interação (Call ID)</th>
+                        <th>ID da interação</th>
                         <th>Operador / PA</th>
                         <th>Horário</th>
                         <th>Duração</th>
-                        <th>MOS Médio / Mín</th>
-                        <th>Jitter Pico</th>
-                        <th>Perda %</th>
+                        <th>MOS médio / mín.</th>
+                        <th>Jitter pico</th>
+                        <th>Perda</th>
                         <th>Protocolo</th>
                     </tr>
                 </thead>
                 <tbody id="callsTableBody">
-                    <tr><td colspan="10" style="text-align:center; color:var(--text-muted); padding:30px;">Nenhuma chamada finalizada neste turno.</td></tr>
+                    <tr><td colspan="10" class="empty">Nenhuma chamada finalizada neste turno.</td></tr>
                 </tbody>
             </table>
         </div>
     </div>
 
-    <!-- ABA 3: BI & Causa Raiz -->
+    <!-- Aba 3: BI -->
     <div id="tabContentBi" style="display:none;">
-        <div class="card" style="padding: 24px;">
-            <h3 style="margin-bottom: 12px; font-size: 16px;">Diagnóstico de Causa Raiz de Incidentes</h3>
-            <p style="color:var(--text-muted); font-size:14px; margin-bottom:20px;">
-                Identificação preditiva de fatores locais do atendente (concorrência de abas, Wi-Fi residencial e falhas de microfone) que impactam a qualidade de voz antes de virar chamado técnico.
-            </p>
-            <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:16px;">
-                <div style="background:#f8fafc; border:1px solid var(--border); padding:16px; border-radius:6px;">
-                    <div style="font-weight:600; color:var(--danger); margin-bottom:4px;">🚨 Quedas por Jitter Alto / Wi-Fi</div>
-                    <div style="font-size:20px; font-weight:700;" id="biWifiIssues">0 PAs</div>
+        <div class="panel">
+            <h3>Fatores locais que afetam a qualidade de voz</h3>
+            <p>Wi-Fi, abas duplicadas e falhas de áudio no posto do atendente podem degradar a voz antes de virar chamado técnico.</p>
+            <div class="bi-grid">
+                <div class="bi-item crit">
+                    <div class="bi-label">PAs em Wi-Fi</div>
+                    <div class="bi-val" id="biWifiIssues">0 PAs</div>
                 </div>
-                <div style="background:#f8fafc; border:1px solid var(--border); padding:16px; border-radius:6px;">
-                    <div style="font-weight:600; color:var(--warn); margin-bottom:4px;">⚠️ Abas Duplicadas Genesys</div>
-                    <div style="font-size:20px; font-weight:700;" id="biTabIssues">0 PAs</div>
+                <div class="bi-item warn">
+                    <div class="bi-label">Abas duplicadas</div>
+                    <div class="bi-val" id="biTabIssues">—</div>
+                    <div class="bi-hint">Indicador ainda não calculado.</div>
                 </div>
-                <div style="background:#f8fafc; border:1px solid var(--border); padding:16px; border-radius:6px;">
-                    <div style="font-weight:600; color:var(--primary); margin-bottom:4px;">🎧 Falha de Headset / Mute</div>
-                    <div style="font-size:20px; font-weight:700;" id="biAudioIssues">0 PAs</div>
+                <div class="bi-item info">
+                    <div class="bi-label">Falha de headset ou mudo</div>
+                    <div class="bi-val" id="biAudioIssues">—</div>
+                    <div class="bi-hint">Indicador ainda não calculado.</div>
                 </div>
             </div>
         </div>
     </div>
-</div>
+</main>
 
 <script>
     let activeTenantKey = null;
@@ -287,6 +330,7 @@
     let ws = null;
     let agentsMap = new Map();
     let callsList = [];
+    let stationsMap = new Map();
 
     function showAuthError(msg) {
         const box = document.getElementById('authErrorBox');
@@ -307,7 +351,7 @@
 
     async function validateTenantKey(key) {
         try {
-            const resp = await fetch(`/api/validate-tenant?key=${encodeURIComponent(key)}`);
+            const resp = await fetch('/api/validate-tenant', { headers: { 'X-Tenant-Key': key } });
             const data = await resp.json();
             if (resp.ok && data.valid) {
                 return data;
@@ -322,13 +366,13 @@
     async function authenticateSupervisor() {
         const key = document.getElementById('inputTenantKey').value.trim();
         if (!key) {
-            showAuthError("Informe a Chave do Tenant Enterprise para prosseguir.");
+            showAuthError("Informe a chave de supervisor do tenant para prosseguir.");
             return;
         }
 
         const btn = document.getElementById('btnSubmitLogin');
         btn.disabled = true;
-        btn.textContent = "Validando licença no Relay Cloud...";
+        btn.textContent = "Validando chave...";
         hideAuthError();
 
         const result = await validateTenantKey(key);
@@ -345,10 +389,10 @@
             updateTenantDisplay(key, result.tenant);
             connectWs();
         } else {
-            showAuthError("Chave de Tenant inválida ou não autorizada. Verifique suas credenciais Enterprise.");
+            showAuthError("Chave inválida ou não autorizada. Verifique a chave de supervisor do tenant.");
         }
         btn.disabled = false;
-        btn.textContent = "Validar Licença & Acessar Console →";
+        btn.textContent = "Entrar no console";
     }
 
     function logoutSupervisor() {
@@ -363,7 +407,7 @@
     }
 
     function updateTenantDisplay(key, name) {
-        document.getElementById('tenantBadge').textContent = (key || 'UNKNOWN').split('-')[0];
+        document.getElementById('tenantBadge').textContent = (name || 'TENANT').split(/\s+/)[0].toUpperCase().slice(0, 12); // nunca exibir parte da chave
         document.getElementById('tenantOrgDisplay').textContent = name || key;
     }
 
@@ -374,13 +418,13 @@
         }
 
         const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
-        const wsUrl = `${protocol}//${location.host}?tenant=${encodeURIComponent(activeTenantKey)}&type=supervisor`;
+        const wsUrl = `${protocol}//${location.host}?key=${encodeURIComponent(activeTenantKey)}`;
         
         document.getElementById('connStatus').textContent = "Conectando...";
         ws = new WebSocket(wsUrl);
 
         ws.onopen = () => {
-            document.getElementById('connStatus').textContent = "🟢 Ao Vivo";
+            document.getElementById('connStatus').textContent = "Ao vivo";
         };
 
         ws.onmessage = (event) => {
@@ -393,16 +437,24 @@
                         msg.agents.forEach(a => agentsMap.set(a.agentId, a));
                     }
                     callsList = msg.callHistory || [];
+                    stationsMap.clear();
+                    if (Array.isArray(msg.stations)) {
+                        msg.stations.forEach(st => stationsMap.set(st.agentId, st));
+                    }
                     renderAll();
                 } else if (msg.type === 'TELEMETRY_UPDATE') {
                     agentsMap.set(msg.payload.agentId, msg.payload);
+                    renderAll();
+                } else if (msg.type === 'STATION_HEALTH_UPDATE') {
+                    stationsMap.set(msg.payload.agentId, msg.payload);
                     renderAll();
                 } else if (msg.type === 'NEW_CALL_AUDIT') {
                     callsList.unshift(msg.payload);
                     if (callsList.length > 200) callsList.pop();
                     renderAll();
                 } else if (msg.type === 'AGENT_COMMAND_FEEDBACK') {
-                    alert(`Feedback da PA (${msg.agentId}):\n${JSON.stringify(msg.result)}`);
+                    const r = msg.result || {};
+                    alert(`Feedback da PA (${String(msg.agentId)}):\n${r.success ? 'Cache limpo com sucesso.' : (r.message || 'Ação não executada.')}`);
                 }
             } catch (err) {
                 console.error("Erro ao decodificar frame WS:", err);
@@ -411,11 +463,11 @@
 
         ws.onclose = (ev) => {
             if (ev.code === 4001) {
-                document.getElementById('connStatus').textContent = "🔴 Chave Recusada";
+                document.getElementById('connStatus').textContent = "Chave recusada";
                 logoutSupervisor();
                 return;
             }
-            document.getElementById('connStatus').textContent = "⚪ Desconectado";
+            document.getElementById('connStatus').textContent = "Desconectado. Tentando reconectar...";
             setTimeout(() => {
                 if (activeTenantKey && sessionStorage.getItem('vv_logged_in')) {
                     connectWs();
@@ -428,6 +480,8 @@
         document.getElementById('tabLiveBtn').classList.toggle('active', tab === 'live');
         document.getElementById('tabCallsBtn').classList.toggle('active', tab === 'calls');
         document.getElementById('tabBiBtn').classList.toggle('active', tab === 'bi');
+        document.getElementById('tabHealthBtn').classList.toggle('active', tab === 'health');
+        document.getElementById('tabContentHealth').style.display = tab === 'health' ? 'block' : 'none';
 
         document.getElementById('tabContentLive').style.display = tab === 'live' ? 'block' : 'none';
         document.getElementById('tabContentCalls').style.display = tab === 'calls' ? 'block' : 'none';
@@ -447,7 +501,57 @@
         }
     }
 
+    // Todo dado vindo de agente é não confiável: escapar antes de montar HTML.
+    function esc(v) {
+        return String(v ?? '').replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
+    }
+
+    document.getElementById('agentsTableBody').addEventListener('click', (e) => {
+        const btn = e.target.closest('[data-clear-agent]');
+        if (btn) sendRemoteClearCache(btn.dataset.clearAgent);
+    });
+
+    const AUDIO_ISSUE_LABELS = {
+        SEM_AUDIO_RECEBIDO: 'Sem áudio recebido',
+        SEM_AUDIO_ENVIADO: 'Sem áudio enviado',
+        MIC_DESCONECTADO: 'Microfone desconectado',
+        MIC_MUDO_SISTEMA: 'Microfone mudo no sistema'
+    };
+    const PRECHECK_LABELS = { PRONTA: 'Pronta', ATENCAO: 'Atenção', NAO_PRONTA: 'Não pronta' };
+    const PRECHECK_BADGE = { PRONTA: 'badge-ok', ATENCAO: 'badge-warn', NAO_PRONTA: 'badge-danger' };
+    const PRECHECK_ITEM_NAMES = {
+        relay: 'Servidor', rede: 'Rede', rede_rtt: 'Latência', rede_jitter: 'Jitter', rede_perda: 'Perda de pacotes',
+        microfone: 'Microfone', saida_audio: 'Saída de áudio', conexao: 'Conexão', hardware: 'Equipamento'
+    };
+
+    function renderHealth() {
+        const tbody = document.getElementById('healthTableBody');
+        const list = Array.from(stationsMap.values());
+        if (list.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="5" class="empty">Nenhuma estação executou o pré-check ou reportou latência de API ainda.</td></tr>`;
+            return;
+        }
+        tbody.innerHTML = list.map(st => {
+            const pc = st.precheck;
+            const pcCell = pc
+                ? `<span class="badge ${PRECHECK_BADGE[pc.status] || 'badge-warn'}">${esc(PRECHECK_LABELS[pc.status] || pc.status)}</span> <span class="muted">${esc(new Date(pc.checkedAt).toLocaleTimeString('pt-BR'))}</span>`
+                : `<span class="muted">Não executado</span>`;
+            const issues = pc ? pc.itens.filter(i => i.status !== 'ok').map(i => `${esc(PRECHECK_ITEM_NAMES[i.id] || i.id)}: ${esc(i.valor)}`).join(' · ') : '';
+            const apiCell = st.api && st.api.hosts.length
+                ? st.api.hosts.map(h => `<div>${esc(h.host)} — <b>${esc(h.p95Ms)} ms</b> · ${esc(h.errors)} erro(s) em ${esc(h.count)}</div>`).join('')
+                : `<span class="muted">Sem dados</span>`;
+            return `<tr>
+                <td><b>${esc(st.station)}</b></td>
+                <td>${esc(st.operator)}</td>
+                <td>${pcCell}</td>
+                <td>${issues || '<span class="muted">—</span>'}</td>
+                <td>${apiCell}</td>
+            </tr>`;
+        }).join('');
+    }
+
     function renderAll() {
+        renderHealth();
         const agents = Array.from(agentsMap.values());
         document.getElementById('cardTotalAgents').textContent = agents.length;
 
@@ -480,44 +584,46 @@
         // Renderiza Tabela de PAs
         const tbodyAgents = document.getElementById('agentsTableBody');
         if (agents.length === 0) {
-            tbodyAgents.innerHTML = `<tr><td colspan="10" style="text-align:center; color:var(--text-muted); padding:30px;">Aguardando check-in de PAs na chave deste Tenant...</td></tr>`;
+            tbodyAgents.innerHTML = `<tr><td colspan="10" class="empty">Nenhuma PA conectada a este tenant.</td></tr>`;
         } else {
             tbodyAgents.innerHTML = agents.map(a => {
                 const badgeClass = a.status === 'OK' ? 'badge-ok' : (a.status === 'OFFLINE' ? 'badge-offline' : 'badge-danger');
-                const callStatus = a.callActive ? `<span style="color:var(--ok); font-weight:700;">🟢 Em Chamada (${(a.currentCallId || '').slice(-6)})</span>` : `<span style="color:var(--text-muted);">Livre</span>`;
+                const audioLabel = AUDIO_ISSUE_LABELS[a.audioIssue];
+                const audioFlag = audioLabel ? `<div class="txt-crit">${esc(audioLabel)}</div>` : '';
+                const callStatus = (a.callActive ? `<span class="txt-ok">Em chamada (${esc((a.currentCallId || '').slice(-6))})</span>` : `<span class="muted">Livre</span>`) + audioFlag;
                 
                 // Badge de Wi-Fi vs Cabo
                 const isWifi = (a.networkType || '').includes('WI_FI') || (a.protocol || '').includes('WIFI');
                 const netBadge = isWifi 
-                    ? `<span style="background:#fef3c7; color:#b45309; padding:3px 7px; border-radius:10px; font-size:11px; font-weight:700;">📶 Wi-Fi Doméstico</span>`
-                    : `<span style="background:#e0f2fe; color:#0369a1; padding:3px 7px; border-radius:10px; font-size:11px; font-weight:700;">🔌 Cabo Ethernet</span>`;
+                    ? `<span class="badge badge-warn">Wi-Fi</span>`
+                    : `<span class="badge badge-neutral">Ethernet</span>`;
 
                 // Badge de Stress de CPU
                 const isHighCpu = a.cpuStress === 'ALTO_CONSUMO_RAM';
                 const cpuBadge = isHighCpu
-                    ? `<span style="background:#fee2e2; color:#b91c1c; padding:3px 7px; border-radius:10px; font-size:11px; font-weight:700;">🔥 Alta Carga</span>`
-                    : `<span style="background:#f1f5f9; color:#475569; padding:3px 7px; border-radius:10px; font-size:11px; font-weight:600;">Normal</span>`;
+                    ? `<span class="badge badge-danger">Alta carga</span>`
+                    : `<span class="badge badge-neutral">Normal</span>`;
 
                 // Alerta In-Call MOS Rescue
                 const isRescueNeeded = a.callActive && Number(a.mosScore) < 3.30;
                 const mosDisplay = isRescueNeeded
-                    ? `<b style="color:var(--danger); animation: blink 1s infinite;">⚠️ ${a.mosScore} (Risco Queda)</b>`
-                    : `<b>${a.mosScore || '4.40'}</b> / 4.50`;
+                    ? `<b class="txt-crit">${esc(a.mosScore)} (risco de queda)</b>`
+                    : `<b>${esc(a.mosScore ?? 'N/D')}</b> <span class="muted">/ 4.50</span>`;
 
                 return `
-                    <tr style="${isRescueNeeded ? 'background:#fef2f2;' : ''}">
-                        <td><span class="badge ${badgeClass}">${a.status}</span></td>
-                        <td><span style="font-weight:600; color:var(--primary); font-size:12px;">${a.platform || 'WebRTC'}</span></td>
-                        <td><b>${a.station}</b></td>
-                        <td>${a.operator}</td>
+                    <tr class="${isRescueNeeded ? 'row-crit' : ''}">
+                        <td><span class="badge ${badgeClass}">${esc(a.status)}</span></td>
+                        <td><span class="plat">${esc(a.platform || 'WebRTC')}</span></td>
+                        <td><b>${esc(a.station)}</b></td>
+                        <td>${esc(a.operator)}</td>
                         <td>${netBadge}</td>
                         <td>${cpuBadge}</td>
                         <td>${mosDisplay}</td>
-                        <td>${a.rttMs || 0}ms | ${a.jitterMs || 0}ms</td>
+                        <td class="num">${esc(a.rttMs || 0)} ms | ${esc(a.jitterMs || 0)} ms</td>
                         <td>${callStatus}</td>
                         <td>
-                            <button class="btn-action btn-clear" onclick="sendRemoteClearCache('${a.agentId}')">
-                                🧹 Limpar Cache
+                            <button class="btn-action btn-clear" data-clear-agent="${esc(a.agentId)}">
+                                Limpar cache
                             </button>
                         </td>
                     </tr>
@@ -532,7 +638,7 @@
 
         const tbodyCalls = document.getElementById('callsTableBody');
         if (callsList.length === 0) {
-            tbodyCalls.innerHTML = `<tr><td colspan="10" style="text-align:center; color:var(--text-muted); padding:30px;">Nenhuma chamada finalizada neste turno.</td></tr>`;
+            tbodyCalls.innerHTML = `<tr><td colspan="10" class="empty">Nenhuma chamada finalizada neste turno.</td></tr>`;
         } else {
             tbodyCalls.innerHTML = callsList.slice(0, 30).map(c => {
                 const tagClass = c.classificacao === 'CRÍTICA' ? 'badge-danger' : (c.classificacao === 'DEGRADADA' ? 'badge-warn' : 'badge-ok');
@@ -540,16 +646,16 @@
                 const durSec = (c.durationSeconds || 0) % 60;
                 return `
                     <tr>
-                        <td><span class="badge ${tagClass}">${c.classificacao}</span></td>
-                        <td><span style="font-weight:600; color:var(--primary); font-size:11px;">${c.platform || 'WebRTC'}</span></td>
-                        <td><code>${c.interactionId}</code></td>
-                        <td>${c.operator} (${c.station})</td>
-                        <td>${c.startTime || '--:--'}</td>
+                        <td><span class="badge ${tagClass}">${esc(c.classificacao)}</span>${(c.incidentesAudio && c.incidentesAudio.length) ? `<div class="txt-crit" style="font-size: var(--fs-xs); margin-top: 2px;">Áudio: ${esc(c.incidentesAudio.map(code => AUDIO_ISSUE_LABELS[code] || code).join(', '))}</div>` : ''}</td>
+                        <td><span class="plat">${esc(c.platform || 'WebRTC')}</span></td>
+                        <td><code>${esc(c.interactionId)}</code></td>
+                        <td>${esc(c.operator)} (${esc(c.station)})</td>
+                        <td>${esc(c.startTime ? new Date(c.startTime).toLocaleTimeString('pt-BR') : '--:--')}</td>
                         <td>${durMin}m ${durSec}s</td>
-                        <td><b>${c.mosMedio}</b> / ${c.mosMinimo}</td>
-                        <td>${c.jitterPicoMs}ms</td>
-                        <td>${c.perdaPacotesPct}%</td>
-                        <td>${c.protocolo}</td>
+                        <td><b>${esc(c.mosMedio)}</b> / ${esc(c.mosMinimo)}</td>
+                        <td>${esc(c.jitterPicoMs)}ms</td>
+                        <td>${esc(c.perdaPacotesPct)}%</td>
+                        <td>${esc(c.protocolo)}</td>
                     </tr>
                 `;
             }).join('');
@@ -558,10 +664,8 @@
 
     // Inicialização e Route Guard Estrito
     (async function initAuthGuard() {
-        const urlParams = new URLSearchParams(window.location.search);
-        const queryTenant = urlParams.get('tenant');
         const sessionTenant = sessionStorage.getItem('vv_tenant_key');
-        const candidateKey = queryTenant || sessionTenant;
+        const candidateKey = sessionTenant; // chaves nunca são aceitas via URL (vazam em logs e histórico)
 
         if (candidateKey) {
             const check = await validateTenantKey(candidateKey);

@@ -1,5 +1,5 @@
 {
-  "name": "VoiceVanguard WebRTC Sentinel",
+  "name": "VoiceVanguard CCaaS",
   "description": "Monitoramento em tempo real de qualidade de voz (MOS ITU-T G.107), diagnóstico de rede de agentes e auditoria WebRTC para Genesys Cloud.",
   "version": "1.0.0",
   "author": {
@@ -10,19 +10,15 @@
   "integrationType": "embedded-client-app",
   "applicationType": "standalone",
   "display": {
-    "name": "VoiceVanguard Sentinel",
+    "name": "VoiceVanguard CCaaS",
     "icon": {
       "vector": "https://voicevanguard.trustco.pro/assets/icon.svg"
     },
     "category": "Workforce Engagement Management"
   },
-  "url": "https://voicevanguard.trustco.pro/dashboard?tenant=TENANT_KEY_DO_CLIENTE&org={{pcOrganization.id}}&lang={{pcLangTag}}&env={{pcEnvironment}}",
-  "sandbox": "allow-scripts allow-same-origin allow-forms allow-popups allow-downloads",
-  "permissions": [
-    "analytics:conversationDetail:view",
-    "telephony:plugin:all",
-    "user:profile:view"
-  ],
+  "url": "https://voicevanguard.trustco.pro/dashboard?org={{pcOrganization.id}}&lang={{pcLangTag}}&env={{pcEnvironment}}",
+  "sandbox": "allow-scripts allow-same-origin allow-forms",
+  "permissions": [],
   "monetization": {
     "model": "PUPM",
     "currency": "USD",

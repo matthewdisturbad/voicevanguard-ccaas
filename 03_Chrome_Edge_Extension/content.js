@@ -7,6 +7,7 @@
 function injectHook() {
     const script = document.createElement('script');
     script.src = chrome.runtime.getURL('injected_webrtc_hook.js');
+    script.charset = 'utf-8'; // o hook tem acentos; não depender do charset da página hospedeira
     script.onload = function() {
         this.remove();
     };
@@ -17,12 +18,23 @@ injectHook();
 
 // 2. Escuta mensagens enviadas pelo hook injetado na página
 window.addEventListener('message', (event) => {
-    if (event.source !== window || !event.data || event.data.type !== 'GENESYS_WEBRTC_METRIC') {
+    // Aceita apenas mensagens do próprio frame, da mesma origem e do hook (protocolo único)
+    if (event.source !== window || event.origin !== window.location.origin ||
+        !event.data || event.data.source !== 'VOICEVANGUARD_WEBRTC_HOOK') {
         return;
     }
 
-    const data = event.data.data;
-    const action = data.evento === 'CHAMADA_FINALIZADA' ? 'REPORT_CALL_SUMMARY' : 'REPORT_TELEMETRY';
+    const data = event.data.payload;
+    if (!data || typeof data !== 'object') return;
+    // Cada tipo de evento tem seu destino; eventos desconhecidos são descartados
+    // (ex.: latência de API não pode marcar "chamada ativa" no background)
+    const ACTIONS = {
+        AMOSTRA_VOZ_WEBRTC: 'REPORT_TELEMETRY',
+        CHAMADA_FINALIZADA: 'REPORT_CALL_SUMMARY',
+        LATENCIA_API: 'REPORT_API_LATENCY'
+    };
+    const action = ACTIONS[data.evento];
+    if (!action) return;
 
     chrome.runtime.sendMessage({
         action: action,

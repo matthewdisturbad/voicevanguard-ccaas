@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "VoiceVanguard &bull; Universal CCaaS WebRTC Sentinel",
+  "name": "VoiceVanguard • CCaaS WebRTC Sentinel",
   "version": "1.0.0",
-  "description": "Enterprise Voice Observability & ITU-T G.107 MOS Auditing for Genesys Cloud, Amazon Connect, Twilio, Webex, Five9 and any cloud contact center.",
+  "description": "Observabilidade de voz e auditoria de MOS (aproximação ITU-T G.107) para Genesys Cloud CX e Amazon Connect. Coleta apenas estatísticas de rede; não captura áudio.",
   "author": "TrustCo Technologies",
   "icons": {
     "16": "icon16.png",
@@ -24,22 +24,48 @@
     "browsingData"
   ],
   "host_permissions": [
-    "<all_urls>"
+    "https://*.pure.cloud/*",
+    "https://*.mypurecloud.com/*",
+    "https://*.mypurecloud.com.au/*",
+    "https://*.mypurecloud.ie/*",
+    "https://*.mypurecloud.de/*",
+    "https://*.mypurecloud.jp/*",
+    "https://*.my.connect.aws/*",
+    "https://*.awsapps.com/*"
   ],
   "content_scripts": [
     {
       "matches": [
-        "https://*/*",
-        "http://*/*"
+        "https://*.pure.cloud/*",
+        "https://*.mypurecloud.com/*",
+        "https://*.mypurecloud.com.au/*",
+        "https://*.mypurecloud.ie/*",
+        "https://*.mypurecloud.de/*",
+        "https://*.mypurecloud.jp/*",
+        "https://*.my.connect.aws/*",
+        "https://*.awsapps.com/*"
       ],
-      "js": ["content.js"],
+      "js": [
+        "content.js"
+      ],
       "run_at": "document_start"
     }
   ],
   "web_accessible_resources": [
     {
-      "resources": ["injected_webrtc_hook.js"],
-      "matches": ["<all_urls>"]
+      "resources": [
+        "injected_webrtc_hook.js"
+      ],
+      "matches": [
+        "https://*.pure.cloud/*",
+        "https://*.mypurecloud.com/*",
+        "https://*.mypurecloud.com.au/*",
+        "https://*.mypurecloud.ie/*",
+        "https://*.mypurecloud.de/*",
+        "https://*.mypurecloud.jp/*",
+        "https://*.my.connect.aws/*",
+        "https://*.awsapps.com/*"
+      ]
     }
   ],
   "background": {

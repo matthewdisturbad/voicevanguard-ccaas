@@ -2,39 +2,77 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
+    <meta name="color-scheme" content="light dark">
     <title>VoiceVanguard CCaaS</title>
     <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-        body { width: 340px; background: #f8fafc; color: #1e293b; padding: 14px; }
+        :root {
+            --bg: #f6f7f9; --surface: #ffffff; --border: #dde1e7; --border-strong: #c3c9d2;
+            --text: #14181f; --text-2: #434b59; --text-3: #596273;
+            --accent: #1d5fd1; --accent-hover: #174ca8; --on-accent: #ffffff;
+            --ok: #1a7f4b; --ok-tint: #e4f4ea;
+            --warn: #8a5a00; --warn-tint: #fbf0d6;
+            --crit: #b42028; --crit-tint: #fbe6e7;
+            --idle-tint: #eef0f4;
+            --s1: 4px; --s2: 8px; --s3: 12px; --s4: 16px;
+            --fs-xs: 11px; --fs-sm: 12px; --fs-md: 14px;
+        }
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --bg: #0f1217; --surface: #171c24; --border: #29303b; --border-strong: #3a4352;
+                --text: #e8ebf0; --text-2: #b0b8c5; --text-3: #929cab;
+                --accent: #7aa7f5; --accent-hover: #9bbcf8; --on-accent: #0f1217;
+                --ok: #4cc38a; --ok-tint: #12281d;
+                --warn: #e2ac45; --warn-tint: #2c2412;
+                --crit: #ff8087; --crit-tint: #331a1d;
+                --idle-tint: #1e242e;
+            }
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+        body { width: 340px; background: var(--bg); color: var(--text); padding: var(--s4); }
+        :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
-        .header { display: flex; align-items: center; justify-content: space-between; border-bottom: 2px solid #0284c7; padding-bottom: 8px; margin-bottom: 12px; }
-        .header-title { display: flex; align-items: center; gap: 8px; }
-        .header-title h1 { font-size: 14px; font-weight: 700; color: #0284c7; }
-        .status-badge { font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 12px; text-transform: uppercase; }
-        .badge-ok { background: #dcfce7; color: #15803d; }
-        .badge-warn { background: #fef9c3; color: #a16207; }
-        .badge-danger { background: #fee2e2; color: #b91c1c; }
-        .badge-idle { background: #e2e8f0; color: #475569; }
+        .header { display: flex; align-items: center; justify-content: space-between; gap: var(--s2); padding-bottom: var(--s3); margin-bottom: var(--s3); border-bottom: 1px solid var(--border); }
+        .header-title { display: flex; align-items: center; gap: var(--s2); color: var(--accent); }
+        .header-title h1 { font-size: var(--fs-md); font-weight: 600; color: var(--text); }
+        .status-badge { font-size: var(--fs-xs); font-weight: 600; padding: 2px var(--s2); border-radius: 4px; white-space: nowrap; }
+        .badge-ok { background: var(--ok-tint); color: var(--ok); }
+        .badge-warn { background: var(--warn-tint); color: var(--warn); }
+        .badge-danger { background: var(--crit-tint); color: var(--crit); }
+        .badge-idle { background: var(--idle-tint); color: var(--text-2); }
 
-        .card { background: #ffffff; border-radius: 8px; padding: 12px; box-shadow: 0 1px 4px rgba(0,0,0,0.06); margin-bottom: 12px; border-left: 4px solid #0284c7; }
-        .card-row { display: flex; justify-content: space-between; font-size: 12px; padding: 4px 0; border-bottom: 1px dashed #f1f5f9; }
+        .card { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--border-strong); border-radius: 6px; padding: var(--s2) var(--s3); margin-bottom: var(--s3); }
+        .card-row { display: flex; justify-content: space-between; gap: var(--s3); font-size: var(--fs-sm); padding: 5px 0; border-bottom: 1px solid var(--border); }
         .card-row:last-child { border-bottom: none; }
-        .label { color: #64748b; font-weight: 500; }
-        .val { font-weight: 700; color: #0f172a; }
+        .label { color: var(--text-3); }
+        .val { font-weight: 600; color: var(--text); font-variant-numeric: tabular-nums; text-align: right; }
 
-        .btn { width: 100%; border: none; padding: 8px; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; }
-        .btn-clear { background: #0284c7; color: white; margin-bottom: 6px; }
-        .btn-clear:hover { background: #0369a1; }
+        .history-box { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: var(--s3); margin-bottom: var(--s3); max-height: 140px; overflow-y: auto; font-size: var(--fs-sm); }
+        .history-title { font-size: var(--fs-xs); font-weight: 600; color: var(--text-2); text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: var(--s2); }
+        #historyList { color: var(--text-3); }
+        #historyList:not(:empty) { color: var(--text); }
 
-        .history-box { background: #ffffff; border-radius: 8px; padding: 10px; box-shadow: 0 1px 4px rgba(0,0,0,0.06); margin-bottom: 12px; max-height: 140px; overflow-y: auto; font-size: 11px; }
-        .tenant-box { font-size: 10.5px; color: #64748b; display: flex; justify-content: space-between; align-items: center; margin-top: 10px; padding-top: 8px; border-top: 1px solid #e2e8f0; }
+        .btn { width: 100%; border: 1px solid transparent; padding: var(--s2) var(--s3); border-radius: 6px; font: inherit; font-size: var(--fs-sm); font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+        .btn-clear { background: var(--accent); color: var(--on-accent); margin-bottom: var(--s2); }
+        .btn-clear:hover:not(:disabled) { background: var(--accent-hover); }
+        .btn:disabled { color: #0f172a; cursor: not-allowed; }
+        .feedback { font-size: var(--fs-xs); text-align: center; color: var(--text-3); min-height: 14px; }
+        .btn-secondary { background: transparent; color: var(--text); border-color: var(--border-strong); margin-bottom: var(--s2); }
+        .btn-secondary:hover:not(:disabled) { background: var(--idle-tint); }
+        .precheck-box { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: var(--s3); margin-bottom: var(--s3); font-size: var(--fs-sm); }
+        .precheck-box .history-title { margin-bottom: var(--s2); }
+        .pc-item { display: flex; justify-content: space-between; gap: var(--s3); padding: 4px 0; border-bottom: 1px solid var(--border); }
+        .pc-item:last-child { border-bottom: none; }
+        .pc-tip { font-size: var(--fs-xs); color: var(--text-3); padding: 0 0 4px; }
+        .pc-ok { color: var(--ok); } .pc-atencao { color: var(--warn); } .pc-falha { color: var(--crit); }
+        .tenant-box { font-size: var(--fs-xs); color: var(--text-3); display: flex; justify-content: space-between; align-items: center; margin-top: var(--s3); padding-top: var(--s3); border-top: 1px solid var(--border); }
+        .tenant-box b { color: var(--text-2); font-weight: 600; }
     </style>
 </head>
 <body>
 
 <div class="header">
     <div class="header-title">
-        <span>🛡️</span>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2.5L4 6v5.5c0 4.7 3.3 8.7 8 10 4.7-1.3 8-5.3 8-10V6l-8-3.5z"/><path d="M8.5 12h1.8l1.2-3 1.8 6 1.2-3h1"/></svg>
         <h1>VoiceVanguard CCaaS</h1>
     </div>
     <span id="badgeState" class="status-badge badge-idle">Em Espera</span>
@@ -42,48 +80,55 @@
 
 <div class="card" id="callCard">
     <div class="card-row">
-        <span class="label">ID da Chamada:</span>
+        <span class="label">ID da chamada</span>
         <span class="val" id="valCallId">--</span>
     </div>
     <div class="card-row">
-        <span class="label">Voz (Score MOS):</span>
+        <span class="label">Voz (MOS)</span>
         <span class="val" id="valMos">Pronto</span>
     </div>
     <div class="card-row">
-        <span class="label">Latência RTT:</span>
+        <span class="label">Latência (RTT)</span>
         <span class="val" id="valRtt">Pronto</span>
     </div>
     <div class="card-row">
-        <span class="label">Jitter Áudio:</span>
+        <span class="label">Jitter</span>
         <span class="val" id="valJitter">0 ms</span>
     </div>
     <div class="card-row">
-        <span class="label">Perda de Pacotes:</span>
+        <span class="label">Perda de pacotes</span>
         <span class="val" id="valLoss">0.0 %</span>
     </div>
     <div class="card-row">
-        <span class="label">Protocolo Mídia:</span>
+        <span class="label">Protocolo de mídia</span>
         <span class="val" id="valProto">UDP (RTP)</span>
     </div>
 </div>
 
 <div class="history-box" id="historyBox">
-    <div style="font-weight:700; color:#0284c7; margin-bottom:6px;">📞 Chamadas Recentes (Auditoria)</div>
-    <div id="historyList" style="color:#94a3b8; text-align:center; padding:6px 0;">Nenhuma chamada finalizada neste turno.</div>
+    <div class="history-title">Chamadas recentes</div>
+    <div id="historyList" style="text-align:center; padding:6px 0;">Nenhuma chamada finalizada neste turno.</div>
 </div>
 
-<div style="margin-bottom: 8px;">
+<div class="precheck-box">
+    <div class="history-title">Pré-check de turno</div>
+    <button class="btn btn-secondary" id="btnPrecheck">Verificar estação antes do turno</button>
+    <div id="precheckResult" class="feedback" aria-live="polite">Testa rede, microfone e equipamento (cerca de 5 s).</div>
+</div>
+
+<div>
     <button class="btn btn-clear" id="btnClearCache">
-        🧹 Limpeza Segura de Cache (Preserva Login)
+        Limpeza segura de cache (preserva login)
     </button>
-    <div id="cacheFeedback" style="font-size: 10.5px; text-align: center; color: #64748b; min-height: 14px;"></div>
+    <div class="feedback" id="cacheFeedback"></div>
 </div>
 
 <div class="tenant-box">
-    <span>Licença: <b id="lblTenant">DEMO</b></span>
+    <span>Licença: <b id="lblTenant">—</b></span>
     <span id="lblStation">PA-0000</span>
 </div>
 
+<script src="precheck.js"></script>
 <script src="popup.js"></script>
 </body>
 </html>

@@ -3,8 +3,12 @@
   "version": "1.0.0",
   "description": "Multi-Tenant Cloud Relay & Telemetry Hub for VoiceVanguard CCaaS",
   "main": "server.js",
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "test": "node --test test/relay.test.js test/precheck.test.js test/audio-flow.test.js test/towers.test.js"
   },
   "dependencies": {
     "ws": "^8.18.0"

@@ -1,11 +1,11 @@
 /**
- * VoiceDoctor CCaaS - Popup Script (White-Label)
+ * VoiceVanguard CCaaS - Popup Script (White-Label)
  * Autor: David Paiva
  */
 
 document.addEventListener('DOMContentLoaded', () => {
     chrome.storage.local.get(['lastMetric', 'callHistory', 'tenantKey', 'agentStationId', 'isCallActive', 'lastCacheCleared'], (res) => {
-        document.getElementById('lblTenant').textContent = (res.tenantKey || 'DEMO').split('-')[0];
+        document.getElementById('lblTenant').textContent = res.tenantKey ? 'Configurada' : 'Não configurada';
         document.getElementById('lblStation').textContent = res.agentStationId || 'PA-LIVE';
 
         const m = res.lastMetric;
@@ -36,20 +36,66 @@ document.addEventListener('DOMContentLoaded', () => {
         const history = res.callHistory || [];
         const histListEl = document.getElementById('historyList');
         if (history.length > 0) {
-            histListEl.innerHTML = history.slice(0, 10).map(c => {
-                const durMin = Math.floor(c.durationSeconds / 60);
-                const durSec = c.durationSeconds % 60;
-                return `
-                    <div style="display:flex; justify-content:space-between; padding:4px 0; border-bottom:1px solid #f1f5f9;">
-                        <div>
-                            <b>${(c.interactionId || 'CALL').slice(0, 8)}</b>
-                            <span style="color:#64748b;">(${durMin}m ${durSec}s)</span>
-                        </div>
-                        <div>MOS: <b>${c.mosMedio}</b></div>
-                    </div>
-                `;
-            }).join('');
+            histListEl.textContent = '';
+            history.slice(0, 10).forEach(c => {
+                const dur = Number(c.durationSeconds) || 0;
+                const row = document.createElement('div');
+                row.style.cssText = 'display:flex; justify-content:space-between; padding:4px 0; border-bottom:1px solid #f1f5f9;';
+                const left = document.createElement('div');
+                const id = document.createElement('b');
+                id.textContent = String(c.interactionId || 'CALL').slice(0, 8);
+                const span = document.createElement('span');
+                span.style.color = '#64748b';
+                span.textContent = ` (${Math.floor(dur / 60)}m ${dur % 60}s)`;
+                left.append(id, span);
+                const right = document.createElement('div');
+                right.append('MOS: ');
+                const mos = document.createElement('b');
+                mos.textContent = String(c.mosMedio ?? 'N/D');
+                right.append(mos);
+                row.append(left, right);
+                histListEl.append(row);
+            });
         }
+
+        // Pré-check de turno
+        const btnPre = document.getElementById('btnPrecheck');
+        const preEl = document.getElementById('precheckResult');
+        if (res.isCallActive) {
+            btnPre.disabled = true;
+            preEl.textContent = 'Indisponível durante chamada ativa.';
+        }
+        btnPre.addEventListener('click', async () => {
+            btnPre.disabled = true;
+            preEl.className = 'feedback';
+            preEl.textContent = 'Medindo a rede até o servidor (cerca de 5 s)...';
+            try {
+                const net = await chrome.runtime.sendMessage({ action: 'RUN_NET_PROBE' });
+                const devices = { audioInputs: 0, audioOutputs: 0 };
+                try {
+                    // Apenas a contagem por tipo; nomes/IDs de dispositivo nunca são lidos
+                    (await navigator.mediaDevices.enumerateDevices()).forEach(d => {
+                        if (d.kind === 'audioinput') devices.audioInputs++;
+                        if (d.kind === 'audiooutput') devices.audioOutputs++;
+                    });
+                } catch (e) { }
+                const stored = await chrome.storage.local.get('relayConnected');
+                const result = VVPrecheck.evaluatePrecheck({
+                    relayConnected: !!stored.relayConnected,
+                    net: net || { error: 'sem_resposta' },
+                    devices,
+                    connection: navigator.connection ? { effectiveType: navigator.connection.effectiveType } : null,
+                    hw: { cores: navigator.hardwareConcurrency, memoryGb: navigator.deviceMemory }
+                });
+                result.net = net && !net.error ? net : null;
+                renderPrecheck(preEl, result);
+                chrome.runtime.sendMessage({ action: 'SUBMIT_PRECHECK', result });
+            } catch (e) {
+                preEl.textContent = 'Não foi possível concluir o pré-check.';
+            } finally {
+                btnPre.disabled = !!res.isCallActive;
+            }
+        });
 
         // Trava Operacional Anti-Queda de Chamada
         const btnClear = document.getElementById('btnClearCache');
@@ -71,11 +117,15 @@ document.addEventListener('DOMContentLoaded', () => {
             btnClear.textContent = "⏳ Limpando cache...";
 
             try {
-                if (chrome.browsingData && chrome.browsingData.removeCache) {
-                    await new Promise((resolve) => chrome.browsingData.removeCache({ since: 0 }, resolve));
-                    const now = new Date().toISOString();
-                    chrome.storage.local.set({ lastCacheCleared: now });
+                // A limpeza passa pelo background, que aplica o In-Call Lock
+                const result = await chrome.runtime.sendMessage({ action: 'EXECUTE_SAFE_CACHE_CLEAR' });
+                if (result && result.inCall) {
+                    btnClear.textContent = "🛑 Em chamada: agendada para o pós-chamada";
+                    feedbackEl.textContent = "Ação agendada para o fim da chamada.";
+                    feedbackEl.style.color = "#dc2626";
+                    return;
                 }
+                if (!result || !result.success) throw new Error('falha');
 
                 btnClear.textContent = "✅ Cache Limpo!";
                 btnClear.style.background = "#16a34a";
@@ -95,3 +145,37 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 });
+
+function renderPrecheck(container, result) {
+    const labels = { PRONTA: 'Estação pronta para o turno', ATENCAO: 'Atenção: revise os itens abaixo', NAO_PRONTA: 'Estação não está pronta' };
+    const cls = { PRONTA: 'pc-ok', ATENCAO: 'pc-atencao', NAO_PRONTA: 'pc-falha' };
+    const names = {
+        relay: 'Servidor VoiceVanguard', rede: 'Rede', rede_rtt: 'Latência', rede_jitter: 'Jitter', rede_perda: 'Perda de pacotes',
+        microfone: 'Microfone', saida_audio: 'Saída de áudio', conexao: 'Tipo de conexão', hardware: 'Equipamento'
+    };
+    container.className = '';
+    container.textContent = '';
+    const head = document.createElement('div');
+    head.style.cssText = 'font-weight:600; margin-bottom:6px;';
+    head.className = cls[result.status] || '';
+    head.textContent = labels[result.status] || result.status;
+    container.append(head);
+    result.itens.forEach(i => {
+        const row = document.createElement('div');
+        row.className = 'pc-item';
+        const l = document.createElement('span');
+        l.className = 'label';
+        l.textContent = names[i.id] || i.id;
+        const v = document.createElement('span');
+        v.className = 'val pc-' + i.status;
+        v.textContent = i.valor;
+        row.append(l, v);
+        container.append(row);
+        if (i.orientacao) {
+            const tip = document.createElement('div');
+            tip.className = 'pc-tip';
+            tip.textContent = i.orientacao;
+            container.append(tip);
+        }
+    });
+}

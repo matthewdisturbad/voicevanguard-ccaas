@@ -1,5 +1,6 @@
 const WebSocket = require('ws');
-const ws = new WebSocket('ws://localhost:9090?tenant=DEMO-FREE-2026&type=agent&agentId=PA-SP-TEST01');
+const AGENT_KEY = process.env.AGENT_KEY || 'dev-agent-BPO-APEX-GLOBAL'; // chave de agente do tenant fictício de desenvolvimento
+const ws = new WebSocket(`ws://localhost:9090?key=${AGENT_KEY}&agentId=PA-SP-TEST01`);
 
 ws.on('open', () => {
     console.log('[SIMULADOR] Conectado ao Relay com sucesso!');
@@ -7,7 +8,7 @@ ws.on('open', () => {
         type: 'AGENT_TELEMETRY',
         operator: 'Carlos Silva',
         station: 'PA-SP-TEST01',
-        genesysOrg: 'Almaviva SP',
+        genesysOrg: 'BPO-APEX-GLOBAL SP',
         region: 'sae1.pure.cloud',
         status: 'OK',
         mosScore: '4.41',

@@ -4,3 +4,7 @@ node_modules/
 *.log
 .DS_Store
 Thumbs.db
+
+# Dados de runtime e artefatos binários (distribuir extensão via GitHub Releases)
+01_Cloud_Relay_Backend/data_store/
+*.zip
