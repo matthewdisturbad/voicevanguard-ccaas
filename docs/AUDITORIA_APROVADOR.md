@@ -17,13 +17,13 @@ Três revisões independentes (Ciclo 1 — Claude Code) seguidas de uma auditori
 ## Corrigido no Ciclo 2 (Revisão Principal Argon — Nível Certificador)
 - **Autenticação WebSocket por First-Message (`AUTH`) — Eliminação de CWE-598:**
   - Extensão (`background.js`), Console de Supervisão (`public/app.html`), Widget de Interação (`public/widget.html`) e simuladores não enviam mais `?key=` na URL do WebSocket.
-  - O handshake ocorre na primeira mensagem JSON (`{ type: 'AUTH', key, agentId }`) com timeout estrito de 5 segundos (`4001 Authentication timeout`) e confirmação `{ type: 'AUTH_OK', agentId }`. Compatibilidade retroativa para `?key=` mantida apenas enquanto `DISABLE_URL_KEY` não estiver ativo.
+  - O handshake ocorre na primeira mensagem JSON (`{ type: 'AUTH', key, agentId }`) com timeout estrito de 5 segundos (`4001 Authentication timeout`) e confirmação `{ type: 'AUTH_OK', agentId }`. O `?key=` é recusado em produção por padrão (ver Ciclo 3).
 - **Content Security Policy (CSP) Estrita com Hashes SHA-256 (Sem `'unsafe-inline'` em `script-src`):**
   - `server.js` calcula dinamicamente no boot os hashes SHA-256 (normalizados para LF e brutos) de todos os blocos `<script>` de `public/*.html` e remove `'unsafe-inline'` de `script-src`.
   - Removidos atributos inline `onfocus`/`onblur` em `public/index.html` em favor de seletor CSS `:focus`, garantindo zero violações de CSP no navegador.
 - **Cálculo de Perda de Pacotes por Intervalo (Delta de 2s) em vez de Média Acumulada:**
   - *Falha detectada:* `injected_webrtc_hook.js` dividia `packetsLost` acumulado desde o segundo zero da chamada por `packetsReceived + packetsLost` totais. Em chamadas longas (ex.: 20 min), um pico severo de 25% de perda nos últimos 10 segundos era diluído para ~0,2%, mascarando o incidente e inflando o MOS.
-  - *Correção:* implementada `computeIntervalLoss(prevLost, prevRecv, currLost, currRecv)` usando os deltas do intervalo de 2 segundos para o cálculo do MOS instantâneo, preservando os contadores cumulativos apenas no sumário de fim de chamada.
+  - *Correção:* implementada `computeIntervalLoss` usando os deltas das amostras de 2 segundos (somados numa janela de 3 amostras, ver Ciclo 3) para o cálculo do MOS instantâneo, preservando os contadores cumulativos apenas no sumário de fim de chamada.
 - **Correção de Bug de Regex na Captura de `contactId` do Amazon Connect:**
   - A expressão `/\/contact(s)?\/([a-f0-9-]{36}|\d{8,20})/i` fazia com que `match[1]` retornasse `'s'` em URLs `/contacts/...`, descartando o UUID real em `match[2]`. Corrigida para grupo não-capturante `/\/contacts?\/([a-f0-9-]{36}|\d{8,20})/i`.
 - **Proteção de In-Call Lock em Múltiplas `RTCPeerConnection` (`activeVoiceSessions` / `stillInCall`):**
@@ -37,7 +37,7 @@ Três revisões independentes (Ciclo 1 — Claude Code) seguidas de uma auditori
 - **Manifesto Genesys AppFoundry Oficial + Interaction Widget Real (`/widget`) + Ícones PNG 128/512:**
   - Corrigidos os tokens de interpolação de URL em `genesys_client_app_manifest.json` para os tokens oficiais do Genesys Cloud (`{{pcLangTag}}`, `{{pcEnvironment}}`, `{{pcConversationId}}`).
   - Gerados os ícones oficiais `public/assets/icon-128.png` (128x128) e `public/assets/icon-512.png` (512x512) exigidos pelo AppFoundry.
-  - Construído o Interaction Widget completo e bilíngue em `public/widget.html`, correlacionando `conversationId` em tempo real com telemetria ativa ou histórico auditado da chamada e permitindo enfileirar diagnóstico seguro pós-chamada.
+  - Construído o Interaction Widget completo e bilíngue em `public/widget.html`, correlacionando `conversationId` em tempo real com telemetria ativa ou histórico auditado da chamada. Na versão final (Ciclo 3) o widget usa credencial própria somente leitura e não envia comandos.
 - **Correções no Popup da Extensão (`popup.html` / `popup.js`):**
   - Corrigida exibição do ID da chamada no histórico local (`c.callId || c.interactionId`), que antes mostrava sempre `"s/ ID"`.
   - Corrigido travamento permanente do botão de limpeza quando a aba do softphone era fechada no meio de uma chamada (verifica se `lastTelemetry` tem menos de 15s).
@@ -49,8 +49,16 @@ Três revisões independentes (Ciclo 1 — Claude Code) seguidas de uma auditori
 
 ---
 
+## Ciclo 3 — ressalvas da revisão cruzada (Claude Code)
+- **Widget sem credencial de supervisor:** o painel da chamada é visto pelo agente, então o widget não pode pedir a chave de supervisor. Novo papel `widget`: configurado em `TENANTS_JSON` com `widgetKey`, autentica por `AUTH` com `conversationId`, recebe só telemetria e auditoria dessa conversa, não lê estações, torres nem outras chamadas, e qualquer comando que envie é ignorado. A chave vai no fragmento da URL (`#wk=...`, que não chega ao servidor nem a logs de proxy) e é removida do endereço ao carregar. O botão de limpeza saiu do widget. O parâmetro de ambiente agora aceita `env` (usado no manifesto) e `environment`.
+- **Chave na URL do WebSocket:** `?key=` passa a ser recusado quando `NODE_ENV=production`, a menos que `ALLOW_URL_KEY=1` (para extensões antigas durante a transição). `DISABLE_URL_KEY=1` desliga em qualquer ambiente.
+- **Perda de pacotes:** a janela agora soma as últimas 3 amostras (cerca de 6 s) em vez de usar uma única amostra de 2 s, para que 1 pacote perdido numa amostra pequena não gere pico falso; um pico real decai gradualmente. A primeira amostra só define a linha de base e reinício de contadores é ignorado.
+- **CSP:** `connect-src` passou de `'self' ws: wss:` para `'self'` (o console, o widget e a extensão falam com o mesmo host). `style-src` ainda permite `'unsafe-inline'` por causa de estilos dinâmicos; é o próximo candidato.
+- **Testes:** 57 unitários e 23 verificações no e2e (inclui widget com chave própria, sem campo de chave de supervisor e sem a chave no endereço).
+
 ## Validações Externas / Administrativas (Dependem do Operador / Jurídico)
 1. **Chave de Agente Compartilhada por Torre (`agentKey`):** documentado no `SECURITY_ONE_PAGER.md` como modelo de chave por torre (provisionada via GPO/Intune); caso um cliente exija identidade individual criptográfica por estação, planejar mTLS ou token OAuth por agente em roadmap futuro.
 2. **Validação em Domínio Windows Real (GPO / Intune) e Revisão Jurídica:** testar aplicação do `managed_schema.json` via AD/Intune corporativo e validar os termos de retenção e minutas contratuais (`04_ Kit_Comercial_Juridico_BPO`) com advogado especializado.
-3. **Evidências de Produção para Submissão AWS FTR / AppFoundry:** anexar relatório SSL Labs (nota A+) de `voicevanguard.trustco.pro` e capturas de tela da interface no pacote de submissão.
+3. **Confirmar o que está no ar:** o deploy foi feito por `railway up` a partir de uma pasta local; confirmar que corresponde à `main` e rodar `curl -I https://voicevanguard.trustco.pro` e `/api/health`. Depois que todas as extensões estiverem atualizadas, remover `ALLOW_URL_KEY` (se existir) e definir `DISABLE_URL_KEY=1`.
+4. **Evidências de Produção para Submissão AWS FTR / AppFoundry:** anexar relatório SSL Labs (nota A+) de `voicevanguard.trustco.pro` e capturas de tela da interface no pacote de submissão.
 

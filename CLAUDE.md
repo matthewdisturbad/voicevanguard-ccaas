@@ -25,13 +25,13 @@ Este documento fornece contexto arquitetural, convenções de código e diretriz
 │   │                          # Rotas HTTP:
 │   │                          #   GET / -> Serve public/index.html (Landing comercial)
 │   │                          #   GET /app, /login, /dashboard -> Serve public/app.html (Console restrito)
-│   │                          #   GET /widget -> Serve public/widget.html (Genesys Interaction Widget em tempo real)
+│   │                          #   GET /widget -> Serve public/widget.html (Genesys Interaction Widget; credencial `widgetKey` somente leitura, restrita a uma conversa)
 │   │                          #   GET /privacy -> Serve public/privacy.html (Política de privacidade)
 │   │                          #   GET /api/health -> Status público (sem expor métricas internas por tenant)
 │   │                          #   GET /api/validate-tenant -> Valida chave de SUPERVISOR (header X-Tenant-Key)
 │   │                          # WebSocket:
 │   │                          #   Autenticação por primeira mensagem ({ type: 'AUTH', key, agentId }) com timeout de 5s
-│   │                          #   (mantendo fallback ?key=... para compatibilidade, desativável via DISABLE_URL_KEY=1).
+│   │                          #   (o fallback ?key=... fica desativado em produção, salvo ALLOW_URL_KEY=1 durante a migração; DISABLE_URL_KEY=1 desliga sempre).
 │   │                          #   O papel (agente/supervisor) e a torre são derivados da chave (SHA-256), nunca do cliente.
 │   │                          #   Pub/Sub de telemetria por sala de tenant e torre.
 │   │                          #   CSP com hashes SHA-256 em script-src (sem unsafe-inline), rate limit, maxPayload, heartbeat.
