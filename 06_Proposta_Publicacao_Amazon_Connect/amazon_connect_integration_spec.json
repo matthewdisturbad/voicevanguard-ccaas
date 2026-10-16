@@ -63,8 +63,8 @@
       "voiceRecordingStored": false,
       "encryptionInTransit": "TLS / WSS",
       "dataProtectionPractices": [
-        "Follows LGPD (Brazil) guidelines - privacy by design, no certification claimed",
-        "Follows GDPR (EU) guidelines - privacy by design, no certification claimed",
+        "Follows LGPD (Brazil) guidelines - privacy by design",
+        "Follows GDPR (EU) guidelines - privacy by design",
         "No cardholder data transits the telemetry channel"
       ],
       "tenancyModel": "Strict Logical Multi-Tenant Isolation"
