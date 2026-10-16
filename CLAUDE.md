@@ -41,6 +41,7 @@ Este documento fornece contexto arquitetural, convenções de código e diretriz
 │   ├── manifest.json          # Permissões restritas a Genesys Cloud e Amazon Connect (sem <all_urls>)
 │   ├── background.js          # Service worker que conecta ao Cloud Relay via WSS
 │   ├── injected_webrtc_hook.js# Intercepta RTCPeerConnection, extrai ContactId/ConversationId e calcula MOS (aproximação G.107)
+│   ├── precheck.js            # Lógica pura do pré-check de turno (testada com node:test)
 │   └── popup.html / popup.js  # Diagnóstico local e botão de limpeza com In-Call Lock
 │
 ├── 05_Proposta_Publicacao_AppFoundry/     # Materiais Genesys Ascend / AppFoundry
@@ -59,6 +60,10 @@ Este documento fornece contexto arquitetural, convenções de código e diretriz
 6. **Nomes Fictícios para Demonstração:** Em materiais e testes, use apenas nomes fictícios: `BPO-APEX-GLOBAL`, `BPO-NEXUS-CORP`, `BPO-STELLAR-CX`, `GENESYS-ALLIANCE-EVAL`. NUNCA use nomes de empresas reais (ex: Almaviva, Teleperformance, Atento).
 
 ---
+
+## 📚 Documentação complementar
+
+* `docs/AVALIACAO.md` — avaliação e pendências do dono · `docs/PRECHECK.md` — funções de saúde da estação (limiares, privacidade) · `docs/ROADMAP.md` — **planejamento apenas**, nada implementado; não citar em material comercial.
 
 ## 🛠️ Comandos e Execução Local
 

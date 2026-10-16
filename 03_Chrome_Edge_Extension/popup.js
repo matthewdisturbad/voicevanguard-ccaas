@@ -58,6 +58,45 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         }
 
+        // Pré-check de turno
+        const btnPre = document.getElementById('btnPrecheck');
+        const preEl = document.getElementById('precheckResult');
+        if (res.isCallActive) {
+            btnPre.disabled = true;
+            preEl.textContent = 'Indisponível durante chamada ativa.';
+        }
+        btnPre.addEventListener('click', async () => {
+            btnPre.disabled = true;
+            preEl.className = 'feedback';
+            preEl.textContent = 'Medindo a rede até o servidor (cerca de 5 s)...';
+            try {
+                const net = await chrome.runtime.sendMessage({ action: 'RUN_NET_PROBE' });
+                const devices = { audioInputs: 0, audioOutputs: 0 };
+                try {
+                    // Apenas a contagem por tipo; nomes/IDs de dispositivo nunca são lidos
+                    (await navigator.mediaDevices.enumerateDevices()).forEach(d => {
+                        if (d.kind === 'audioinput') devices.audioInputs++;
+                        if (d.kind === 'audiooutput') devices.audioOutputs++;
+                    });
+                } catch (e) { }
+                const stored = await chrome.storage.local.get('relayConnected');
+                const result = VVPrecheck.evaluatePrecheck({
+                    relayConnected: !!stored.relayConnected,
+                    net: net || { error: 'sem_resposta' },
+                    devices,
+                    connection: navigator.connection ? { effectiveType: navigator.connection.effectiveType } : null,
+                    hw: { cores: navigator.hardwareConcurrency, memoryGb: navigator.deviceMemory }
+                });
+                result.net = net && !net.error ? net : null;
+                renderPrecheck(preEl, result);
+                chrome.runtime.sendMessage({ action: 'SUBMIT_PRECHECK', result });
+            } catch (e) {
+                preEl.textContent = 'Não foi possível concluir o pré-check.';
+            } finally {
+                btnPre.disabled = !!res.isCallActive;
+            }
+        });
+
         // Trava Operacional Anti-Queda de Chamada
         const btnClear = document.getElementById('btnClearCache');
         const feedbackEl = document.getElementById('cacheFeedback');
@@ -106,3 +145,37 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 });
+
+function renderPrecheck(container, result) {
+    const labels = { PRONTA: 'Estação pronta para o turno', ATENCAO: 'Atenção: revise os itens abaixo', NAO_PRONTA: 'Estação não está pronta' };
+    const cls = { PRONTA: 'pc-ok', ATENCAO: 'pc-atencao', NAO_PRONTA: 'pc-falha' };
+    const names = {
+        relay: 'Servidor VoiceVanguard', rede: 'Rede', rede_rtt: 'Latência', rede_jitter: 'Jitter', rede_perda: 'Perda de pacotes',
+        microfone: 'Microfone', saida_audio: 'Saída de áudio', conexao: 'Tipo de conexão', hardware: 'Equipamento'
+    };
+    container.className = '';
+    container.textContent = '';
+    const head = document.createElement('div');
+    head.style.cssText = 'font-weight:600; margin-bottom:6px;';
+    head.className = cls[result.status] || '';
+    head.textContent = labels[result.status] || result.status;
+    container.append(head);
+    result.itens.forEach(i => {
+        const row = document.createElement('div');
+        row.className = 'pc-item';
+        const l = document.createElement('span');
+        l.className = 'label';
+        l.textContent = names[i.id] || i.id;
+        const v = document.createElement('span');
+        v.className = 'val pc-' + i.status;
+        v.textContent = i.valor;
+        row.append(l, v);
+        container.append(row);
+        if (i.orientacao) {
+            const tip = document.createElement('div');
+            tip.className = 'pc-tip';
+            tip.textContent = i.orientacao;
+            container.append(tip);
+        }
+    });
+}

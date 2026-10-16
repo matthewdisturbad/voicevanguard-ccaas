@@ -196,6 +196,7 @@
     <div class="tabs" role="group" aria-label="Seções do console">
         <button class="tab-btn active" id="tabLiveBtn" onclick="switchTab('live')">Monitoramento ao vivo</button>
         <button class="tab-btn" id="tabCallsBtn" onclick="switchTab('calls')">Auditoria de chamadas</button>
+        <button class="tab-btn" id="tabHealthBtn" onclick="switchTab('health')">Saúde da estação</button>
         <button class="tab-btn" id="tabBiBtn" onclick="switchTab('bi')">BI e causa raiz</button>
     </div>
 
@@ -250,6 +251,27 @@
                 </tbody>
             </table>
         </div>
+    </div>
+
+    <!-- Aba: saúde da estação (pré-check de turno e latência das APIs do agent desktop) -->
+    <div id="tabContentHealth" style="display:none;">
+        <div class="table-box">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Estação / PA</th>
+                        <th>Operador</th>
+                        <th>Pré-check de turno</th>
+                        <th>Pontos de atenção</th>
+                        <th>Latência das APIs do CCaaS (p95 · erros)</th>
+                    </tr>
+                </thead>
+                <tbody id="healthTableBody">
+                    <tr><td colspan="5" class="empty">Nenhuma estação executou o pré-check ou reportou latência de API ainda.</td></tr>
+                </tbody>
+            </table>
+        </div>
+        <p class="muted" style="margin-top: var(--s3); font-size: var(--fs-sm);">A latência é agregada por servidor (hostname) em janelas de 30 s; endereços completos, caminhos e identificadores não são coletados.</p>
     </div>
 
     <!-- Aba 2: auditoria de chamadas -->
@@ -308,6 +330,7 @@
     let ws = null;
     let agentsMap = new Map();
     let callsList = [];
+    let stationsMap = new Map();
 
     function showAuthError(msg) {
         const box = document.getElementById('authErrorBox');
@@ -414,9 +437,16 @@
                         msg.agents.forEach(a => agentsMap.set(a.agentId, a));
                     }
                     callsList = msg.callHistory || [];
+                    stationsMap.clear();
+                    if (Array.isArray(msg.stations)) {
+                        msg.stations.forEach(st => stationsMap.set(st.agentId, st));
+                    }
                     renderAll();
                 } else if (msg.type === 'TELEMETRY_UPDATE') {
                     agentsMap.set(msg.payload.agentId, msg.payload);
+                    renderAll();
+                } else if (msg.type === 'STATION_HEALTH_UPDATE') {
+                    stationsMap.set(msg.payload.agentId, msg.payload);
                     renderAll();
                 } else if (msg.type === 'NEW_CALL_AUDIT') {
                     callsList.unshift(msg.payload);
@@ -450,6 +480,8 @@
         document.getElementById('tabLiveBtn').classList.toggle('active', tab === 'live');
         document.getElementById('tabCallsBtn').classList.toggle('active', tab === 'calls');
         document.getElementById('tabBiBtn').classList.toggle('active', tab === 'bi');
+        document.getElementById('tabHealthBtn').classList.toggle('active', tab === 'health');
+        document.getElementById('tabContentHealth').style.display = tab === 'health' ? 'block' : 'none';
 
         document.getElementById('tabContentLive').style.display = tab === 'live' ? 'block' : 'none';
         document.getElementById('tabContentCalls').style.display = tab === 'calls' ? 'block' : 'none';
@@ -479,7 +511,47 @@
         if (btn) sendRemoteClearCache(btn.dataset.clearAgent);
     });
 
+    const AUDIO_ISSUE_LABELS = {
+        SEM_AUDIO_RECEBIDO: 'Sem áudio recebido',
+        SEM_AUDIO_ENVIADO: 'Sem áudio enviado',
+        MIC_DESCONECTADO: 'Microfone desconectado',
+        MIC_MUDO_SISTEMA: 'Microfone mudo no sistema'
+    };
+    const PRECHECK_LABELS = { PRONTA: 'Pronta', ATENCAO: 'Atenção', NAO_PRONTA: 'Não pronta' };
+    const PRECHECK_BADGE = { PRONTA: 'badge-ok', ATENCAO: 'badge-warn', NAO_PRONTA: 'badge-danger' };
+    const PRECHECK_ITEM_NAMES = {
+        relay: 'Servidor', rede: 'Rede', rede_rtt: 'Latência', rede_jitter: 'Jitter', rede_perda: 'Perda de pacotes',
+        microfone: 'Microfone', saida_audio: 'Saída de áudio', conexao: 'Conexão', hardware: 'Equipamento'
+    };
+
+    function renderHealth() {
+        const tbody = document.getElementById('healthTableBody');
+        const list = Array.from(stationsMap.values());
+        if (list.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="5" class="empty">Nenhuma estação executou o pré-check ou reportou latência de API ainda.</td></tr>`;
+            return;
+        }
+        tbody.innerHTML = list.map(st => {
+            const pc = st.precheck;
+            const pcCell = pc
+                ? `<span class="badge ${PRECHECK_BADGE[pc.status] || 'badge-warn'}">${esc(PRECHECK_LABELS[pc.status] || pc.status)}</span> <span class="muted">${esc(new Date(pc.checkedAt).toLocaleTimeString('pt-BR'))}</span>`
+                : `<span class="muted">Não executado</span>`;
+            const issues = pc ? pc.itens.filter(i => i.status !== 'ok').map(i => `${esc(PRECHECK_ITEM_NAMES[i.id] || i.id)}: ${esc(i.valor)}`).join(' · ') : '';
+            const apiCell = st.api && st.api.hosts.length
+                ? st.api.hosts.map(h => `<div>${esc(h.host)} — <b>${esc(h.p95Ms)} ms</b> · ${esc(h.errors)} erro(s) em ${esc(h.count)}</div>`).join('')
+                : `<span class="muted">Sem dados</span>`;
+            return `<tr>
+                <td><b>${esc(st.station)}</b></td>
+                <td>${esc(st.operator)}</td>
+                <td>${pcCell}</td>
+                <td>${issues || '<span class="muted">—</span>'}</td>
+                <td>${apiCell}</td>
+            </tr>`;
+        }).join('');
+    }
+
     function renderAll() {
+        renderHealth();
         const agents = Array.from(agentsMap.values());
         document.getElementById('cardTotalAgents').textContent = agents.length;
 
@@ -516,7 +588,9 @@
         } else {
             tbodyAgents.innerHTML = agents.map(a => {
                 const badgeClass = a.status === 'OK' ? 'badge-ok' : (a.status === 'OFFLINE' ? 'badge-offline' : 'badge-danger');
-                const callStatus = a.callActive ? `<span class="txt-ok">Em chamada (${esc((a.currentCallId || '').slice(-6))})</span>` : `<span class="muted">Livre</span>`;
+                const audioLabel = AUDIO_ISSUE_LABELS[a.audioIssue];
+                const audioFlag = audioLabel ? `<div class="txt-crit">${esc(audioLabel)}</div>` : '';
+                const callStatus = (a.callActive ? `<span class="txt-ok">Em chamada (${esc((a.currentCallId || '').slice(-6))})</span>` : `<span class="muted">Livre</span>`) + audioFlag;
                 
                 // Badge de Wi-Fi vs Cabo
                 const isWifi = (a.networkType || '').includes('WI_FI') || (a.protocol || '').includes('WIFI');
@@ -572,7 +646,7 @@
                 const durSec = (c.durationSeconds || 0) % 60;
                 return `
                     <tr>
-                        <td><span class="badge ${tagClass}">${esc(c.classificacao)}</span></td>
+                        <td><span class="badge ${tagClass}">${esc(c.classificacao)}</span>${(c.incidentesAudio && c.incidentesAudio.length) ? `<div class="txt-crit" style="font-size: var(--fs-xs); margin-top: 2px;">Áudio: ${esc(c.incidentesAudio.map(code => AUDIO_ISSUE_LABELS[code] || code).join(', '))}</div>` : ''}</td>
                         <td><span class="plat">${esc(c.platform || 'WebRTC')}</span></td>
                         <td><code>${esc(c.interactionId)}</code></td>
                         <td>${esc(c.operator)} (${esc(c.station)})</td>

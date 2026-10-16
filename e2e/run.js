@@ -48,7 +48,7 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
     // Página CCaaS simulada (domínio Genesys) com chamada WebRTC em loopback
     await ctx.route('https://acme.mypurecloud.com/**', route => {
       const u = route.request().url();
-      if (u.includes('/api/v2/conversations/')) return route.fulfill({ status: 200, contentType: 'application/json', body: '{}' });
+      if (u.includes('/api/v2/')) return route.fulfill({ status: 200, contentType: 'application/json', body: '{}' });
       return route.fulfill({ status: 200, contentType: 'text/html', body: `<!doctype html><title>Genesys Cloud (simulado)</title><body>
 <script>
 window.startCall = async () => {
@@ -63,6 +63,7 @@ window.startCall = async () => {
   const o = await pc1.createOffer(); await pc1.setLocalDescription(o); await pc2.setRemoteDescription(o);
   const a = await pc2.createAnswer(); await pc2.setLocalDescription(a); await pc1.setRemoteDescription(a);
 };
+window.apiCalls = async () => { for (let i = 0; i < 5; i++) await fetch('/api/v2/users/me?i=' + i); };
 window.endCall = () => { (window.__pcs||[]).forEach(p => p.close()); };
 </script>` });
     });
@@ -70,6 +71,8 @@ window.endCall = () => { (window.__pcs||[]).forEach(p => p.close()); };
     agentPage.on('console', m => { if (/VoiceDoctor|VoiceVanguard/.test(m.text())) console.log('[page]', m.text()); });
     await agentPage.goto('https://acme.mypurecloud.com/');
     await agentPage.evaluate(() => startCall());
+    await agentPage.evaluate(() => apiCalls());
+    const pageLoadedAt = Date.now();
 
     // Telemetria aparece no console
     await sup.bringToFront();
@@ -86,14 +89,21 @@ window.endCall = () => { (window.__pcs||[]).forEach(p => p.close()); };
     const fb = await Promise.race([feedback, sleep(6000).then(() => 'TIMEOUT')]);
     check('In-Call Lock: limpeza adiada durante chamada ativa', /adiada|agendada|chamada/i.test(fb), JSON.stringify(fb));
 
+    // Áudio parado no meio da chamada (o sender deixa de enviar; o hook vê o inbound parar)
+    await agentPage.evaluate(() => window.__pcs[0].getSenders()[0].replaceTrack(null));
+    await sup.waitForFunction(() => /sem áudio recebido/i.test(document.getElementById('agentsTableBody').innerText), null, { timeout: 25000 })
+      .then(() => check('incidente "Sem áudio recebido" aparece no console', true), () => check('incidente "Sem áudio recebido" aparece no console', false));
+    await sup.screenshot({ path: path.join(OUT, 'console-sem-audio.png') });
+
     // Encerra a chamada -> auditoria
-    await sleep(2500);
+    await sleep(1500);
     await agentPage.evaluate(() => endCall());
     await sup.click('#tabCallsBtn');
     await sup.waitForFunction(() => document.querySelectorAll('#callsTableBody tr code').length > 0, null, { timeout: 15000 })
       .then(() => check('auditoria da chamada finalizada aparece no console', true), () => check('auditoria da chamada finalizada aparece no console', false));
     await sup.screenshot({ path: path.join(OUT, 'console-auditoria.png') });
     const callsText = await sup.locator('#callsTableBody').innerText();
+    check('chamada com incidente de áudio é CRÍTICA e lista o incidente', /CRÍTICA/.test(callsText) && /Áudio:.*Sem áudio recebido/i.test(callsText), JSON.stringify(callsText.slice(0, 160)));
     check('ID da conversa Genesys correlacionado', /3f2b8c1e/.test(callsText), JSON.stringify(callsText.slice(0, 100)));
     const hist = fs.readdirSync(dataDir).filter(f => f.endsWith('_history.json'));
     await sleep(1500);
@@ -110,6 +120,26 @@ window.endCall = () => { (window.__pcs||[]).forEach(p => p.close()); };
     await popup.goto(`chrome-extension://${extId}/popup.html`);
     await sleep(500);
     await popup.screenshot({ path: path.join(OUT, 'popup.png') });
+
+    // Pré-check de turno pelo popup (fora de chamada)
+    await popup.click('#btnPrecheck');
+    await popup.waitForSelector('#precheckResult .pc-item', { timeout: 20000 })
+      .then(() => check('pré-check concluído no popup', true), () => check('pré-check concluído no popup', false));
+    const preText = await popup.locator('#precheckResult').innerText();
+    check('pré-check mede a rede até o relay', /Latência/.test(preText) && /ms/.test(preText), JSON.stringify(preText.slice(0, 120)));
+    await popup.screenshot({ path: path.join(OUT, 'popup-precheck.png') });
+
+    // Saúde da estação no console: pré-check + latência de API (janela de 30 s do hook)
+    await sup.bringToFront();
+    await sup.click('#tabHealthBtn');
+    await sup.waitForFunction(() => /Pronta|Atenção|Não pronta/.test(document.getElementById('healthTableBody').innerText), null, { timeout: 10000 })
+      .then(() => check('pré-check aparece na aba Saúde da estação', true), () => check('pré-check aparece na aba Saúde da estação', false));
+    const remaining = Math.max(0, 40000 - (Date.now() - pageLoadedAt));
+    await sup.waitForFunction(() => /mypurecloud\.com/.test(document.getElementById('healthTableBody').innerText), null, { timeout: remaining + 5000 })
+      .then(() => check('latência das APIs do CCaaS aparece por hostname', true), () => check('latência das APIs do CCaaS aparece por hostname', false));
+    const healthText = await sup.locator('#healthTableBody').innerText();
+    check('latência não expõe caminho nem query', !/\/api\/v2|\?i=/.test(healthText), JSON.stringify(healthText.slice(0, 160)));
+    await sup.screenshot({ path: path.join(OUT, 'console-saude.png') });
     check('popup não exibe a chave (apenas "Configurada")', (await popup.locator('#lblTenant').innerText()) === 'Configurada');
   } catch (e) {
     console.log('ERRO E2E:', e.message); check('execução sem exceção', false, e.message);
