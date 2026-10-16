@@ -1,5 +1,5 @@
 /**
- * VoiceDoctor CCaaS - Popup Script (White-Label)
+ * VoiceVanguard CCaaS - Popup Script (White-Label)
  * Autor: David Paiva
  */
 

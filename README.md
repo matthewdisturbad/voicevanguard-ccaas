@@ -13,7 +13,7 @@ VoiceVanguard CCaaS (by **TrustCo Technologies**) is an enterprise-grade WebRTC 
 ## 🏛️ Architecture & Project Structure
 
 ```
-VoiceDoctor-CCaaS/
+VoiceVanguard-CCaaS/
 ├── 01_Cloud_Relay_Backend/              # Cloud Relay Hub & WebSocket Telemetry Gateway (Node.js)
 │   ├── server.js                        # Multi-tenant router, tenant isolation, session persistence
 │   ├── package.json                     # Lightweight production dependencies (Node.js + ws)

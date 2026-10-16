@@ -1,5 +1,5 @@
 /**
- * VoiceDoctor CCaaS - Background Service Worker (Manifest V3)
+ * VoiceVanguard CCaaS - Background Service Worker (Manifest V3)
  * Conexão direta com Cloud Relay WebSocket Multi-Tenant via TenantKey.
  * Suporte a GPO Corporativo (Managed Policy) e Pareamento Dinâmico.
  * Autor: David Paiva

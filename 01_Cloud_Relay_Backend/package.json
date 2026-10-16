@@ -8,7 +8,7 @@
   },
   "scripts": {
     "start": "node server.js",
-    "test": "node --test test/relay.test.js test/precheck.test.js test/audio-flow.test.js"
+    "test": "node --test test/relay.test.js test/precheck.test.js test/audio-flow.test.js test/towers.test.js"
   },
   "dependencies": {
     "ws": "^8.18.0"
