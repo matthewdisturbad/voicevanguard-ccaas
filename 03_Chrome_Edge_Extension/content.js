@@ -1,6 +1,6 @@
 /**
- * Genesys Cloud WebRTC Monitor - Content Script (CEF)
- * Autor: David Paiva - Engenharia de Sustentação
+ * VoiceVanguard - Content Script (injeta o hook WebRTC)
+ * TrustCo Technologies
  */
 
 // 1. Injeta o script de hook no contexto de execução principal da página

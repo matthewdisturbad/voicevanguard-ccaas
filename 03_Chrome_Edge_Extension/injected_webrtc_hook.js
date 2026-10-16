@@ -10,7 +10,7 @@
  * - Zendesk Talk
  * - Microsoft Teams / Zoom Phone Web
  * 
- * Autor: David Paiva
+ * TrustCo Technologies
  */
 
 (function() {
@@ -76,7 +76,7 @@
     // Diagnóstico de Rede (Wi-Fi vs Ethernet) e Estresse do Navegador
     function getNetworkEnvironment() {
         const conn = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
-        let type = 'ETHERNET'; // Default seguro
+        let type = 'N/D'; // sem navigator.connection não afirmamos o tipo de rede
         let downlink = 10;
         let rtt = 20;
 
@@ -273,7 +273,7 @@
                     perdaPacotesPct: activeCall.maxLossPct,
                     protocolo: activeCall.protocol.toUpperCase(),
                     classificacao: classification,
-                    networkType: activeCall.netType || "ETHERNET",
+                    networkType: activeCall.netType || "N/D",
                     cpuStress: activeCall.cpuStress || "NORMAL",
                     causaRaiz: rootCause,
                     incidentesAudio: audioIncidents,

@@ -31,7 +31,7 @@
         },
         {
           "dimension": "AgentSeats_Tier3",
-          "name": "Global BPO Sovereign",
+          "name": "Global BPO",
           "minSeats": 1501,
           "pricePerSeatPerMonth": 4.00
         }
@@ -41,23 +41,20 @@
   "technicalArchitecture": {
     "softphoneInterface": "Amazon Connect Contact Control Panel (CCP) v2",
     "supportedLibraries": [
-      "amazon-connect-streams",
-      "amazon-connect-chatjs",
       "WebRTC Standard 1.0 (W3C)"
     ],
     "telemetryEngine": {
-      "metricStandard": "ITU-T G.107 (E-Model MOS Computation)",
-      "sampleIntervalMs": 1000,
-      "correlationKey": "AWS ContactId (arn:aws:connect:...)",
+      "metricStandard": "MOS estimate (approximation based on ITU-T G.107)",
+      "sampleIntervalMs": 2000,
+      "correlationKey": "Amazon Connect ContactId extracted locally from CCP; a synthetic id is used when it cannot be found",
       "networkClassification": [
-        "Ethernet / Wired",
-        "Wi-Fi 2.4GHz (Congestion Risk)",
-        "Wi-Fi 5GHz / 6GHz",
-        "Cellular / Hotspot"
+        "Likely Wi-Fi or cellular (heuristic from browser network hints)",
+        "Stable network",
+        "Wired (only when reported by the browser)"
       ],
       "remediationFeatures": [
         "In-Call Lock Protection (Safe Post-Wrap-up Execution)",
-        "Chromium Cache & Local Storage Flush",
+        "Browser cache clear (cookies and sessions preserved)",
         "Real-Time Supervisor Alert Notification"
       ]
     },

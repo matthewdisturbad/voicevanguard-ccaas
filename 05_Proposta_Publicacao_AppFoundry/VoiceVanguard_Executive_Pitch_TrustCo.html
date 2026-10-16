@@ -172,7 +172,7 @@
     <div class="card">
       <h3>⚠️ 1. The Operational Friction</h3>
       <ul>
-        <li><strong>False Infrastructure Blame:</strong> Contact center agents and supervisors frequently attribute one-way or robotic audio to Genesys Cloud, when ~85% of root causes stem from local domestic Wi-Fi jitter, CPU saturation, or bufferbloat.</li>
+        <li><strong>False Infrastructure Blame:</strong> Contact center agents and supervisors frequently attribute one-way or robotic audio to Genesys Cloud, when a relevant share of root causes can stem from local home Wi-Fi jitter, browser load, or bufferbloat (share to be measured in pilot).</li>
         <li><strong>Hefty TCO & Slow Tier-2 MTTR:</strong> IT support teams spend hours gathering manual packet dumps or troubleshooting individual agent workstations.</li>
         <li><strong>Chromium Degradation:</strong> Tab concurrency and accumulated browser cache lead to unexpected station de-registrations.</li>
       </ul>
@@ -182,7 +182,7 @@
       <h3>💡 2. The Solution: VoiceVanguard</h3>
       <ul>
         <li><strong>Universal WebRTC Interceptor:</strong> Lightweight browser extension gathers native RTP packet statistics (<code>getStats()</code>) without bulky third-party SDKs.</li>
-        <li><strong>Real-Time ITU-T G.107 MOS:</strong> Calculates an authoritative 1.00 to 4.50 score updated per second of active voice stream.</li>
+        <li><strong>Real-Time ITU-T G.107 MOS:</strong> Estimates a 1.00 to 4.50 score (approximation based on ITU-T G.107), updated every 2 seconds during an active voice stream.</li>
         <li><strong>Safe Remote Cache Flush:</strong> Supervisors can remotely trigger cache cleanup with an automated <em>In-Call Lock</em> that waits for call wrap-up.</li>
         <li><strong>Privacy by Design:</strong> Zero raw audio recording. Zero eavesdropping. Built to follow LGPD & GDPR guidelines.</li>
       </ul>
@@ -216,7 +216,7 @@
         <td><strong>Safe Remote Remediation with In-Call Lock</strong></td>
         <td>No</td>
         <td>No</td>
-        <td><span class="badge badge-green">Yes (Zero Call Drops)</span></td>
+        <td><span class="badge badge-green">Yes (blocked during an active call)</span></td>
       </tr>
       <tr>
         <td><strong>Genesys Cloud Supervisor Integration</strong></td>

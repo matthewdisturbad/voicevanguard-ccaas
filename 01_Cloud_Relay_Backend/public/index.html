@@ -319,7 +319,7 @@
                             <span class="mock-status" data-i18n="mock_connected">Relay conectado</span>
                         </div>
                         <div class="vv-row"><b data-i18n="mock_agent1">PA-304 • Carlos Lima</b><span class="mos ok">MOS 4.45</span><span class="tag" data-i18n="mock_ethernet">Cabo</span></div>
-                        <div class="vv-row"><b data-i18n="mock_agent2">PA-211 • Mariana Souza</b><span class="mos warn">MOS 3.82</span><span class="tag warn" data-i18n="mock_wifi">Wi-Fi 2.4 GHz</span></div>
+                        <div class="vv-row"><b data-i18n="mock_agent2">PA-211 • Mariana Souza</b><span class="mos warn">MOS 3.82</span><span class="tag warn" data-i18n="mock_wifi">Wi-Fi (provável)</span></div>
                         <div class="vv-row"><b data-i18n="mock_agent3">PA-118 • Rafael Costa</b><span class="mos crit">MOS --</span><span class="tag crit" data-i18n="mock_mute">Sem áudio enviado</span></div>
                         <div class="vv-note">
                             <span data-i18n="mock_cache_label">Limpeza de cache</span>
@@ -331,7 +331,7 @@
             </div>
 
             <div class="trust-bar">
-                <div class="metric-card"><b data-i18n="metric_1_val">ITU-T G.107</b><span data-i18n="metric_1_label">Nota de qualidade (MOS) estimada pelo modelo E</span></div>
+                <div class="metric-card"><b data-i18n="metric_1_val">ITU-T G.107</b><span data-i18n="metric_1_label">Nota de qualidade (MOS) estimada, aproximação do modelo G.107</span></div>
                 <div class="metric-card"><b data-i18n="metric_2_val">Zero áudio</b><span data-i18n="metric_2_label">Nenhuma conversa é gravada ou transmitida; só números de rede</span></div>
                 <div class="metric-card"><b data-i18n="metric_3_val">Tempo real</b><span data-i18n="metric_3_label">Telemetria enviada por conexão segura (WSS)</span></div>
                 <div class="metric-card"><b data-i18n="metric_4_val">Por operação</b><span data-i18n="metric_4_label">Cada cliente e cada torre ficam separados</span></div>
@@ -347,11 +347,11 @@
                 <p class="sec-desc" data-i18n="feat_desc">Tudo medido na estação do atendente, no navegador, para trocar o palpite por um dado.</p>
             </div>
             <div class="features-grid">
-                <div class="feat-box"><svg class="feat-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-8M22 20H2"/></svg><h3 data-i18n="f1_title">Nota da qualidade da voz</h3><p data-i18n="f1_desc">Estima o MOS (ITU-T G.107) a partir de jitter, latência e perda de pacotes, sem depender de pesquisa de satisfação.</p></div>
+                <div class="feat-box"><svg class="feat-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-8M22 20H2"/></svg><h3 data-i18n="f1_title">Nota da qualidade da voz</h3><p data-i18n="f1_desc">Estima o MOS (aproximação baseada na ITU-T G.107) a partir de jitter, latência e perda de pacotes, sem depender de pesquisa de satisfação.</p></div>
                 <div class="feat-box"><svg class="feat-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 9a15 15 0 0120 0M5 12.5a10 10 0 0114 0M8.5 16a5 5 0 017 0"/><circle cx="12" cy="19.5" r="1"/></svg><h3 data-i18n="f2_title">Wi-Fi ou cabo</h3><p data-i18n="f2_desc">Identifica quando o atendente está no Wi-Fi, mais sujeito a interferência, e avisa o supervisor durante a chamada.</p></div>
                 <div class="feat-box"><svg class="feat-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 9v3a3 3 0 005.1 2.1M15 10V6a3 3 0 00-5.7-1.3M5 11a7 7 0 0011 5M12 19v3M3 3l18 18"/></svg><h3 data-i18n="f3_title">Áudio mudo ou de um lado só</h3><p data-i18n="f3_desc">Avisa quando não chega áudio, não sai áudio, o microfone foi desconectado ou está mudo no sistema. O mudo que o próprio atendente aperta não conta como problema.</p></div>
                 <div class="feat-box"><svg class="feat-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 11l3 3 8-8"/><path d="M20 12v7a2 2 0 01-2 2H6a2 2 0 01-2-2V7a2 2 0 012-2h9"/></svg><h3 data-i18n="f4_title">Pré-check de turno</h3><p data-i18n="f4_desc">Antes de atender, o atendente clica num botão e a extensão testa latência, jitter e perda até o relay, além de microfone, saída de áudio, conexão e equipamento. O resultado (pronta, atenção ou não pronta) vem com orientação e aparece no console. O teste vai até o relay, não até o servidor do CCaaS.</p></div>
-                <div class="feat-box"><svg class="feat-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l3 2M9 2h6"/></svg><h3 data-i18n="f5_title">Latência das APIs do CCaaS</h3><p data-i18n="f5_desc">Mede o tempo de resposta das chamadas que a tela do atendente faz ao Genesys Cloud ou ao Amazon Connect, por domínio: média, p95, máximo e erros. Não lê endereço completo, parâmetros nem conteúdo.</p></div>
+                <div class="feat-box"><svg class="feat-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l3 2M9 2h6"/></svg><h3 data-i18n="f5_title">Latência das APIs do CCaaS</h3><p data-i18n="f5_desc">Mede o tempo de resposta das chamadas que a tela do atendente faz ao Genesys Cloud ou ao Amazon Connect, por domínio: p95 e taxa de erros. Não lê endereço completo, parâmetros nem conteúdo.</p></div>
                 <div class="feat-box"><svg class="feat-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 018 0v4"/></svg><h3 data-i18n="f6_title">Limpeza de cache sem derrubar chamada</h3><p data-i18n="f6_desc">A limpeza remota nunca roda durante uma chamada ativa. O comando espera na fila e é executado depois que a ligação termina.</p></div>
             </div>
         </div>
@@ -420,10 +420,10 @@
                     <h3 data-i18n="col_yes_title">O que coletamos</h3>
                     <ul>
                         <li><svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg><span data-i18n="col_y1">Números de rede da chamada: jitter, latência e perda de pacotes.</span></li>
-                        <li><svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg><span data-i18n="col_y2">Se a estação usa Wi-Fi ou cabo.</span></li>
+                        <li><svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg><span data-i18n="col_y2">Uma indicação do tipo de conexão (por exemplo, provável Wi-Fi), a partir do que o navegador informa.</span></li>
                         <li><svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg><span data-i18n="col_y3">Avisos de áudio: sem áudio recebido, sem áudio enviado, microfone desconectado ou mudo no sistema.</span></li>
                         <li><svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg><span data-i18n="col_y4">Resultado do pré-check e tempo de resposta das APIs do CCaaS, agrupado por domínio.</span></li>
-                        <li><svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg><span data-i18n="col_y5">O identificador da estação e o nome do operador, para o supervisor saber de quem é o alerta.</span></li>
+                        <li><svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg><span data-i18n="col_y5">O identificador da estação, a torre e, quando a operação configura, o nome ou a matrícula do operador, para o supervisor saber de quem é o alerta. Também guardamos o ID da conversa para correlacionar com a plataforma.</span></li>
                     </ul>
                 </div>
                 <div class="collect-box no">
@@ -432,7 +432,7 @@
                         <li><svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M5 5l10 10M15 5L5 15"/></svg><span data-i18n="col_n1">Áudio das chamadas, nem gravado nem transmitido.</span></li>
                         <li><svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M5 5l10 10M15 5L5 15"/></svg><span data-i18n="col_n2">O que foi dito ou escrito na conversa.</span></li>
                         <li><svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M5 5l10 10M15 5L5 15"/></svg><span data-i18n="col_n3">Nomes dos dispositivos de áudio instalados.</span></li>
-                        <li><svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M5 5l10 10M15 5L5 15"/></svg><span data-i18n="col_n4">Endereço completo, parâmetros ou conteúdo das chamadas de API do CCaaS.</span></li>
+                        <li><svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M5 5l10 10M15 5L5 15"/></svg><span data-i18n="col_n4">URLs, parâmetros ou conteúdo das chamadas de API do CCaaS. O ID da conversa é extraído no próprio navegador; a URL não é enviada.</span></li>
                     </ul>
                 </div>
             </div>
@@ -565,14 +565,14 @@
                 mock_agent1: "PA-304 • Carlos Lima",
                 mock_ethernet: "Cabo",
                 mock_agent2: "PA-211 • Mariana Souza",
-                mock_wifi: "Wi-Fi 2.4 GHz",
+                mock_wifi: "Wi-Fi (provável)",
                 mock_agent3: "PA-118 • Rafael Costa",
                 mock_mute: "Sem áudio enviado",
                 mock_cache_label: "Limpeza de cache",
                 mock_cache_val: "Fica na fila durante a chamada e roda só depois que ela termina",
                 mock_note: "Ilustração com nomes e dados fictícios.",
                 metric_1_val: "ITU-T G.107",
-                metric_1_label: "Nota de qualidade (MOS) estimada pelo modelo E",
+                metric_1_label: "Nota de qualidade (MOS) estimada, aproximação do modelo G.107",
                 metric_2_val: "Zero áudio",
                 metric_2_label: "Nenhuma conversa é gravada ou transmitida; só números de rede",
                 metric_3_val: "Tempo real",
@@ -583,7 +583,7 @@
                 feat_title: "O que você passa a enxergar",
                 feat_desc: "Tudo medido na estação do atendente, no navegador, para trocar o palpite por um dado.",
                 f1_title: "Nota da qualidade da voz",
-                f1_desc: "Estima o MOS (ITU-T G.107) a partir de jitter, latência e perda de pacotes, sem depender de pesquisa de satisfação.",
+                f1_desc: "Estima o MOS (aproximação baseada na ITU-T G.107) a partir de jitter, latência e perda de pacotes, sem depender de pesquisa de satisfação.",
                 f2_title: "Wi-Fi ou cabo",
                 f2_desc: "Identifica quando o atendente está no Wi-Fi, mais sujeito a interferência, e avisa o supervisor durante a chamada.",
                 f3_title: "Áudio mudo ou de um lado só",
@@ -591,7 +591,7 @@
                 f4_title: "Pré-check de turno",
                 f4_desc: "Antes de atender, o atendente clica num botão e a extensão testa latência, jitter e perda até o relay, além de microfone, saída de áudio, conexão e equipamento. O resultado (pronta, atenção ou não pronta) vem com orientação e aparece no console. O teste vai até o relay, não até o servidor do CCaaS.",
                 f5_title: "Latência das APIs do CCaaS",
-                f5_desc: "Mede o tempo de resposta das chamadas que a tela do atendente faz ao Genesys Cloud ou ao Amazon Connect, por domínio: média, p95, máximo e erros. Não lê endereço completo, parâmetros nem conteúdo.",
+                f5_desc: "Mede o tempo de resposta das chamadas que a tela do atendente faz ao Genesys Cloud ou ao Amazon Connect, por domínio: p95 e taxa de erros. Não lê endereço completo, parâmetros nem conteúdo.",
                 f6_title: "Limpeza de cache sem derrubar chamada",
                 f6_desc: "A limpeza remota nunca roda durante uma chamada ativa. O comando espera na fila e é executado depois que a ligação termina.",
                 who_tag: "Para quem",
@@ -632,15 +632,15 @@
                 sec_sub: "Em linguagem simples: o VoiceVanguard olha para a qualidade da conexão, não para o que as pessoas dizem.",
                 col_yes_title: "O que coletamos",
                 col_y1: "Números de rede da chamada: jitter, latência e perda de pacotes.",
-                col_y2: "Se a estação usa Wi-Fi ou cabo.",
+                col_y2: "Uma indicação do tipo de conexão (por exemplo, provável Wi-Fi), a partir do que o navegador informa.",
                 col_y3: "Avisos de áudio: sem áudio recebido, sem áudio enviado, microfone desconectado ou mudo no sistema.",
                 col_y4: "Resultado do pré-check e tempo de resposta das APIs do CCaaS, agrupado por domínio.",
-                col_y5: "O identificador da estação e o nome do operador, para o supervisor saber de quem é o alerta.",
+                col_y5: "O identificador da estação, a torre e, quando a operação configura, o nome ou a matrícula do operador, para o supervisor saber de quem é o alerta. Também guardamos o ID da conversa para correlacionar com a plataforma.",
                 col_no_title: "O que nunca coletamos",
                 col_n1: "Áudio das chamadas, nem gravado nem transmitido.",
                 col_n2: "O que foi dito ou escrito na conversa.",
                 col_n3: "Nomes dos dispositivos de áudio instalados.",
-                col_n4: "Endereço completo, parâmetros ou conteúdo das chamadas de API do CCaaS.",
+                col_n4: "URLs, parâmetros ou conteúdo das chamadas de API do CCaaS. O ID da conversa é extraído no próprio navegador; a URL não é enviada.",
                 sec_c3: "Cada cliente fica isolado, com chaves diferentes para agentes e supervisores.",
                 sec_c4: "Dados cifrados em trânsito (HTTPS e WSS).",
                 sec_c5: "Todo dado enviado pela estação é tratado como não confiável pelo servidor.",
@@ -713,14 +713,14 @@
                 mock_agent1: "WS-304 • Carlos Lima",
                 mock_ethernet: "Cable",
                 mock_agent2: "WS-211 • Mariana Souza",
-                mock_wifi: "Wi-Fi 2.4 GHz",
+                mock_wifi: "Wi-Fi (provável)",
                 mock_agent3: "WS-118 • Rafael Costa",
                 mock_mute: "No outgoing audio",
                 mock_cache_label: "Cache cleanup",
                 mock_cache_val: "Queued during the call and run only after it ends",
                 mock_note: "Illustration with fictional names and data.",
                 metric_1_val: "ITU-T G.107",
-                metric_1_label: "Quality score (MOS) estimated with the E-model",
+                metric_1_label: "Estimated quality score (MOS), approximating the G.107 model",
                 metric_2_val: "Zero audio",
                 metric_2_label: "No conversation is recorded or transmitted; network numbers only",
                 metric_3_val: "Real time",
@@ -731,7 +731,7 @@
                 feat_title: "What you start to see",
                 feat_desc: "Everything is measured at the agent's workstation, in the browser, to replace guesses with data.",
                 f1_title: "Voice quality score",
-                f1_desc: "Estimates MOS (ITU-T G.107) from jitter, latency and packet loss, with no satisfaction survey needed.",
+                f1_desc: "Estimates MOS (approximation based on ITU-T G.107) from jitter, latency and packet loss, with no satisfaction survey needed.",
                 f2_title: "Wi-Fi or cable",
                 f2_desc: "Detects when the agent is on Wi-Fi, which is more prone to interference, and warns the supervisor during the call.",
                 f3_title: "Muted or one-way audio",
@@ -739,7 +739,7 @@
                 f4_title: "Shift pre-check",
                 f4_desc: "Before taking calls, the agent clicks a button and the extension tests latency, jitter and loss to the relay, plus microphone, audio output, connection and hardware. The result (ready, attention or not ready) comes with guidance and shows up in the console. The test reaches the relay, not the CCaaS server.",
                 f5_title: "CCaaS API latency",
-                f5_desc: "Measures how long the calls made by the agent's screen to Genesys Cloud or Amazon Connect take to answer, per domain: average, p95, maximum and errors. It does not read full addresses, parameters or content.",
+                f5_desc: "Measures how long the calls made by the agent's screen to Genesys Cloud or Amazon Connect take to answer, per domain: p95 and error rate. It does not read full addresses, parameters or content.",
                 f6_title: "Cache cleanup that never drops a call",
                 f6_desc: "Remote cleanup never runs during an active call. The command waits in a queue and runs after the call ends.",
                 who_tag: "Who it is for",
@@ -780,15 +780,15 @@
                 sec_sub: "In plain words: VoiceVanguard looks at the quality of the connection, not at what people say.",
                 col_yes_title: "What we collect",
                 col_y1: "Call network numbers: jitter, latency and packet loss.",
-                col_y2: "Whether the workstation uses Wi-Fi or a cable.",
+                col_y2: "A hint about the connection type (for example, likely Wi-Fi), based on what the browser reports.",
                 col_y3: "Audio warnings: no incoming audio, no outgoing audio, microphone unplugged or muted by the system.",
                 col_y4: "Pre-check results and the response time of CCaaS APIs, grouped by domain.",
-                col_y5: "The workstation ID and the operator name, so the supervisor knows whose alert it is.",
+                col_y5: "The workstation ID, the tower and, when the operation configures it, the operator name or ID, so the supervisor knows whose alert it is. We also keep the conversation ID to match it with the platform.",
                 col_no_title: "What we never collect",
                 col_n1: "Call audio, neither recorded nor transmitted.",
                 col_n2: "What was said or written in the conversation.",
                 col_n3: "Names of the installed audio devices.",
-                col_n4: "Full addresses, parameters or content of CCaaS API calls.",
+                col_n4: "URLs, parameters or content of CCaaS API calls. The conversation ID is extracted in the browser itself; the URL is not sent.",
                 sec_c3: "Each customer is isolated, with different keys for agents and supervisors.",
                 sec_c4: "Data encrypted in transit (HTTPS and WSS).",
                 sec_c5: "Everything a workstation sends is treated as untrusted by the server.",

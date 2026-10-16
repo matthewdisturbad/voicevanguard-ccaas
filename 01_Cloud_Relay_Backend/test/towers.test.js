@@ -9,8 +9,8 @@ const WebSocket = require('ws');
 const TOWERS = ['FRAUDES', 'EMPRESTIMO', 'CARTOES', 'COBRANCA'];
 process.env.DATA_DIR = fs.mkdtempSync(path.join(os.tmpdir(), 'vv-towers-'));
 process.env.TENANTS_JSON = JSON.stringify({
-    'BPO-ORION-TESTE': {
-        name: 'Orion BPO (teste)', plan: 'Enterprise', maxAgents: 100,
+    'BPO-APEX-GLOBAL': {
+        name: 'Apex Global (teste)', plan: 'Enterprise', maxAgents: 100,
         towers: Object.fromEntries(TOWERS.map(t => [t, { agentKey: `agent-key-${t}` }])),
         supervisors: [
             { key: 'sup-key-fraudes', name: 'Sup Fraudes', towers: ['FRAUDES'] },

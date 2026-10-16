@@ -83,6 +83,8 @@ test('limite maxAgents e agentId duplicado', async () => {
 test('comando só do supervisor, só whitelist, entregue só ao agente do mesmo tenant', async () => {
     const sup = await connect('key=super-key-B-123');
     const ag = await connect('key=agent-key-B-123&agentId=PA-C1');
+    ag.ws.send(JSON.stringify({ type: 'AGENT_TELEMETRY', mosScore: '4.3', callActive: false }));
+    await wait(100);
     sup.ws.send(JSON.stringify({ type: 'SUPERVISOR_COMMAND', targetAgentId: 'PA-C1', command: 'FORMAT_DISK' }));
     sup.ws.send(JSON.stringify({ type: 'SUPERVISOR_COMMAND', targetAgentId: 'PA-C1', command: 'SAFE_CACHE_CLEAR' }));
     ag.ws.send(JSON.stringify({ type: 'SUPERVISOR_COMMAND', targetAgentId: 'PA-C1', command: 'SAFE_CACHE_CLEAR' }));
@@ -90,6 +92,18 @@ test('comando só do supervisor, só whitelist, entregue só ao agente do mesmo 
     const cmds = ag.msgs.filter(m => m.type === 'EXECUTE_COMMAND');
     assert.strictEqual(cmds.length, 1);
     assert.strictEqual(cmds[0].command, 'SAFE_CACHE_CLEAR');
+    sup.ws.close(); ag.ws.close();
+});
+
+test('agente sem estado conhecido: comando é enfileirado e só entregue após telemetria sem chamada', async () => {
+    const sup = await connect('key=super-key-B-123');
+    const ag = await connect('key=agent-key-B-123&agentId=PA-NOSTATE');
+    sup.ws.send(JSON.stringify({ type: 'SUPERVISOR_COMMAND', targetAgentId: 'PA-NOSTATE', command: 'SAFE_CACHE_CLEAR' }));
+    await wait(150);
+    assert.strictEqual(ag.msgs.filter(m => m.type === 'EXECUTE_COMMAND').length, 0);
+    ag.ws.send(JSON.stringify({ type: 'AGENT_TELEMETRY', mosScore: '4.3', callActive: false }));
+    await wait(150);
+    assert.strictEqual(ag.msgs.filter(m => m.type === 'EXECUTE_COMMAND').length, 1);
     sup.ws.close(); ag.ws.close();
 });
 
@@ -101,9 +115,11 @@ test('mensagem acima de maxPayload derruba a conexão', async () => {
 });
 
 test('validate-tenant aceita só chave de supervisor', async () => {
-    assert.strictEqual((await get('/api/validate-tenant?key=super-key-A-123')).status, 200);
-    assert.strictEqual((await get('/api/validate-tenant?key=agent-key-A-123')).status, 403);
-    assert.strictEqual((await get('/api/validate-tenant?key=__proto__')).status, 403);
+    assert.strictEqual((await get('/api/validate-tenant', { 'X-Tenant-Key': 'super-key-A-123' })).status, 200);
+    assert.strictEqual((await get('/api/validate-tenant', { 'X-Tenant-Key': 'agent-key-A-123' })).status, 403);
+    assert.strictEqual((await get('/api/validate-tenant', { 'X-Tenant-Key': '__proto__' })).status, 403);
+    // chave em URL não é aceita (vazaria em logs de proxy)
+    assert.strictEqual((await get('/api/validate-tenant?key=super-key-A-123')).status, 403);
 });
 
 test('servidor estático não escapa de public/ e envia headers de segurança', async () => {

@@ -1,18 +1,55 @@
 <!DOCTYPE html>
 <html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Política de Privacidade — VoiceVanguard CCaaS</title>
-<style>body{font-family:system-ui,sans-serif;max-width:760px;margin:2rem auto;padding:0 1rem;line-height:1.55}</style></head>
+<meta name="color-scheme" content="light dark">
+<style>
+:root{--bg:#fff;--fg:#1c2330;--muted:#5a6578;--line:#dde3ec;--accent:#0b5fd1}
+@media (prefers-color-scheme:dark){:root{--bg:#0f1520;--fg:#e6ebf3;--muted:#a3adbf;--line:#2a3445;--accent:#7db2ff}}
+body{font-family:system-ui,-apple-system,"Segoe UI",sans-serif;background:var(--bg);color:var(--fg);max-width:780px;margin:0 auto;padding:1.5rem 1rem 3rem;line-height:1.6}
+h1{font-size:1.6rem;margin:.6rem 0}h2{font-size:1.15rem;margin:1.8rem 0 .4rem}
+a{color:var(--accent)}.muted{color:var(--muted);font-size:.92rem}
+table{border-collapse:collapse;width:100%;font-size:.93rem}th,td{border:1px solid var(--line);padding:.45rem .6rem;text-align:left;vertical-align:top}
+code{font-size:.9em}
+</style></head>
 <body>
-<h1>Política de Privacidade — VoiceVanguard CCaaS</h1>
-<p><em>RASCUNHO para revisão jurídica da TrustCo Technologies antes da publicação oficial.</em></p>
+<p><a href="/">&larr; VoiceVanguard CCaaS</a></p>
+<h1>Política de Privacidade</h1>
+<p class="muted">VoiceVanguard CCaaS · TrustCo Technologies (Brasília, DF, Brasil) · Atualizada em outubro de 2026 · <a href="#en">English summary</a></p>
+
+<p>O VoiceVanguard mede a qualidade técnica das chamadas no navegador do agente (áudio mudo ou em um só sentido, rede, latência) para que a operação encontre a causa dos problemas. Seguimos as diretrizes da LGPD e as boas práticas do GDPR, com minimização de dados desde o projeto. Não declaramos certificação.</p>
+
+<h2>Papéis</h2>
+<p>A empresa contratante (operação de atendimento) é a <strong>controladora</strong> dos dados dos seus agentes. A TrustCo atua como <strong>operadora</strong>, tratando os dados conforme as instruções da contratante e o contrato de tratamento de dados.</p>
+
 <h2>O que coletamos</h2>
-<p>Apenas estatísticas de rede obtidas via <code>getStats()</code> do WebRTC (jitter, RTT, perda de pacotes, bitrate), o identificador da conversa (ConversationId/ContactId) e o identificador do agente fornecido pelo cliente.</p>
-<h2>O que NÃO coletamos</h2>
-<p>Áudio, transcrição, conteúdo de conversas, dados de cartão ou dados pessoais de clientes finais. O VoiceVanguard nunca grava nem transmite áudio.</p>
-<h2>Isolamento e retenção</h2>
-<p>Dados são isolados por Tenant Key. O histórico de chamadas mantém no máximo as 500 chamadas mais recentes por tenant.</p>
-<h2>Transporte</h2>
-<p>Comunicação via HTTPS/WSS.</p>
-<h2>Direitos do titular (LGPD)</h2>
-<p>Solicitações: contato@trustco.pro.</p>
+<table>
+<tr><th>Dado</th><th>Para quê</th></tr>
+<tr><td>Estatísticas de rede do WebRTC (<code>getStats()</code>): latência, jitter, perda de pacotes, protocolo</td><td>Calcular a estimativa de MOS e localizar problemas de rede</td></tr>
+<tr><td>Indicadores de áudio: microfone desconectado ou mudo, sem áudio recebido ou enviado, troca de dispositivo (apenas o estado, nunca o conteúdo)</td><td>Detectar áudio mudo ou unidirecional</td></tr>
+<tr><td>Identificador da conversa ou do contato (ConversationId/ContactId), extraído localmente na página</td><td>Correlacionar a análise com a chamada na plataforma</td></tr>
+<tr><td>Identificador da estação (gerado automaticamente), torre/operação (definida pela chave que a TI da operação instala) e, quando a operação configura, nome ou matrícula do operador</td><td>Mostrar ao supervisor qual estação tem o problema</td></tr>
+<tr><td>Indicação do tipo de conexão (por exemplo, provável Wi-Fi) e carga de memória do navegador</td><td>Separar problemas locais de problemas da plataforma</td></tr>
+<tr><td>Nome do domínio da plataforma de atendimento (por exemplo, região da Genesys ou instância do Amazon Connect)</td><td>Identificar a região da chamada</td></tr>
+<tr><td>Pré-check de turno: resultado de microfone, fone, conexão, e latência ao relay</td><td>Avisar a estação com problema antes do turno</td></tr>
+<tr><td>Latência das chamadas de API da plataforma (apenas nome do servidor e tempos)</td><td>Distinguir lentidão da plataforma de lentidão local</td></tr>
+<tr><td>Endereço IP da conexão</td><td>Proteção contra abuso (limite de tentativas); guardado só em memória por até 60 segundos</td></tr>
+</table>
+
+<h2>O que nunca coletamos</h2>
+<p>Áudio, transcrições, conteúdo de conversas, título de abas, URLs completas, dados de cartão, nem dados dos clientes finais que ligam para a operação. O ID da conversa é extraído localmente; a URL da página não sai do navegador.</p>
+
+<h2>Retenção</h2>
+<p>O estado ao vivo das estações fica em memória e é descartado 24 horas após a estação ficar offline. O histórico de chamadas auditadas guarda as 500 mais recentes por contratante. A contratante pode solicitar a exclusão a qualquer momento.</p>
+
+<h2>Isolamento, segurança e transporte</h2>
+<p>Os dados são isolados por contratante e, quando houver, por torre. Toda comunicação usa HTTPS e WSS. O acesso aos dados exige chave de supervisor. A remediação remota (limpeza de cache) é bloqueada durante uma chamada ativa e fica registrada.</p>
+
+<h2>Compartilhamento</h2>
+<p>Usamos um provedor de hospedagem em nuvem para executar o serviço. Os dados não são vendidos nem usados para publicidade. A página institucional carrega a fonte Inter do Google Fonts, o que pode expor o IP do visitante ao Google; o console do supervisor não carrega recursos de terceiros.</p>
+
+<h2>Seus direitos (LGPD)</h2>
+<p>Confirmação de tratamento, acesso, correção, eliminação, informação sobre compartilhamento e oposição. Como o titular costuma ser agente de uma operação, solicite primeiro à sua empresa (controladora). Também atendemos em <a href="mailto:contato@trustco.pro">contato@trustco.pro</a>.</p>
+
+<h2 id="en">English summary</h2>
+<p>VoiceVanguard measures technical call quality in the agent's browser (muted or one-way audio, network, latency). We process network statistics, audio-state flags, conversation ID, station ID, tower, optional operator name, connection hints and the platform domain name. We never collect audio, transcripts, conversation content, tab titles, full URLs or end-customer data. The customer is the data controller; TrustCo is the processor. Live state is discarded 24 hours after a station goes offline; the last 500 audited calls per customer are kept. We follow LGPD guidelines and GDPR good practices; no certification is claimed. Contact: <a href="mailto:contato@trustco.pro">contato@trustco.pro</a>.</p>
 </body></html>

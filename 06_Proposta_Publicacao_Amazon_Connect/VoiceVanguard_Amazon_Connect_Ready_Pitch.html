@@ -172,7 +172,7 @@
     <div class="card">
       <h3>⚠️ 1. The Amazon Connect Last-Mile Challenge</h3>
       <ul>
-        <li><strong>False AWS Cloud Tickets:</strong> Amazon Connect agents operating from home offices experience robotic audio or dropped calls and open severe tickets blaming AWS Cloud Media regions, when 85% of issues originate in residential 2.4GHz Wi-Fi congestion or bufferbloat.</li>
+        <li><strong>False AWS Cloud Tickets:</strong> Amazon Connect agents operating from home offices experience robotic audio or dropped calls and open severe tickets blaming AWS Cloud Media regions, when a relevant share of issues can originate in residential Wi-Fi congestion or bufferbloat (share to be measured in pilot).</li>
         <li><strong>Opaque Endpoint Diagnostics:</strong> Amazon CloudWatch metrics provide post-call summaries, but supervisors lack real-time per-second visibility into the agent's live browser health.</li>
         <li><strong>Corrupted Chromium Telephony Cache:</strong> High-volume agent shifts degrade browser process memory, causing silent CCP station de-registrations.</li>
       </ul>
@@ -182,9 +182,9 @@
       <h3>💡 2. The Solution: VoiceVanguard Sentinel</h3>
       <ul>
         <li><strong>Amazon Connect Streams Interceptor:</strong> Lightweight browser agent hooks directly into Amazon Connect CCP WebRTC sessions, correlating telemetry by <code>ContactId</code>.</li>
-        <li><strong>Real-Time ITU-T G.107 MOS Calculation:</strong> Continuously computes perceived voice quality from 1.00 to 4.50 once per second using RTP metrics.</li>
+        <li><strong>Real-Time ITU-T G.107 MOS Calculation:</strong> Continuously estimates perceived voice quality from 1.00 to 4.50 every 2 seconds using RTP metrics.</li>
         <li><strong>Safe In-Call Protection Remediation:</strong> Supervisors can remotely flush corrupted telephony cache with a guaranteed lock that executes strictly after call wrap-up.</li>
-        <li><strong>Privacy by Design:</strong> Zero audio capture or recording. 100% LGPD, GDPR, and PCI-DSS compliant.</li>
+        <li><strong>Privacy by Design:</strong> Zero audio capture or recording. Designed to follow LGPD/GDPR principles; no compliance certification is claimed.</li>
       </ul>
     </div>
   </div>
@@ -211,8 +211,8 @@
       </tr>
       <tr>
         <td><strong>Audio Stream Telemetry</strong></td>
-        <td>Opus / G.711 RTP via WebRTC</td>
-        <td><span class="badge badge-green">ITU-T G.107 E-Model (RTT, Jitter, Loss)</span></td>
+        <td>RTP via WebRTC (network statistics only)</td>
+        <td><span class="badge badge-green">MOS estimate based on ITU-T G.107 (RTT, jitter, loss)</span></td>
       </tr>
       <tr>
         <td><strong>Supervisor Experience</strong></td>
@@ -251,7 +251,7 @@
         <td>Draws down Customer AWS EDP Commit</td>
       </tr>
       <tr>
-        <td><strong>Global BPO Sovereign</strong></td>
+        <td><strong>Global BPO</strong></td>
         <td>1,500+ CCP Agents</td>
         <td>Custom Multi-Year Private Offer</td>
         <td>Private VPC Relay Option</td>

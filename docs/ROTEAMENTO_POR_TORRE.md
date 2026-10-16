@@ -20,8 +20,8 @@ Tenants sem `towers` seguem o modelo simples (`agentKey`/`supervisorKey` valem p
 
 ```json
 {
-  "BPO-ORION-TESTE": {
-    "name": "Orion BPO (teste)", "plan": "Enterprise", "maxAgents": 2500, "active": true,
+  "BPO-APEX-GLOBAL": {
+    "name": "Apex Global (teste)", "plan": "Enterprise", "maxAgents": 2500, "active": true,
     "towers": {
       "FRAUDES":    { "agentKey": "<chave-aleatoria-longa>" },
       "EMPRESTIMO": { "agentKey": "<chave-aleatoria-longa>" }

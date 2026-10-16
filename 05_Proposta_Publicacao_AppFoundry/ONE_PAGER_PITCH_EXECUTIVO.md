@@ -24,7 +24,7 @@ graph LR
 ```
 
 - **Interceptor WebRTC Universal:** Captura estatísticas nativas de pacotes RTP (`getStats()`) diretamente no navegador sem exigir SDKs pesados de telefonia ou permissões invasivas.
-- **Cálculo de MOS em Tempo Real (ITU-T G.107):** Avalia a qualidade percebida da chamada de 1.00 a 4.50 nota a cada segundo da interação.
+- **Estimativa de MOS em Tempo Real (aproximação baseada na ITU-T G.107):** Estima a qualidade percebida da chamada de 1.00 a 4.50, atualizada a cada 2 segundos durante a interação.
 - **Auditoria de Chamadas com ConversationID / CallSid:** Vincula automaticamente o histórico da chamada ao operador e estação.
 - **Limpeza Segura de Cache com Trava Operacional:** O supervisor dispara a limpeza de cache da PA remotamente com 1 clique. Se o agente estiver em atendimento, o sistema aguarda o término da chamada para não derrubar a ligação.
 - **Privacidade por design (segue as diretrizes da LGPD/GDPR):** **Zero escuta e zero gravação de áudio.** Apenas telemetria estatística de rede.
@@ -51,9 +51,9 @@ graph LR
 | Funcionalidade | Ferramentas Nativas (Genesys Admin) | Monitoramento Tradicional (Zabbix/Dynatrace) | **VoiceVanguard CCaaS** |
 | :--- | :---: | :---: | :---: |
 | **Métrica no Nível da Aba** | Parcial | Não | **Sim (WebRTC Nativo)** |
-| **Diagnóstico de Wi-Fi vs CPU** | Não | Parcial | **Sim (Instantâneo)** |
-| **Limpeza de Cache Remota Segura** | Não | Não | **Sim (Com Trava Anti-Queda)** |
-| **Implantação Zero-Touch (GPO/Intune)** | Não | Complexa | **Sim (1 clique via Active Directory)** |
+| **Diagnóstico de Wi-Fi vs CPU** | Não | Parcial | **Sim (indicação por chamada)** |
+| **Limpeza de Cache Remota Segura** | Não | Não | **Sim (bloqueada durante chamada ativa)** |
+| **Implantação Zero-Touch (GPO/Intune)** | Não | Complexa | **Sim (política gerenciada Chrome/Edge via GPO/Intune)** |
 | **Agnóstico a CCaaS** | Só Genesys | Não | **Genesys, Amazon Connect, Twilio, etc.** |
 
 ---

@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "VoiceVanguard • CCaaS WebRTC Sentinel",
+  "name": "VoiceVanguard CCaaS",
   "version": "1.0.0",
-  "description": "Observabilidade de voz e auditoria de MOS (aproximação ITU-T G.107) para Genesys Cloud CX e Amazon Connect. Coleta apenas estatísticas de rede; não captura áudio.",
+  "description": "Observabilidade de qualidade de voz (MOS aproximado) para Genesys Cloud CX e Amazon Connect. Não captura áudio.",
   "author": "TrustCo Technologies",
   "icons": {
     "16": "icon16.png",
@@ -16,11 +16,10 @@
       "48": "icon48.png",
       "128": "icon128.png"
     },
-    "default_title": "VoiceVanguard Universal Sentinel"
+    "default_title": "VoiceVanguard CCaaS"
   },
   "permissions": [
     "storage",
-    "alarms",
     "browsingData"
   ],
   "host_permissions": [
@@ -31,7 +30,7 @@
     "https://*.mypurecloud.de/*",
     "https://*.mypurecloud.jp/*",
     "https://*.my.connect.aws/*",
-    "https://*.awsapps.com/*"
+    "https://*.awsapps.com/connect/*"
   ],
   "content_scripts": [
     {
@@ -43,12 +42,13 @@
         "https://*.mypurecloud.de/*",
         "https://*.mypurecloud.jp/*",
         "https://*.my.connect.aws/*",
-        "https://*.awsapps.com/*"
+        "https://*.awsapps.com/connect/*"
       ],
       "js": [
         "content.js"
       ],
-      "run_at": "document_start"
+      "run_at": "document_start",
+      "all_frames": true
     }
   ],
   "web_accessible_resources": [
@@ -68,6 +68,9 @@
       ]
     }
   ],
+  "storage": {
+    "managed_schema": "managed_schema.json"
+  },
   "background": {
     "service_worker": "background.js"
   }

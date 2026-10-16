@@ -1,6 +1,6 @@
 /**
  * VoiceVanguard CCaaS - Popup Script (White-Label)
- * Autor: David Paiva
+ * TrustCo Technologies
  */
 
 document.addEventListener('DOMContentLoaded', () => {

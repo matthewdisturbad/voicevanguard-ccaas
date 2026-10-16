@@ -28,7 +28,7 @@
 ### 3. A Solução Técnica e Diferenciais Competitivos
 
 * **Auditoria de Interação por ConversationId:** A extensão intercepta chamadas silenciosamente e correlaciona as métricas de rede (`RTCPeerConnection`) diretamente ao identificador unívoco da ligação Genesys (`ConversationId`), gravando início, término e duração.
-* **Métrica Científica de Qualidade de Voz (ITU-T G.107 MOS):** Cálculo em tempo real do Score MOS (Mean Opinion Score de 1.0 a 4.5) baseado em Latência Efetiva, Pico de Jitter e Taxa de Perda de Pacotes, classificando em *Excelente*, *Boa*, *Degradada* ou *Crítica*.
+* **Estimativa de Qualidade de Voz (MOS, aproximação baseada na ITU-T G.107):** Cálculo em tempo real do Score MOS (Mean Opinion Score de 1.0 a 4.5) baseado em Latência Efetiva, Pico de Jitter e Taxa de Perda de Pacotes, classificando em *Excelente*, *Boa*, *Degradada* ou *Crítica*.
 * **Trava Operacional Anti-Queda (Call-in-Progress Lock):** Permite limpeza cirúrgica de cache estático sem deslogar o operador e com bloqueio inteligente que impede execuções durante chamadas ativas.
 * **Zero-Touch Enterprise Deployment:** Compatível com implantação corporativa silenciosa via Microsoft Intune / Active Directory GPO (`chrome.storage.managed`).
 

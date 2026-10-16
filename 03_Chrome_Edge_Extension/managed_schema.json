@@ -1,0 +1,21 @@
+{
+  "type": "object",
+  "properties": {
+    "tenantKey": {
+      "title": "Chave do agente (tenant ou torre)",
+      "description": "Chave de AGENTE fornecida pela TrustCo. Cada operação/torre recebe a sua; o agente não escolhe nem altera.",
+      "type": "string"
+    },
+    "relayServer": {
+      "title": "Servidor do relay (opcional)",
+      "description": "URL wss:// do relay. Padrão: wss://voicevanguard.trustco.pro",
+      "type": "string",
+      "pattern": "^wss://[A-Za-z0-9.-]+(:[0-9]+)?$"
+    },
+    "operatorName": {
+      "title": "Identificação do operador (opcional)",
+      "description": "Nome ou matrícula exibida ao supervisor. Deixe vazio para usar apenas o identificador da estação.",
+      "type": "string"
+    }
+  }
+}

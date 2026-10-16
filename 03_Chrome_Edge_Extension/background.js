@@ -2,11 +2,10 @@
  * VoiceVanguard CCaaS - Background Service Worker (Manifest V3)
  * Conexão direta com Cloud Relay WebSocket Multi-Tenant via TenantKey.
  * Suporte a GPO Corporativo (Managed Policy) e Pareamento Dinâmico.
- * Autor: David Paiva
+ * TrustCo Technologies
  */
 
 let RELAY_SERVER = "wss://voicevanguard.trustco.pro"; // Custom domain principal
-let FALLBACK_RELAY_SERVER = "wss://voicevanguard-cloud-production.up.railway.app"; // Railway fallback imediato
 importScripts('precheck.js'); // VVPrecheck.summarizeProbe
 
 let tenantKey = ""; // chave de AGENTE do tenant (definida por GPO/Intune ou pelo popup); sem valor padrão
@@ -18,10 +17,23 @@ let isCallActive = false;
 let lastTelemetryAt = 0;
 const CALL_STALE_MS = 15000; // sem telemetria por 15s => chamada considerada encerrada
 let pendingCacheClear = false;
+let reconnectAttempts = 0;
+let isManaged = false;
+
+// Reconexão com recuo exponencial e jitter (evita rajada simultânea de milhares de PAs após uma queda do relay)
+function scheduleReconnect() {
+    clearTimeout(reconnectTimer);
+    const base = Math.min(60000, 5000 * Math.pow(2, Math.min(reconnectAttempts, 4)));
+    reconnectAttempts++;
+    reconnectTimer = setTimeout(connectToCloudRelay, base * (0.5 + Math.random() * 0.5));
+}
 
 // Inicializa Identificadores
-chrome.storage.local.get(['tenantKey', 'agentStationId', 'operatorName'], (res) => {
-    if (res.tenantKey) tenantKey = res.tenantKey;
+chrome.storage.local.get(['tenantKey', 'agentStationId', 'operatorName', 'isCallActive', 'lastTelemetryAt', 'isManaged'], (res) => {
+    // O In-Call Lock sobrevive à reinicialização do service worker (MV3 encerra o worker por ociosidade)
+    if (res.isCallActive === true) { isCallActive = true; lastTelemetryAt = Number(res.lastTelemetryAt) || Date.now(); }
+    if (res.isManaged === true) isManaged = true;
+    if (!tenantKey && res.tenantKey) tenantKey = res.tenantKey;
     if (res.agentStationId) agentStationId = res.agentStationId;
     else {
         agentStationId = `PA-${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
@@ -33,12 +45,23 @@ chrome.storage.local.get(['tenantKey', 'agentStationId', 'operatorName'], (res) 
 
 // Suporte a GPO / Active Directory (Políticas Corporativas do Windows / Chrome Managed Storage)
 if (chrome.storage.managed) {
-    chrome.storage.managed.get(['tenantKey', 'relayServer'], (managedConfig) => {
+    chrome.storage.managed.get(['tenantKey', 'relayServer', 'operatorName'], (managedConfig) => {
+        if (chrome.runtime.lastError) return; // sem política instalada
         if (managedConfig && managedConfig.tenantKey) {
             tenantKey = managedConfig.tenantKey;
+            isManaged = true;
             chrome.storage.local.set({ tenantKey, isManaged: true });
-            if (managedConfig.relayServer) RELAY_SERVER = managedConfig.relayServer;
-            if (ws) ws.close();
+            // A chave só pode ser enviada por canal cifrado
+            if (typeof managedConfig.relayServer === 'string' && /^wss:\/\/[A-Za-z0-9.-]+(:\d+)?$/.test(managedConfig.relayServer)) {
+                RELAY_SERVER = managedConfig.relayServer;
+            }
+            if (typeof managedConfig.operatorName === 'string' && managedConfig.operatorName.length <= 64) {
+                operatorName = managedConfig.operatorName;
+                chrome.storage.local.set({ operatorName });
+            }
+            reconnectAttempts = 0;
+            if (ws) { try { ws.close(); } catch (_) {} }
+            connectToCloudRelay();
         }
     });
 }
@@ -52,6 +75,7 @@ function connectToCloudRelay() {
         ws = new WebSocket(url);
 
         ws.onopen = () => {
+            reconnectAttempts = 0;
             console.log(`[VoiceVanguard] Conectado ao Cloud Relay | ID: ${agentStationId}`);
             chrome.storage.local.set({ relayConnected: true });
         };
@@ -79,16 +103,14 @@ function connectToCloudRelay() {
         ws.onclose = (ev) => {
             chrome.storage.local.set({ relayConnected: false });
             if (ev && ev.code === 4001) return; // chave recusada: não insistir em loop
-            clearTimeout(reconnectTimer);
-            reconnectTimer = setTimeout(connectToCloudRelay, 5000);
+            scheduleReconnect();
         };
 
         ws.onerror = () => {
             ws.close();
         };
     } catch (err) {
-        clearTimeout(reconnectTimer);
-        reconnectTimer = setTimeout(connectToCloudRelay, 5000);
+        scheduleReconnect();
     }
 }
 
@@ -166,7 +188,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     if (message.action === 'REPORT_TELEMETRY' && message.payload) {
         isCallActive = true;
         lastTelemetryAt = Date.now();
-        chrome.storage.local.set({ lastMetric: message.payload, isCallActive: true });
+        chrome.storage.local.set({ lastMetric: message.payload, isCallActive: true, lastTelemetryAt });
 
         // Extrai Região / Domínio e Plataforma detectada
         const detectedPlatform = message.payload.platform || "VoIP WebRTC";
@@ -193,7 +215,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             rttMs: message.payload.rttMs || 0,
             jitterMs: message.payload.jitterMs || 0,
             lossPct: message.payload.perdaPct || 0,
-            networkType: message.payload.networkType || "ETHERNET",
+            networkType: message.payload.networkType || "N/D",
             cpuStress: message.payload.cpuStress || "NORMAL",
             protocol: message.payload.protocolo ? message.payload.protocolo.toUpperCase() : "UDP",
             callActive: true,
@@ -230,7 +252,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             perdaPacotesPct: message.payload.perdaPacotesPct,
             protocolo: message.payload.protocolo,
             classificacao: message.payload.classificacao,
-            networkType: message.payload.networkType || "ETHERNET",
+            networkType: message.payload.networkType || "N/D",
             cpuStress: message.payload.cpuStress || "NORMAL",
             causaRaiz: message.payload.causaRaiz || "REDE_HOMOLOGADA",
             incidentesAudio: Array.isArray(message.payload.incidentesAudio) ? message.payload.incidentesAudio : [],
@@ -274,7 +296,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     } else if (message.action === 'EXECUTE_SAFE_CACHE_CLEAR' && fromExtensionPage) {
         executeSafeCacheClear('popup_operator').then(sendResponse);
         return true;
-    } else if (message.action === 'SET_TENANT_KEY' && fromExtensionPage && typeof message.tenantKey === 'string' && message.tenantKey.length <= 256) {
+    } else if (message.action === 'SET_TENANT_KEY' && fromExtensionPage && typeof message.tenantKey === 'string' && message.tenantKey.length <= 256 && !isManaged) {
         tenantKey = message.tenantKey;
         chrome.storage.local.set({ tenantKey: message.tenantKey });
         if (ws) ws.close();

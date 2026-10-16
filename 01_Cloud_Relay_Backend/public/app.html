@@ -112,7 +112,7 @@
         .panel { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: var(--s5); }
         .panel h3 { font-size: var(--fs-lg); font-weight: 600; margin-bottom: var(--s2); }
         .panel > p { color: var(--text-2); font-size: var(--fs-sm); max-width: 70ch; margin-bottom: var(--s5); }
-        .bi-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--s4); }
+        .bi-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: var(--s4); }
         @media (max-width: 800px) { .bi-grid { grid-template-columns: 1fr; } }
         .bi-item { background: var(--bg); border: 1px solid var(--border); border-left-width: 3px; border-radius: var(--radius); padding: var(--s4); }
         .bi-item.crit { border-left-color: var(--crit); }
@@ -304,7 +304,7 @@
         <button class="tab-btn active" id="tabLiveBtn" role="tab" aria-selected="true" aria-controls="tabContentLive" type="button" data-tab="live">Monitoramento ao vivo</button>
         <button class="tab-btn" id="tabCallsBtn" role="tab" aria-selected="false" aria-controls="tabContentCalls" type="button" data-tab="calls">Auditoria de chamadas</button>
         <button class="tab-btn" id="tabHealthBtn" role="tab" aria-selected="false" aria-controls="tabContentHealth" type="button" data-tab="health">Saúde da estação</button>
-        <button class="tab-btn" id="tabBiBtn" role="tab" aria-selected="false" aria-controls="tabContentBi" type="button" data-tab="bi">BI e causa raiz</button>
+        <button class="tab-btn" id="tabBiBtn" role="tab" aria-selected="false" aria-controls="tabContentBi" type="button" data-tab="bi">Fatores locais</button>
     </div>
 
     <div id="staleBanner" class="stale-banner" role="status" hidden>Sem conexão com o relay: os dados abaixo podem estar desatualizados até a reconexão.</div>
@@ -469,21 +469,17 @@
     <div id="tabContentBi" role="tabpanel" aria-labelledby="tabBiBtn" hidden>
         <div class="panel">
             <h3>Fatores locais que afetam a qualidade de voz</h3>
-            <p>Wi-Fi, abas duplicadas e falhas de áudio no posto do atendente podem degradar a voz antes de virar chamado técnico.</p>
+            <p>Indícios de Wi-Fi e falhas de áudio no posto do atendente podem degradar a voz antes de virar chamado técnico.</p>
             <div class="bi-grid">
                 <div class="bi-item crit">
-                    <div class="bi-label">PAs em Wi-Fi</div>
+                    <div class="bi-label">PAs com indício de Wi-Fi</div>
                     <div class="bi-val" id="biWifiIssues">0 PAs</div>
-                </div>
-                <div class="bi-item warn">
-                    <div class="bi-label">Abas duplicadas</div>
-                    <div class="bi-val" id="biTabIssues">—</div>
-                    <div class="bi-hint">Indicador ainda não calculado.</div>
+                    <div class="bi-hint">Indicação provável a partir dos dados de rede do navegador; não mede o sinal.</div>
                 </div>
                 <div class="bi-item info">
                     <div class="bi-label">Falha de headset ou mudo</div>
-                    <div class="bi-val" id="biAudioIssues">—</div>
-                    <div class="bi-hint">Indicador ainda não calculado.</div>
+                    <div class="bi-val" id="biAudioIssues">0 PAs</div>
+                    <div class="bi-hint">PAs online com microfone, fone ou áudio com problema agora.</div>
                 </div>
             </div>
         </div>
@@ -887,10 +883,11 @@
             const m = parseFloat(a.mosScore); if (!isNaN(m) && m > 0) { totalMos += m; mosN++; }
             const j = parseFloat(a.jitterMs); if (!isNaN(j)) { totalJ += j; jN++; }
         });
-        agents.forEach(a => { if (netInfo(a).kind === 'wifi') wifi++; });
+        online.forEach(a => { if (netInfo(a).kind === 'wifi') wifi++; });
         $('cardAvgMos').textContent = mosN ? (totalMos / mosN).toFixed(2) : '—';
         $('cardAvgJitter').textContent = jN ? `${(totalJ / jN).toFixed(1)}ms` : '—';
         $('biWifiIssues').textContent = `${wifi} PAs`;
+        $('biAudioIssues').textContent = `${online.filter(hasAudioIssue).length} PAs`;
 
         // Faixa de atenção
         const attn = online.filter(needsAttention);

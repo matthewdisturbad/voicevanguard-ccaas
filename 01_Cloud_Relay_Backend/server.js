@@ -31,9 +31,11 @@ const OFFLINE_TTL_MS = 24 * 60 * 60 * 1000;
 const AUTH_WINDOW_MS = 60000;
 const AUTH_MAX_FAILURES = 20;
 const COMMAND_WHITELIST = new Set(['SAFE_CACHE_CLEAR']);
+const CALL_CLASSES = new Set(['EXCELENTE', 'BOA', 'DEGRADADA', 'CRÍTICA']);
 const AUDIO_ISSUES = new Set(['NONE', 'MIC_DESCONECTADO', 'MIC_MUDO_SISTEMA', 'SEM_AUDIO_RECEBIDO', 'SEM_AUDIO_ENVIADO']);
 const PRECHECK_STATUS = new Set(['PRONTA', 'ATENCAO', 'NAO_PRONTA']);
 const ITEM_STATUS = new Set(['ok', 'atencao', 'falha']);
+const RECONNECT_GRACE_MS = 15000;
 const MSG_WINDOW_MS = 1000;
 const MSG_MAX_AGENT = 40;
 const MSG_MAX_SUPERVISOR = 20;
@@ -417,7 +419,7 @@ function createRelay() {
                 sendJson(res, 429, { valid: false, error: 'Muitas tentativas. Aguarde um minuto.' }, { 'Retry-After': '60' });
                 return;
             }
-            const key = req.headers['x-tenant-key'] || url.searchParams.get('key');
+            const key = req.headers['x-tenant-key']; // só por cabeçalho: chave em URL vaza em logs
             const found = lookupKey(key);
             if (found && found.role === 'supervisor') {
                 const meta = tenantMeta.get(found.tenantId);
@@ -521,6 +523,7 @@ function createRelay() {
         ws.clientType = clientType;
         ws.tower = tower;
         ws.towers = towers;
+        ws.supervisorName = found.supervisorName;
         ws.agentId = agentId;
         ws.isAlive = true;
         ws.on('pong', () => { ws.isAlive = true; });
@@ -537,6 +540,8 @@ function createRelay() {
                 towers: towers === '*' ? meta.towers : towers
             }));
         } else {
+            const prev = room.agents.get(akey(tower, agentId));
+            if (prev) prev.reconnectedAt = Date.now(); // até a próxima telemetria, o estado de chamada é desconhecido
             console.log(`[+] Agente conectado | ID: ${agentId} | Tenant: ${tenantId}`);
         }
 
@@ -573,7 +578,7 @@ function createRelay() {
                         jitterMs: num(data.jitterMs, 0, 60000, 0),
                         lossPct: num(data.lossPct, 0, 100, 0),
                         protocol: str(data.protocol, 16, 'UDP'),
-                        networkType: str(data.networkType, 32, 'ETHERNET'),
+                        networkType: str(data.networkType, 32, 'N/D'),
                         cpuStress: str(data.cpuStress, 32, 'NORMAL'),
                         callActive: data.callActive === true,
                         currentCallId: str(data.currentCallId, 128, ''),
@@ -611,8 +616,8 @@ function createRelay() {
                         rttMedioMs: num(data.rttMedioMs, 0, 60000, 0),
                         perdaPacotesPct: num(data.perdaPacotesPct, 0, 100, 0),
                         protocolo: str(data.protocolo, 16, 'UDP'),
-                        classificacao: str(data.classificacao, 32, 'N/D'),
-                        networkType: str(data.networkType, 32, 'ETHERNET'),
+                        classificacao: oneOf(data.classificacao, CALL_CLASSES, 'N/D'),
+                        networkType: str(data.networkType, 32, 'N/D'),
                         cpuStress: str(data.cpuStress, 32, 'NORMAL'),
                         causaRaiz: str(data.causaRaiz, 64, 'N/D'),
                         incidentesAudio: Array.isArray(data.incidentesAudio)
@@ -661,7 +666,9 @@ function createRelay() {
                         if (client.tenantId === tenantId && client.clientType === 'agent' && canSee(ws, client.tower) &&
                             client.agentId === target && client.readyState === WebSocket.OPEN) {
                             const state = room.agents.get(akey(client.tower, target));
-                            if (state && state.callActive) {
+                            // Sem estado fresco (agente sem telemetria ou reconectado há pouco) tratamos como possível chamada em curso.
+                            const stale = !state || (state.reconnectedAt && Date.now() - state.reconnectedAt < RECONNECT_GRACE_MS);
+                            if (stale || state.callActive) {
                                 // In-Call Lock no servidor: enfileira para o wrap-up e avisa os supervisores da torre
                                 client.pendingCommands = client.pendingCommands || new Set();
                                 client.pendingCommands.add(data.command);
@@ -672,7 +679,7 @@ function createRelay() {
                             }
                         }
                     }
-                    console.log(`[AUDIT] Tenant ${tenantId} comando ${data.command} -> ${target}`);
+                    console.log(`[AUDIT] ${new Date().toISOString()} tenant=${tenantId} supervisor=${JSON.stringify(ws.supervisorName)} torre=${tower || '*'} comando=${data.command} alvo=${target}`);
                     return;
                 }
 

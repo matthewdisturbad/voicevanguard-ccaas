@@ -40,7 +40,7 @@ VoiceVanguard-CCaaS/
 │
 └── 06_Proposta_Publicacao_Amazon_Connect/ # AWS Partner Network & Amazon Connect Ready artifacts
     ├── VoiceVanguard_Amazon_Connect_Ready_Pitch.html # AWS Pitch One-Pager (Squid Ink & Gold)
-    ├── amazon_connect_integration_spec.json         # Streams API, CCP Hook & SaaS contract specs
+    ├── amazon_connect_integration_spec.json         # CCP WebRTC hook & SaaS contract specs
     └── GUIA_CADASTRO_AWS_PARTNER_NETWORK.md         # APN Onboarding & FTR playbook
 ```
 
@@ -68,7 +68,7 @@ VoiceVanguard-CCaaS/
    - Dynamically accounts for packet loss non-linear penalties and jitter buffer distortion.
 
 3. **Last-Mile Wi-Fi vs. Ethernet Diagnostics:**
-   - Detects agent physical network interface (Ethernet, 5GHz Wi-Fi, 2.4GHz congested Wi-Fi, 4G/5G mobile hotspot).
+   - Infers a likely connection type (stable network, likely Wi-Fi/cellular) from browser network hints; it does not measure Wi-Fi band or signal.
    - Proves whether call degradation originates from residential interference or true corporate cloud infrastructure.
 
 4. **Station health (see `docs/PRECHECK.md`):**

@@ -3,14 +3,14 @@
 > **Plataforma:** Amazon Web Services (AWS)  
 > **Produto:** VoiceVanguard CCaaS  
 > **Fabricante:** TrustCo Technologies ([trustco.pro](https://trustco.pro))  
-> **Status:** Pronto para submissão imediata (Self-Service)
+> **Status:** Rascunho de trabalho. Pendências em `docs/AVALIACAO.md`; confirmar as regras vigentes com a AWS antes de submeter.
 
 ---
 
 ## 1. Visão Geral da Oportunidade AWS
 Ao cadastrar o **VoiceVanguard** no ecossistema da AWS:
 1. **AWS Marketplace:** Clientes corporativos do Amazon Connect (como bancos, fintechs e grandes varejistas) compram seu software debitando diretamente do orçamento anual que já possuem com a AWS (*AWS Enterprise Discount Program - EDP*).
-2. **Selo Amazon Connect Ready:** Você passa a figurar na página oficial da AWS como solução homologada, e os próprios arquitetos de soluções e gerentes de contas da AWS recomendam seu produto em projetos de migração.
+2. **Selo Amazon Connect Ready:** Você passa a figurar na página oficial da AWS após a aprovação da AWS, o que depende do cumprimento dos requisitos técnicos e da revisão deles; não há garantia de recomendação por parte da AWS.
 3. **Sem Exclusividade:** A AWS não exige exclusividade; você pode ser parceiro da Genesys e da AWS simultaneamente.
 
 ---
@@ -24,7 +24,7 @@ Acesse o portal oficial do **AWS Partner Central**:
 
 * Clique em **"Join the AWS Partner Network"** (ou *"Cadastre-se"*).
 * Use uma conta AWS ou crie um login vinculado ao seu e-mail corporativo:  
-  `david@trustco.pro` (ou `contato@trustco.pro`). **Nunca use Gmail ou e-mail pessoal.**
+  um e-mail corporativo do domínio (ex.: `contato@trustco.pro`). **Nunca use Gmail ou e-mail pessoal.**
 
 ---
 
@@ -63,7 +63,7 @@ Depois de cadastrado no Software Path, você submete a solução para o programa
 * **O que a AWS audita:**
   1. O software roda com o **Amazon Connect Contact Control Panel (CCP)** via browser? *(Sim, via extensão Chromium e API getStats).*
   2. O software vincula a chamada ao identificador oficial da AWS (`ContactId`)? *(Sim).*
-  3. O software respeita a privacidade de dados (não grava áudio sem autorização)? *(Sim, Zero Voice Recording / 100% LGPD/GDPR).*
+  3. O software respeita a privacidade de dados (não grava áudio sem autorização)? *(Sim, Zero Voice Recording; projetado seguindo as diretrizes da LGPD/GDPR, sem certificação).*
 * **Entregável Técnico:** Você anexa o documento:  
   `VoiceVanguard_Amazon_Connect_Ready_Pitch.pdf` (gerado a partir de `VoiceVanguard_Amazon_Connect_Ready_Pitch.html`).
 
