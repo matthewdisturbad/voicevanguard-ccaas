@@ -2,7 +2,8 @@
   "manifest_version": 3,
   "name": "VoiceVanguard CCaaS",
   "version": "1.0.0",
-  "description": "Observabilidade de qualidade de voz (MOS aproximado) para Genesys Cloud CX, Amazon Connect e NICE CXone. Não captura áudio.",
+  "default_locale": "en",
+  "description": "__MSG_extDescription__",
   "author": "TrustCo Technologies",
   "icons": {
     "16": "icon16.png",
@@ -16,7 +17,7 @@
       "48": "icon48.png",
       "128": "icon128.png"
     },
-    "default_title": "VoiceVanguard CCaaS"
+    "default_title": "__MSG_extActionTitle__"
   },
   "permissions": [
     "storage",

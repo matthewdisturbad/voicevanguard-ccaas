@@ -23,3 +23,21 @@ Abra `chrome://policy` (ou `edge://policy`) na estação, confirme a política d
 
 ## Widget de interação (Genesys)
 O widget aparece no painel da chamada do **agente**, por isso nunca usa a chave de supervisor. Defina um `widgetKey` no tenant em `TENANTS_JSON` (chave própria, distinta das demais). Ao instalar a integração na organização Genesys do cliente, o administrador acrescenta ao final da URL do widget `#wk=<widgetKey>` (depois de `&env={{pcEnvironment}}`). O trecho depois de `#` não é enviado ao servidor e o widget o remove do endereço ao carregar. Com essa chave o widget só lê a telemetria e a auditoria da conversa aberta; não lista estações nem executa comandos.
+
+## Login do supervisor com Genesys Cloud (opcional, desligado por padrão)
+
+Sem a seção `genesys` no tenant, nada muda: o console continua usando a chave de supervisor. Para ativar, no `TENANTS_JSON` do tenant:
+
+```json
+"genesys": {
+  "orgId": "<UUID da organização Genesys>",
+  "region": "mypurecloud.com",
+  "clientId": "<OAuth Client ID (Implicit Grant) criado na organização>",
+  "supervisorRoles": ["VoiceVanguard Supervisor"],
+  "towers": "*"
+}
+```
+
+- No Genesys, crie um OAuth Client do tipo *Token Implicit Grant (Browser)* com redirect URI `https://voicevanguard.trustco.pro/dashboard` e um papel (ex.: "VoiceVanguard Supervisor") atribuído aos supervisores.
+- URL do Client App: `https://voicevanguard.trustco.pro/dashboard?lang={{pcLangTag}}&env={{pcEnvironment}}&tenant=<ID-do-tenant>`. O login é automático dentro do Genesys; não há botão na tela de acesso.
+- O servidor valida o token em `api.<região>/api/v2/users/me`, exige a mesma organização e um dos `supervisorRoles`; a sessão expira em 12 h.

@@ -64,6 +64,12 @@
         .pc-item:last-child { border-bottom: none; }
         .pc-tip { font-size: var(--fs-xs); color: var(--text-3); padding: 0 0 4px; }
         .pc-ok { color: var(--ok); } .pc-atencao { color: var(--warn); } .pc-falha { color: var(--crit); }
+        .header-right { display: flex; align-items: center; gap: var(--s2); }
+        .lang-switch { display: inline-flex; border: 1px solid var(--border-strong); border-radius: 4px; overflow: hidden; }
+        .lang-btn { background: transparent; color: var(--text-2); border: none; padding: 2px 6px; font-size: var(--fs-xs); font-weight: 600; cursor: pointer; }
+        .lang-btn + .lang-btn { border-left: 1px solid var(--border-strong); }
+        .lang-btn:hover { background: var(--idle-tint); }
+        .lang-btn[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); }
         .tenant-box { font-size: var(--fs-xs); color: var(--text-3); display: flex; justify-content: space-between; align-items: center; margin-top: var(--s3); padding-top: var(--s3); border-top: 1px solid var(--border); }
         .tenant-box b { color: var(--text-2); font-weight: 600; }
     </style>
@@ -75,44 +81,50 @@
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2.5L4 6v5.5c0 4.7 3.3 8.7 8 10 4.7-1.3 8-5.3 8-10V6l-8-3.5z"/><path d="M8.5 12h1.8l1.2-3 1.8 6 1.2-3h1"/></svg>
         <h1>VoiceVanguard CCaaS</h1>
     </div>
-    <span id="badgeState" class="status-badge badge-idle">Em Espera</span>
+    <div class="header-right">
+        <div class="lang-switch" role="group" aria-label="Idioma" data-i18n-aria="lang.group">
+            <button type="button" class="lang-btn" id="btnLangPt" data-lang="pt" lang="pt" title="Mudar para português" data-i18n-title="lang.pt" data-i18n-aria="lang.pt" aria-pressed="false">PT</button>
+            <button type="button" class="lang-btn" id="btnLangEn" data-lang="en" lang="en" title="Mudar para inglês" data-i18n-title="lang.en" data-i18n-aria="lang.en" aria-pressed="false">EN</button>
+        </div>
+        <span id="badgeState" class="status-badge badge-idle">Em Espera</span>
+    </div>
 </div>
 
 <div class="card" id="callCard">
     <div class="card-row">
-        <span class="label">ID da chamada</span>
+        <span class="label" data-i18n="lbl.callId">ID da chamada</span>
         <span class="val" id="valCallId">--</span>
     </div>
     <div class="card-row">
-        <span class="label">Voz (MOS)</span>
+        <span class="label" data-i18n="lbl.mos">Voz (MOS)</span>
         <span class="val" id="valMos">Pronto</span>
     </div>
     <div class="card-row">
-        <span class="label">Latência (RTT)</span>
+        <span class="label" data-i18n="lbl.rtt">Latência (RTT)</span>
         <span class="val" id="valRtt">Pronto</span>
     </div>
     <div class="card-row">
-        <span class="label">Jitter</span>
+        <span class="label" data-i18n="lbl.jitter">Jitter</span>
         <span class="val" id="valJitter">0 ms</span>
     </div>
     <div class="card-row">
-        <span class="label">Perda de pacotes</span>
+        <span class="label" data-i18n="lbl.loss">Perda de pacotes</span>
         <span class="val" id="valLoss">0.0 %</span>
     </div>
     <div class="card-row">
-        <span class="label">Protocolo de mídia</span>
+        <span class="label" data-i18n="lbl.proto">Protocolo de mídia</span>
         <span class="val" id="valProto">UDP (RTP)</span>
     </div>
 </div>
 
 <div class="history-box" id="historyBox">
-    <div class="history-title">Chamadas recentes</div>
+    <div class="history-title" data-i18n="history.title">Chamadas recentes</div>
     <div id="historyList" style="text-align:center; padding:6px 0;">Nenhuma chamada finalizada neste turno.</div>
 </div>
 
 <div class="precheck-box">
-    <div class="history-title">Pré-check de turno</div>
-    <button class="btn btn-secondary" id="btnPrecheck">Verificar estação antes do turno</button>
+    <div class="history-title" data-i18n="pre.title">Pré-check de turno</div>
+    <button class="btn btn-secondary" id="btnPrecheck" data-i18n="pre.btn">Verificar estação antes do turno</button>
     <div id="precheckResult" class="feedback" aria-live="polite">Testa rede, microfone e equipamento (cerca de 5 s).</div>
 </div>
 
@@ -124,10 +136,11 @@
 </div>
 
 <div class="tenant-box">
-    <span>Licença: <b id="lblTenant">—</b></span>
+    <span><span data-i18n="license">Licença:</span> <b id="lblTenant">—</b></span>
     <span id="lblStation">PA-0000</span>
 </div>
 
+<script src="i18n.js"></script>
 <script src="precheck.js"></script>
 <script src="popup.js"></script>
 </body>

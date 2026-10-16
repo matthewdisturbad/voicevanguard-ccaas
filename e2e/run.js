@@ -20,9 +20,9 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
 
   const ctx = await chromium.launchPersistentContext(fs.mkdtempSync(path.join(os.tmpdir(), 'vv-prof-')), {
     executablePath: process.env.CHROMIUM_PATH || undefined, headless: false,
-    args: [`--disable-extensions-except=${EXT}`, `--load-extension=${EXT}`, '--headless=new', '--no-sandbox',
+    args: ['--lang=pt-BR', `--disable-extensions-except=${EXT}`, `--load-extension=${EXT}`, '--headless=new', '--no-sandbox',
            '--use-fake-device-for-media-stream', '--use-fake-ui-for-media-stream', '--allow-loopback-in-peer-connection'],
-    viewport: { width: 1440, height: 900 }
+    locale: 'pt-BR', viewport: { width: 1440, height: 900 }
   });
   try {
     let [sw] = ctx.serviceWorkers(); if (!sw) sw = await ctx.waitForEvent('serviceworker', { timeout: 15000 });

@@ -172,6 +172,9 @@
             text-decoration: none;
         }
         .btn:disabled { opacity: 0.55; cursor: not-allowed; }
+        .lang { display: inline-flex; gap: 2px; margin-left: 6px; }
+        .lang button { font: inherit; font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 4px; border: 1px solid var(--border-strong); background: transparent; color: var(--text-2); cursor: pointer; }
+        .lang button[aria-pressed="true"] { background: var(--text); color: var(--bg); border-color: var(--text); }
         .btn-secondary {
             background: transparent;
             color: var(--text);
@@ -197,12 +200,12 @@
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2.5L4 6v5.5c0 4.7 3.3 8.7 8 10 4.7-1.3 8-5.3 8-10V6l-8-3.5z"/><path d="M8.5 12h1.8l1.2-3 1.8 6 1.2-3h1"/></svg>
                 <span>VoiceVanguard CCaaS</span>
             </div>
-            <span id="connBadge" class="badge">OFFLINE</span>
+            <span><span id="connBadge" class="badge">OFFLINE</span><span class="lang" role="group" aria-label="Language"><button type="button" data-lang="pt" aria-pressed="false">PT</button><button type="button" data-lang="en" aria-pressed="false">EN</button></span></span>
         </div>
 
         <div class="meta-row">
             <span><strong id="lblConv">Interação:</strong> <code id="valConv">--</code></span>
-            <span id="envWrap" hidden><strong>Env:</strong> <code id="valEnv">--</code></span>
+            <span id="envWrap" hidden><strong id="lblEnv">Env:</strong> <code id="valEnv">--</code></span>
         </div>
 
         <div id="authSection">
@@ -226,7 +229,7 @@
                     <div class="metric-val" id="valRtt">--</div>
                 </div>
                 <div class="metric">
-                    <div class="metric-label">Jitter</div>
+                    <div class="metric-label" id="lblJitter">Jitter</div>
                     <div class="metric-val" id="valJitter">--</div>
                 </div>
                 <div class="metric">
@@ -251,59 +254,77 @@
             const convId = (rawConv && !rawConv.includes('{{')) ? rawConv.trim() : '';
             const rawEnv = params.get('env') || params.get('environment') || '';
             const pcEnv = (rawEnv && !rawEnv.includes('{{')) ? rawEnv.trim() : '';
-            const rawLang = (params.get('lang') || navigator.language || 'pt-BR').toLowerCase();
-            const isEn = rawLang.startsWith('en');
-
-            const I18N = isEn ? {
-                conv: 'Interaction:',
-                notConfigured: 'Widget not configured: ask your administrator to add the widget key to the integration URL.',
-                needConv: 'Open this widget from a conversation: the interaction ID is missing.',
-                station: 'Workstation:',
-                operator: 'Agent:',
-                net: 'Network:',
-                rtt: 'Latency (RTT)',
-                loss: 'Packet Loss',
-                waiting: 'Waiting for WebRTC telemetry for this interaction...',
-                noMatch: 'Connected to relay. No active workstation matches this conversation ID yet.',
-                live: 'LIVE CALL',
-                audited: 'AUDITED CALL',
-                online: 'CONNECTED',
-                openConsole: 'Open full console →',
-                invalidKey: 'Invalid or unauthorized widget key.'
-            } : {
-                conv: 'Interação:',
-                notConfigured: 'Widget não configurado: peça ao administrador para incluir a chave do widget na URL da integração.',
-                needConv: 'Abra este widget a partir de uma conversa: o ID da interação não foi informado.',
-                station: 'PA:',
-                operator: 'Operador:',
-                net: 'Rede:',
-                rtt: 'Latência (RTT)',
-                loss: 'Perda',
-                waiting: 'Aguardando telemetria WebRTC desta interação...',
-                noMatch: 'Conectado ao relay. Nenhuma PA ativa reportou este ID de conversa ainda.',
-                live: 'EM CHAMADA',
-                audited: 'AUDITADA',
-                online: 'CONECTADO',
-                openConsole: 'Abrir console completo →',
-                invalidKey: 'Chave do widget inválida ou não autorizada.'
+            const DICT = {
+                pt: {
+                    conv: 'Interação:', all: 'Geral', env: 'Ambiente:',
+                    notConfigured: 'Widget não configurado: peça ao administrador para incluir a chave do widget na URL da integração.',
+                    needConv: 'Abra este widget a partir de uma conversa: o ID da interação não foi informado.',
+                    station: 'PA:', operator: 'Operador:', net: 'Rede:', rtt: 'Latência (RTT)', jitter: 'Jitter', loss: 'Perda',
+                    waiting: 'Aguardando telemetria WebRTC desta interação...',
+                    noMatch: 'Conectado ao relay. Nenhuma PA ativa reportou este ID de conversa ainda.',
+                    live: 'EM CHAMADA', audited: 'AUDITADA', online: 'CONECTADO', offline: 'OFFLINE',
+                    openConsole: 'Abrir console completo →', invalidKey: 'Chave do widget inválida ou não autorizada.',
+                    audioIncident: 'Incidente de áudio: ', degraded: 'Qualidade degradada em ', healthy: 'Fluxo de voz saudável (aproximação G.107).',
+                    footer: 'Zero gravação de áudio',
+                    audio: { SEM_AUDIO_RECEBIDO: 'Sem áudio recebido', SEM_AUDIO_ENVIADO: 'Sem áudio enviado', MIC_DESCONECTADO: 'Microfone desconectado', MIC_MUDO_SISTEMA: 'Microfone mudo no sistema' },
+                    cls: { EXCELENTE: 'Excelente', BOA: 'Boa', DEGRADADA: 'Degradada', 'CRÍTICA': 'Crítica' },
+                    cause: { REDE_HOMOLOGADA: 'Rede dentro do esperado', INSTABILIDADE_WI_FI: 'Instabilidade de Wi-Fi', CONGESTIONAMENTO_ROTA: 'Congestionamento na rota', SOBRECARGA_CPU_OPERADOR: 'Sobrecarga do computador do operador', JITTER_INTERMITENTE: 'Jitter intermitente', FALHA_AUDIO_ESTACAO: 'Falha de áudio na estação' },
+                    netType: { WI_FI_OR_CELLULAR: 'Wi-Fi ou celular', WI_FI_PROVAVEL: 'Wi-Fi (provável)', CABO_ETHERNET: 'Cabo (Ethernet)', REDE_ESTAVEL: 'Rede estável', ETHERNET: 'Cabo (Ethernet)', 'N/D': 'Não informado' }
+                },
+                en: {
+                    conv: 'Interaction:', all: 'All active', env: 'Environment:',
+                    notConfigured: 'Widget not configured: ask your administrator to add the widget key to the integration URL.',
+                    needConv: 'Open this widget from a conversation: the interaction ID is missing.',
+                    station: 'Workstation:', operator: 'Agent:', net: 'Network:', rtt: 'Latency (RTT)', jitter: 'Jitter', loss: 'Packet loss',
+                    waiting: 'Waiting for WebRTC telemetry for this interaction...',
+                    noMatch: 'Connected to relay. No active workstation matches this conversation ID yet.',
+                    live: 'LIVE CALL', audited: 'AUDITED CALL', online: 'CONNECTED', offline: 'OFFLINE',
+                    openConsole: 'Open full console →', invalidKey: 'Invalid or unauthorized widget key.',
+                    audioIncident: 'Audio incident: ', degraded: 'Degraded voice quality on ', healthy: 'Voice path healthy (G.107 approximation).',
+                    footer: 'Zero audio recording',
+                    audio: { SEM_AUDIO_RECEBIDO: 'No incoming audio', SEM_AUDIO_ENVIADO: 'No outgoing audio', MIC_DESCONECTADO: 'Microphone disconnected', MIC_MUDO_SISTEMA: 'Microphone muted by the system' },
+                    cls: { EXCELENTE: 'Excellent', BOA: 'Good', DEGRADADA: 'Degraded', 'CRÍTICA': 'Critical' },
+                    cause: { REDE_HOMOLOGADA: 'Network within expected range', INSTABILIDADE_WI_FI: 'Wi-Fi instability', CONGESTIONAMENTO_ROTA: 'Route congestion', SOBRECARGA_CPU_OPERADOR: "Overloaded operator computer", JITTER_INTERMITENTE: 'Intermittent jitter', FALHA_AUDIO_ESTACAO: 'Workstation audio failure' },
+                    netType: { WI_FI_OR_CELLULAR: 'Wi-Fi or cellular', WI_FI_PROVAVEL: 'Likely Wi-Fi', CABO_ETHERNET: 'Wired (Ethernet)', REDE_ESTAVEL: 'Stable network', ETHERNET: 'Wired (Ethernet)', 'N/D': 'Not reported' }
+                }
             };
+            // Idioma: parâmetro lang da integração (organização Genesys) > escolha salva > idioma do navegador
+            const langParam = (params.get('lang') || '').toLowerCase();
+            let lang = 'pt';
+            let saved = '';
+            try { saved = localStorage.getItem('vv_lang') || ''; } catch (_) {}
+            const pick = (v) => (v && !v.includes('{{')) ? (v.startsWith('en') ? 'en' : (v.startsWith('pt') ? 'pt' : '')) : '';
+            lang = pick(langParam) || pick(saved) || pick((navigator.language || '').toLowerCase()) || 'en';
+            const T = () => DICT[lang];
+            const label = (map, code) => (map && map[code]) || code;
 
             const $ = (id) => document.getElementById(id);
-            document.documentElement.lang = isEn ? 'en' : 'pt-BR';
-            $('lblConv').textContent = I18N.conv;
-            $('lblStation').textContent = I18N.station;
-            $('lblOperator').textContent = I18N.operator;
-            $('lblNet').textContent = I18N.net;
-            $('lblRtt').textContent = I18N.rtt;
-            $('lblLoss').textContent = I18N.loss;
-            $('diagBox').textContent = I18N.waiting;
-            $('lnkConsole').textContent = I18N.openConsole;
-
-            $('valConv').textContent = convId || (isEn ? 'All active' : ' Geral');
+            function applyStatic() {
+                const d = T();
+                document.documentElement.lang = lang === 'en' ? 'en' : 'pt-BR';
+                $('lblConv').textContent = d.conv;
+                $('lblEnv').textContent = d.env;
+                $('lblStation').textContent = d.station;
+                $('lblOperator').textContent = d.operator;
+                $('lblNet').textContent = d.net;
+                $('lblRtt').textContent = d.rtt;
+                $('lblJitter').textContent = d.jitter;
+                $('lblLoss').textContent = d.loss;
+                $('lnkConsole').textContent = d.openConsole;
+                $('valConv').textContent = convId || d.all;
+                document.querySelectorAll('.lang button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.lang === lang)));
+                if (!$('tenantLabel').dataset.tenant) $('tenantLabel').textContent = d.footer;
+            }
             if (pcEnv) {
                 $('envWrap').hidden = false;
                 $('valEnv').textContent = pcEnv;
             }
+            document.querySelectorAll('.lang button').forEach(b => b.addEventListener('click', () => {
+                lang = b.dataset.lang;
+                try { localStorage.setItem('vv_lang', lang); } catch (_) {}
+                applyStatic();
+                if (!$('authSection').hidden) showMessage(currentMessage); else renderMatch();
+            }));
 
             let ws = null;
             // Chave só de leitura do widget, no fragmento da URL (#wk=...): o fragmento nunca vai ao servidor nem a logs de proxy.
@@ -336,11 +357,11 @@
                 }
 
                 if (liveAgent) {
-                    $('connBadge').textContent = I18N.live;
+                    $('connBadge').textContent = T().live;
                     $('connBadge').className = 'badge ' + (liveAgent.status === 'ALERTA' ? 'crit' : 'ok');
                     $('valStation').textContent = liveAgent.station || liveAgent.agentId;
                     $('valOperator').textContent = liveAgent.operator || '--';
-                    $('valNet').textContent = liveAgent.networkType || '--';
+                    $('valNet').textContent = liveAgent.networkType ? label(T().netType, liveAgent.networkType) : '--';
                     $('valMos').textContent = liveAgent.mosScore || '--';
                     $('valMos').className = 'metric-val ' + mosClass(liveAgent.mosScore);
                     $('valRtt').textContent = (liveAgent.rttMs ?? '--') + ' ms';
@@ -350,38 +371,38 @@
                     const issue = liveAgent.audioIssue && liveAgent.audioIssue !== 'NONE' ? liveAgent.audioIssue : null;
                     if (issue) {
                         $('diagBox').className = 'diag-box crit';
-                        $('diagBox').textContent = (isEn ? 'Audio incident: ' : 'Incidente de áudio: ') + issue;
+                        $('diagBox').textContent = T().audioIncident + label(T().audio, issue);
                     } else if (Number(liveAgent.mosScore) < 3.6) {
                         $('diagBox').className = 'diag-box warn';
-                        $('diagBox').textContent = (isEn ? 'Degraded voice quality on ' : 'Qualidade degradada em ') + (liveAgent.networkType || 'WebRTC');
+                        $('diagBox').textContent = T().degraded + (liveAgent.networkType ? label(T().netType, liveAgent.networkType) : 'WebRTC');
                     } else {
                         $('diagBox').className = 'diag-box ok';
-                        $('diagBox').textContent = isEn ? 'Voice path healthy (ITU-T G.107).' : 'Fluxo de voz saudável (ITU-T G.107).';
+                        $('diagBox').textContent = T().healthy;
                     }
                     return;
                 }
 
                 const audited = convId ? calls.find(c => c.interactionId === convId) : calls[0];
                 if (audited) {
-                    $('connBadge').textContent = I18N.audited;
+                    $('connBadge').textContent = T().audited;
                     $('connBadge').className = 'badge ' + (audited.classificacao === 'CRÍTICA' ? 'crit' : (audited.classificacao === 'DEGRADADA' ? 'warn' : 'ok'));
                     $('valStation').textContent = audited.station || audited.agentId || '--';
                     $('valOperator').textContent = audited.operator || '--';
-                    $('valNet').textContent = audited.networkType || '--';
+                    $('valNet').textContent = audited.networkType ? label(T().netType, audited.networkType) : '--';
                     $('valMos').textContent = Number(audited.mosMedio).toFixed(2);
                     $('valMos').className = 'metric-val ' + mosClass(audited.mosMedio);
                     $('valRtt').textContent = (audited.rttMedioMs ?? '--') + ' ms';
                     $('valJitter').textContent = (audited.jitterPicoMs ?? '--') + ' ms';
                     $('valLoss').textContent = (audited.perdaPacotesPct ?? '--') + '%';
                     $('diagBox').className = 'diag-box ' + (audited.classificacao === 'CRÍTICA' ? 'crit' : 'ok');
-                    $('diagBox').textContent = `${audited.classificacao} • ${audited.causaRaiz || 'OK'}`;
+                    $('diagBox').textContent = `${label(T().cls, audited.classificacao)} • ${label(T().cause, audited.causaRaiz || 'REDE_HOMOLOGADA')}`;
                     return;
                 }
 
-                $('connBadge').textContent = I18N.online;
+                $('connBadge').textContent = T().online;
                 $('connBadge').className = 'badge ok';
                 $('diagBox').className = 'diag-box';
-                $('diagBox').textContent = I18N.noMatch;
+                $('diagBox').textContent = T().noMatch;
             }
 
             function connect(key) {
@@ -400,7 +421,7 @@
                     try {
                         const msg = JSON.parse(ev.data);
                         if (msg.type === 'AUTH_ERROR') {
-                            $('authError').textContent = I18N.invalidKey;
+                            currentMessage = 'invalidKey'; $('authError').textContent = T().invalidKey;
                             $('authError').hidden = false;
                             $('authSection').hidden = false;
                             $('telemetrySection').hidden = true;
@@ -409,7 +430,7 @@
                         if (msg.type === 'INIT_STATE') {
                             $('authSection').hidden = true;
                             $('telemetrySection').hidden = false;
-                            $('tenantLabel').textContent = msg.tenant || 'VoiceVanguard';
+                            $('tenantLabel').dataset.tenant = '1'; $('tenantLabel').textContent = msg.tenant || 'VoiceVanguard';
                             agents.clear();
                             (msg.agents || []).forEach(a => agents.set(`${a.tower || ''}|${a.agentId}`, a));
                             calls = Array.isArray(msg.callHistory) ? msg.callHistory : [];
@@ -427,7 +448,7 @@
 
                 sock.onclose = (ev) => {
                     if (ev.code === 4001) {
-                        $('authError').textContent = I18N.invalidKey;
+                        currentMessage = 'invalidKey'; $('authError').textContent = T().invalidKey;
                         $('authError').hidden = false;
                         $('authSection').hidden = false;
                         $('telemetrySection').hidden = true;
@@ -435,14 +456,17 @@
                 };
             }
 
-            function showMessage(text) {
-                $('authError').textContent = text;
+            let currentMessage = '';
+            function showMessage(key) {
+                $('authError').textContent = T()[key] || key;
                 $('authError').hidden = false;
                 $('authSection').hidden = false;
                 $('telemetrySection').hidden = true;
             }
-            if (!convId) showMessage(I18N.needConv);
-            else if (!widgetKey) showMessage(I18N.notConfigured);
+            applyStatic();
+            $('diagBox').textContent = T().waiting;
+            if (!convId) showMessage(currentMessage = 'needConv');
+            else if (!widgetKey) showMessage(currentMessage = 'notConfigured');
             else connect(widgetKey);
         })();
     </script>
