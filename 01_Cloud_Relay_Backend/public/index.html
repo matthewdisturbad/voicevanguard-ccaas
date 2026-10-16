@@ -4,8 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="color-scheme" content="light dark">
-    <title>VoiceVanguard CCaaS — Observabilidade WebRTC e qualidade de voz em tempo real</title>
-    <meta name="description" content="Observabilidade WebRTC para contact centers em nuvem (Genesys Cloud CX e Amazon Connect). Estimativa de MOS (ITU-T G.107), detecção de Wi-Fi e remediação segura de cache após a chamada.">
+    <title>VoiceVanguard CCaaS | Voz boa no atendimento, sem adivinhar</title>
+    <meta name="description" content="Saiba por que a ligação ficou ruim: rede, Wi-Fi ou microfone da estação do atendente. Para Genesys Cloud CX e Amazon Connect. Sem gravar áudio.">
 
     <!-- Favicon SVG -->
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%231d5fd1'%3E%3Cpath d='M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm-1 6h2v6h-2V7zm0 8h2v2h-2v-2z'/%3E%3C/svg%3E">
@@ -148,7 +148,7 @@
         }
         h1 {
             font-size: var(--fs-2xl); font-weight: 650; line-height: 1.15; letter-spacing: -0.02em;
-            color: var(--text); max-width: 20ch;
+            color: var(--text); max-width: 24ch;
         }
         .hero-desc { font-size: 1.0625rem; color: var(--text-2); max-width: 60ch; margin-top: var(--s4); }
         .hero-ctas { display: flex; gap: var(--s3); margin-top: var(--s6); flex-wrap: wrap; }
@@ -169,6 +169,8 @@
         .mos.ok { color: var(--ok); } .mos.warn { color: var(--warn); }
         .tag { font-size: var(--fs-xs); font-weight: 500; padding: 2px var(--s2); border-radius: 4px; border: 1px solid var(--border-strong); color: var(--text-2); white-space: nowrap; }
         .tag.warn { color: var(--warn); background: var(--warn-tint); border-color: transparent; }
+        .mos.crit { color: var(--crit); }
+        .tag.crit { color: var(--crit); background: var(--crit-tint); border-color: transparent; }
         .vv-note { background: var(--bg-alt); border-radius: var(--radius); padding: var(--s3); margin-top: var(--s2); font-size: var(--fs-xs); color: var(--text-2); display: flex; flex-direction: column; gap: 2px; }
         .vv-note strong { color: var(--text); font-weight: 600; }
         .mock-caption { font-size: var(--fs-xs); color: var(--text-3); margin-top: var(--s3); }
@@ -192,7 +194,7 @@
         .sec-title { font-size: var(--fs-xl); font-weight: 650; letter-spacing: -0.015em; line-height: 1.25; margin-top: var(--s2); }
         .sec-desc { font-size: var(--fs-md); color: var(--text-2); margin-top: var(--s3); }
 
-        .features-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--s4); }
+        .features-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--s4); }
         @media (max-width: 1024px) { .features-grid { grid-template-columns: repeat(2, 1fr); } }
         @media (max-width: 640px) { .features-grid { grid-template-columns: 1fr; } }
         .feat-box { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: var(--s5); }
@@ -244,26 +246,49 @@
         .footer-col a { color: var(--text-2); }
         .footer-col a:hover { color: var(--accent); text-decoration: underline; }
         .footer-bottom { border-top: 1px solid var(--border); padding-top: var(--s5); }
+        /* Perfis, passos, torres, confiança */
+        .cols-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--s4); }
+        @media (max-width: 860px) { .cols-3 { grid-template-columns: 1fr; } }
+        .step-num { display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; border-radius: 50%; background: var(--accent-tint); color: var(--accent); font-weight: 700; font-size: var(--fs-sm); margin-bottom: var(--s4); }
+        .persona-role { font-size: var(--fs-xs); font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--accent); display: block; margin-bottom: var(--s2); }
+        .towers-grid { display: grid; grid-template-columns: 1.1fr 0.9fr; gap: var(--s7); align-items: start; }
+        @media (max-width: 900px) { .towers-grid { grid-template-columns: 1fr; gap: var(--s6); } }
+        .bullets { list-style: none; display: flex; flex-direction: column; gap: var(--s3); font-size: var(--fs-sm); margin-top: var(--s5); }
+        .bullets li { display: flex; align-items: flex-start; gap: var(--s3); }
+        .bullets svg { color: var(--ok); margin-top: 3px; }
+        .tower-card { background: var(--surface); border: 1px solid var(--border-strong); border-radius: 8px; padding: var(--s4); font-size: var(--fs-sm); min-width: 0; }
+        .tower-row { display: grid; grid-template-columns: 1fr auto; gap: var(--s3); align-items: center; padding: var(--s3) 0; border-top: 1px solid var(--border); }
+        .tower-row:first-of-type { border-top: 0; }
+        .tower-row small { display: block; color: var(--text-3); font-size: var(--fs-xs); }
+        .collect-grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--s4); margin-bottom: var(--s6); }
+        @media (max-width: 760px) { .collect-grid { grid-template-columns: 1fr; } }
+        .collect-box { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: var(--s5); }
+        .collect-box h3 { font-size: var(--fs-lg); font-weight: 600; margin-bottom: var(--s3); }
+        .collect-box ul { list-style: none; display: flex; flex-direction: column; gap: var(--s3); font-size: var(--fs-sm); color: var(--text-2); }
+        .collect-box li { display: flex; align-items: flex-start; gap: var(--s3); }
+        .collect-box.yes li svg { color: var(--accent); margin-top: 3px; }
+        .collect-box.no { border-color: var(--ok); }
+        .collect-box.no li svg { color: var(--ok); margin-top: 3px; }
+        .honest { margin-top: var(--s5); font-size: var(--fs-sm); color: var(--text-2); max-width: 70ch; }
+        .plan-logic { margin-top: var(--s5); background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: var(--s5); font-size: var(--fs-sm); color: var(--text-2); }
+        .plan-logic strong { color: var(--text); display: block; margin-bottom: var(--s2); font-size: var(--fs-md); }
+        .footer-bottom a { color: var(--text-2); text-decoration: underline; }
     </style>
 </head>
 <body>
-
-    <!-- Navegação -->
+    <a class="skip" href="#recursos" style="position:absolute;left:-9999px" onfocus="this.style.left='8px';this.style.top='8px';this.style.zIndex=200;this.style.background='var(--surface)';this.style.padding='8px'" onblur="this.style.left='-9999px'" data-i18n="skip">Ir para o conteúdo</a>
     <nav>
         <div class="container nav-inner">
-            <a class="brand-box" href="/">
-                <svg class="brand-mark" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2.5L4 6v5.5c0 4.7 3.3 8.7 8 10 4.7-1.3 8-5.3 8-10V6l-8-3.5z"/><path d="M8.5 12h1.8l1.2-3 1.8 6 1.2-3h1"/></svg>
-                <span>VoiceVanguard CCaaS</span>
-            </a>
+            <a class="brand-box" href="/"><svg class="brand-mark" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2.5L4 6v5.5c0 4.7 3.3 8.7 8 10 4.7-1.3 8-5.3 8-10V6l-8-3.5z"/><path d="M8.5 12h1.8l1.2-3 1.8 6 1.2-3h1"/></svg><span>VoiceVanguard CCaaS</span></a>
             <div class="nav-right">
                 <div class="nav-menu">
                     <a href="#recursos" data-i18n="nav_features">Recursos</a>
-                    <a href="#seguranca" data-i18n="nav_security">Segurança</a>
+                    <a href="#como" data-i18n="nav_how">Como funciona</a>
+                    <a href="#seguranca" data-i18n="nav_security">Confiança</a>
                     <a href="#planos" data-i18n="nav_pricing">Planos</a>
-                    <a href="mailto:contato@trustco.pro?subject=VoiceVanguard%20Demo%20Request" data-i18n="nav_demo">Solicitar demonstração</a>
+                    <a href="mailto:contato@trustco.pro?subject=VoiceVanguard%20Demo%20Request" data-i18n="nav_demo">Solicitar demo</a>
                     <a class="btn-nav-login" href="/app" data-i18n="nav_signin">Entrar →</a>
                 </div>
-
                 <div class="lang-toggle" role="group" aria-label="Idioma / Language">
                     <button type="button" class="lang-btn active" data-lang="pt" title="Português">PT</button>
                     <button type="button" class="lang-btn" data-lang="en" title="English">EN</button>
@@ -272,282 +297,230 @@
         </div>
     </nav>
 
-    <!-- Hero -->
     <header>
         <div class="container">
             <div class="hero-grid">
                 <div>
-                    <span class="eyebrow" data-i18n="hero_badge">Observabilidade WebRTC para contact centers</span>
-                    <h1 data-i18n="hero_title">Qualidade de voz em tempo real para operações de CCaaS.</h1>
-                    <p class="hero-desc" data-i18n="hero_desc">
-                        Monitore a estação do atendente diretamente no navegador. Estime o MOS (ITU-T G.107), identifique instabilidade de Wi-Fi e execute limpeza segura de cache após a chamada em Genesys Cloud CX e Amazon Connect.
-                    </p>
+                    <span class="eyebrow" data-i18n="hero_badge">Para contact centers no Genesys Cloud CX e Amazon Connect</span>
+                    <h1 data-i18n="hero_title">A cliente diz que não ouve. O agente jura que está tudo certo.</h1>
+                    <p class="hero-desc" data-i18n="hero_desc">De quem é a culpa? Da rede da casa dele, do Wi-Fi, do microfone, da plataforma? Hoje, na maioria das vezes, ninguém sabe, e a ligação já caiu.</p>
+                    <p class="hero-desc" data-i18n="hero_desc2">O VoiceVanguard mostra o que acontece na estação do atendente enquanto a chamada acontece: qualidade da voz, tipo de conexão, áudio mudo ou só de um lado. Assim a equipe resolve o problema em vez de discutir de quem foi.</p>
                     <div class="hero-ctas">
-                        <a class="btn-primary" href="mailto:contato@trustco.pro?subject=VoiceVanguard%20Demo%20Request" data-i18n="cta_request_demo">
-                            Solicitar demonstração →
-                        </a>
-                        <a class="btn-secondary" href="/app" data-i18n="cta_signin">
-                            Acessar console
-                        </a>
+                        <a class="btn-primary" href="mailto:contato@trustco.pro?subject=VoiceVanguard%20Demo%20Request" data-i18n="cta_request_demo">Solicitar demo →</a>
+                        <a class="btn-secondary" href="/app" data-i18n="cta_signin">Abrir console</a>
                     </div>
                 </div>
 
-                <!-- Ilustração da interface (dados fictícios) -->
-                <div class="mockup-frame" role="img" aria-label="Ilustração do console com dados fictícios">
-                    <div class="mockup-header">
-                        <div class="mockup-addr">voicevanguard.trustco.pro/app</div>
-                    </div>
+                <div class="mockup-frame" role="img" data-i18n-aria="mock_aria" aria-label="Ilustração do console com dados fictícios">
+                    <div class="mockup-header"><div class="mockup-addr">voicevanguard.trustco.pro/app</div></div>
                     <div class="mockup-body">
                         <div class="mock-title">
                             <span data-i18n="mock_title">Telemetria ao vivo</span>
                             <span class="mock-status" data-i18n="mock_connected">Relay conectado</span>
                         </div>
-                        <div class="vv-row">
-                            <b data-i18n="mock_agent1">PA-304 • Carlos Lima</b>
-                            <span class="mos ok">MOS 4.45</span>
-                            <span class="tag" data-i18n="mock_ethernet">Ethernet</span>
-                        </div>
-                        <div class="vv-row">
-                            <b data-i18n="mock_agent2">PA-211 • Mariana Souza</b>
-                            <span class="mos warn">MOS 3.82</span>
-                            <span class="tag warn" data-i18n="mock_wifi">Wi-Fi 2.4 GHz</span>
-                        </div>
+                        <div class="vv-row"><b data-i18n="mock_agent1">PA-304 • Carlos Lima</b><span class="mos ok">MOS 4.45</span><span class="tag" data-i18n="mock_ethernet">Cabo</span></div>
+                        <div class="vv-row"><b data-i18n="mock_agent2">PA-211 • Mariana Souza</b><span class="mos warn">MOS 3.82</span><span class="tag warn" data-i18n="mock_wifi">Wi-Fi 2.4 GHz</span></div>
+                        <div class="vv-row"><b data-i18n="mock_agent3">PA-118 • Rafael Costa</b><span class="mos crit">MOS --</span><span class="tag crit" data-i18n="mock_mute">Sem áudio enviado</span></div>
                         <div class="vv-note">
-                            <span data-i18n="mock_cache_label">Remediação segura</span>
-                            <strong data-i18n="mock_cache_val">Bloqueada durante a chamada; executa após o encerramento</strong>
+                            <span data-i18n="mock_cache_label">Limpeza de cache</span>
+                            <strong data-i18n="mock_cache_val">Fica na fila durante a chamada e roda só depois que ela termina</strong>
                         </div>
-                        <p class="mock-caption" data-i18n="mock_note">Ilustração com dados fictícios.</p>
+                        <p class="mock-caption" data-i18n="mock_note">Ilustração com nomes e dados fictícios.</p>
                     </div>
                 </div>
             </div>
 
-            <!-- Fatos do produto -->
             <div class="trust-bar">
-                <div class="metric-card">
-                    <b data-i18n="metric_1_val">ITU-T G.107</b>
-                    <span data-i18n="metric_1_label">MOS estimado pelo modelo E</span>
-                </div>
-                <div class="metric-card">
-                    <b data-i18n="metric_2_val">Zero áudio</b>
-                    <span data-i18n="metric_2_label">Nenhuma captura ou transmissão de áudio; apenas estatísticas de rede</span>
-                </div>
-                <div class="metric-card">
-                    <b data-i18n="metric_3_val">Tempo real</b>
-                    <span data-i18n="metric_3_label">Telemetria enviada por WebSocket seguro (WSS)</span>
-                </div>
-                <div class="metric-card">
-                    <b data-i18n="metric_4_val">Multi-tenant</b>
-                    <span data-i18n="metric_4_label">Isolamento lógico por organização</span>
-                </div>
+                <div class="metric-card"><b data-i18n="metric_1_val">ITU-T G.107</b><span data-i18n="metric_1_label">Nota de qualidade (MOS) estimada pelo modelo E</span></div>
+                <div class="metric-card"><b data-i18n="metric_2_val">Zero áudio</b><span data-i18n="metric_2_label">Nenhuma conversa é gravada ou transmitida; só números de rede</span></div>
+                <div class="metric-card"><b data-i18n="metric_3_val">Tempo real</b><span data-i18n="metric_3_label">Telemetria enviada por conexão segura (WSS)</span></div>
+                <div class="metric-card"><b data-i18n="metric_4_val">Por operação</b><span data-i18n="metric_4_label">Cada cliente e cada torre ficam separados</span></div>
             </div>
         </div>
     </header>
 
-    <!-- Recursos -->
     <section class="section" id="recursos">
         <div class="container">
             <div class="sec-head">
                 <span class="sec-tag" data-i18n="feat_tag">Recursos</span>
-                <h2 class="sec-title" data-i18n="feat_title">O que o VoiceVanguard monitora</h2>
-                <p class="sec-desc" data-i18n="feat_desc">Diagnóstico de voz na estação do atendente, para reduzir a incerteza na análise de problemas em home office e em contact centers.</p>
+                <h2 class="sec-title" data-i18n="feat_title">O que você passa a enxergar</h2>
+                <p class="sec-desc" data-i18n="feat_desc">Tudo medido na estação do atendente, no navegador, para trocar o palpite por um dado.</p>
             </div>
-
             <div class="features-grid">
-                <div class="feat-box">
-                    <svg class="feat-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-8M22 20H2"/></svg>
-                    <h3 data-i18n="f1_title">Estimativa de MOS (ITU-T G.107)</h3>
-                    <p data-i18n="f1_desc">Calcula a qualidade de voz percebida a partir de jitter, RTT e perda de pacotes, sem depender de pesquisas subjetivas.</p>
-                </div>
-                <div class="feat-box">
-                    <svg class="feat-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12h4l3-8 6 16 3-8h4"/></svg>
-                    <h3 data-i18n="f2_title">Telemetria WebRTC contínua</h3>
-                    <p data-i18n="f2_desc">Lê as estatísticas do navegador pela API padrão WebRTC getStats, sem drivers de kernel nem agente nativo. Requer a extensão para Chrome ou Edge.</p>
-                </div>
-                <div class="feat-box">
-                    <svg class="feat-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 9a15 15 0 0120 0M5 12.5a10 10 0 0114 0M8.5 16a5 5 0 017 0"/><circle cx="12" cy="19.5" r="1"/></svg>
-                    <h3 data-i18n="f3_title">Wi-Fi ou cabo Ethernet</h3>
-                    <p data-i18n="f3_desc">Identifica quando o atendente usa Wi-Fi, sujeito a interferências, e sinaliza o risco aos supervisores durante a chamada.</p>
-                </div>
-                <div class="feat-box">
-                    <svg class="feat-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 018 0v4"/></svg>
-                    <h3 data-i18n="f4_title">Remediação segura de cache</h3>
-                    <p data-i18n="f4_desc">A limpeza remota de cache nunca roda durante uma chamada ativa: o comando fica na fila e é executado após o encerramento da ligação.</p>
-                </div>
+                <div class="feat-box"><svg class="feat-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-8M22 20H2"/></svg><h3 data-i18n="f1_title">Nota da qualidade da voz</h3><p data-i18n="f1_desc">Estima o MOS (ITU-T G.107) a partir de jitter, latência e perda de pacotes, sem depender de pesquisa de satisfação.</p></div>
+                <div class="feat-box"><svg class="feat-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 9a15 15 0 0120 0M5 12.5a10 10 0 0114 0M8.5 16a5 5 0 017 0"/><circle cx="12" cy="19.5" r="1"/></svg><h3 data-i18n="f2_title">Wi-Fi ou cabo</h3><p data-i18n="f2_desc">Identifica quando o atendente está no Wi-Fi, mais sujeito a interferência, e avisa o supervisor durante a chamada.</p></div>
+                <div class="feat-box"><svg class="feat-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 9v3a3 3 0 005.1 2.1M15 10V6a3 3 0 00-5.7-1.3M5 11a7 7 0 0011 5M12 19v3M3 3l18 18"/></svg><h3 data-i18n="f3_title">Áudio mudo ou de um lado só</h3><p data-i18n="f3_desc">Avisa quando não chega áudio, não sai áudio, o microfone foi desconectado ou está mudo no sistema. O mudo que o próprio atendente aperta não conta como problema.</p></div>
+                <div class="feat-box"><svg class="feat-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 11l3 3 8-8"/><path d="M20 12v7a2 2 0 01-2 2H6a2 2 0 01-2-2V7a2 2 0 012-2h9"/></svg><h3 data-i18n="f4_title">Pré-check de turno</h3><p data-i18n="f4_desc">Antes de atender, o atendente clica num botão e a extensão testa latência, jitter e perda até o relay, além de microfone, saída de áudio, conexão e equipamento. O resultado (pronta, atenção ou não pronta) vem com orientação e aparece no console. O teste vai até o relay, não até o servidor do CCaaS.</p></div>
+                <div class="feat-box"><svg class="feat-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l3 2M9 2h6"/></svg><h3 data-i18n="f5_title">Latência das APIs do CCaaS</h3><p data-i18n="f5_desc">Mede o tempo de resposta das chamadas que a tela do atendente faz ao Genesys Cloud ou ao Amazon Connect, por domínio: média, p95, máximo e erros. Não lê endereço completo, parâmetros nem conteúdo.</p></div>
+                <div class="feat-box"><svg class="feat-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 018 0v4"/></svg><h3 data-i18n="f6_title">Limpeza de cache sem derrubar chamada</h3><p data-i18n="f6_desc">A limpeza remota nunca roda durante uma chamada ativa. O comando espera na fila e é executado depois que a ligação termina.</p></div>
             </div>
         </div>
     </section>
 
-    <!-- Segurança -->
-    <section class="section alt" id="seguranca">
+    <section class="section alt" id="perfis">
         <div class="container">
-            <div class="sec-banner">
+            <div class="sec-head">
+                <span class="sec-tag" data-i18n="who_tag">Para quem</span>
+                <h2 class="sec-title" data-i18n="who_title">Cada pessoa da operação ganha clareza</h2>
+            </div>
+            <div class="cols-3">
+                <div class="feat-box"><span class="persona-role" data-i18n="who1_role">Supervisor</span><p data-i18n="who1_desc">Vê na hora quem está com problema e se a causa parece ser rede, Wi-Fi ou microfone, em vez de discutir de quem é a culpa.</p></div>
+                <div class="feat-box"><span class="persona-role" data-i18n="who2_role">Agente</span><p data-i18n="who2_desc">Sabe antes de atender se a estação está pronta e recebe orientação simples quando algo precisa de ajuste.</p></div>
+                <div class="feat-box"><span class="persona-role" data-i18n="who3_role">TI</span><p data-i18n="who3_desc">Instala a extensão por GPO ou Intune com a chave da torre de cada equipe e acompanha a saúde das estações no console.</p></div>
+            </div>
+        </div>
+    </section>
+
+    <section class="section" id="como">
+        <div class="container">
+            <div class="sec-head">
+                <span class="sec-tag" data-i18n="how_tag">Como funciona</span>
+                <h2 class="sec-title" data-i18n="how_title">Três passos, sem mexer no seu CCaaS</h2>
+            </div>
+            <div class="cols-3">
+                <div class="feat-box"><span class="step-num" aria-hidden="true">1</span><h3 data-i18n="how1_title">Instale a extensão</h3><p data-i18n="how1_desc">A TI distribui a extensão para Chrome ou Edge nas estações. Ela só tem permissão nas páginas do Genesys Cloud e do Amazon Connect.</p></div>
+                <div class="feat-box"><span class="step-num" aria-hidden="true">2</span><h3 data-i18n="how2_title">Meça durante a chamada</h3><p data-i18n="how2_desc">A extensão lê as estatísticas de rede que o próprio navegador já expõe (getStats) e envia só números ao relay. Nenhum áudio sai da estação.</p></div>
+                <div class="feat-box"><span class="step-num" aria-hidden="true">3</span><h3 data-i18n="how3_title">Veja e aja no console</h3><p data-i18n="how3_desc">O supervisor acompanha tudo ao vivo no console e, se precisar, pede a limpeza de cache, que só roda depois da chamada.</p></div>
+            </div>
+        </div>
+    </section>
+
+    <section class="section alt" id="torres">
+        <div class="container">
+            <div class="towers-grid">
                 <div>
-                    <h2 data-i18n="sec_head">Segurança e privacidade</h2>
-                    <p data-i18n="sec_sub">
-                        O VoiceVanguard é projetado para minimizar dados pessoais (privacy by design). A plataforma processa métricas numéricas de rede; não captura áudio nem o conteúdo das conversas.
-                    </p>
-                    <ul class="sec-checks">
-                        <li>
-                            <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
-                            <span data-i18n="sec_c1">Zero captura de áudio: nenhum pacote de áudio é transmitido ou gravado nos servidores do VoiceVanguard.</span>
-                        </li>
-                        <li>
-                            <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
-                            <span data-i18n="sec_c2">Projetado para minimizar dados pessoais, apoiando a adequação do cliente à LGPD e ao GDPR.</span>
-                        </li>
-                        <li>
-                            <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
-                            <span data-i18n="sec_c3">Isolamento lógico por tenant, com chaves de licença distintas para agentes e supervisores.</span>
-                        </li>
-                        <li>
-                            <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
-                            <span data-i18n="sec_c4">Comunicação cifrada em trânsito (HTTPS e WSS).</span>
-                        </li>
+                    <span class="sec-tag" data-i18n="tw_tag">Operações e torres</span>
+                    <h2 class="sec-title" data-i18n="tw_title">Vários supervisores, cada um com a sua operação</h2>
+                    <p class="sec-desc" data-i18n="tw_desc">Uma empresa pode ter várias operações dentro da mesma contratação. Cada supervisor vê e comanda apenas as torres dele.</p>
+                    <ul class="bullets">
+                        <li><svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg><span data-i18n="tw_b1">Quem define a torre é a TI do cliente, ao distribuir a extensão. O agente não escolhe e não consegue mudar.</span></li>
+                        <li><svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg><span data-i18n="tw_b2">Uma chave de supervisor pode cobrir uma torre, várias ou todas, para a gerência.</span></li>
+                        <li><svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg><span data-i18n="tw_b3">A cobrança é por posição monitorada, com supervisores ilimitados. As torres do mesmo cliente somam no mesmo contrato.</span></li>
                     </ul>
                 </div>
-
-                <div class="sec-aside">
-                    <span class="sec-tag" data-i18n="sec_arch_label">Isolamento</span>
-                    <h3 data-i18n="sec_arch_title">Cada supervisor vê apenas o seu tenant</h3>
-                    <p data-i18n="sec_arch_desc">
-                        Cada organização (tenant) usa canais WebSocket e histórico segregados. Supervisores visualizam somente as métricas das estações do próprio tenant.
-                    </p>
+                <div class="tower-card" role="img" data-i18n-aria="tw_aria" aria-label="Ilustração: cada supervisor vê apenas a sua torre">
+                    <div class="tower-row"><div><b data-i18n="tw_s1">Supervisor de Fraudes</b><small data-i18n="tw_s1_sees">Vê só os agentes de Golpes e Fraudes</small></div><span class="tag" data-i18n="tw_n1">1 torre</span></div>
+                    <div class="tower-row"><div><b data-i18n="tw_s2">Supervisor de Empréstimo</b><small data-i18n="tw_s2_sees">Vê só os agentes de Empréstimo</small></div><span class="tag" data-i18n="tw_n2">1 torre</span></div>
+                    <div class="tower-row"><div><b data-i18n="tw_s3">Gerência</b><small data-i18n="tw_s3_sees">Vê todas as torres</small></div><span class="tag" data-i18n="tw_n3">Todas</span></div>
+                    <p class="mock-caption" data-i18n="tw_note">Exemplo ilustrativo com uma empresa fictícia.</p>
                 </div>
             </div>
         </div>
     </section>
 
-    <!-- Planos -->
-    <section class="section" id="planos">
+    <section class="section" id="seguranca">
+        <div class="container">
+            <div class="sec-head">
+                <span class="sec-tag" data-i18n="sec_tag">Confiança</span>
+                <h2 class="sec-title" data-i18n="sec_head">O que coletamos e o que nunca coletamos</h2>
+                <p class="sec-desc" data-i18n="sec_sub">Em linguagem simples: o VoiceVanguard olha para a qualidade da conexão, não para o que as pessoas dizem.</p>
+            </div>
+            <div class="collect-grid">
+                <div class="collect-box yes">
+                    <h3 data-i18n="col_yes_title">O que coletamos</h3>
+                    <ul>
+                        <li><svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg><span data-i18n="col_y1">Números de rede da chamada: jitter, latência e perda de pacotes.</span></li>
+                        <li><svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg><span data-i18n="col_y2">Se a estação usa Wi-Fi ou cabo.</span></li>
+                        <li><svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg><span data-i18n="col_y3">Avisos de áudio: sem áudio recebido, sem áudio enviado, microfone desconectado ou mudo no sistema.</span></li>
+                        <li><svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg><span data-i18n="col_y4">Resultado do pré-check e tempo de resposta das APIs do CCaaS, agrupado por domínio.</span></li>
+                        <li><svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg><span data-i18n="col_y5">O identificador da estação e o nome do operador, para o supervisor saber de quem é o alerta.</span></li>
+                    </ul>
+                </div>
+                <div class="collect-box no">
+                    <h3 data-i18n="col_no_title">O que nunca coletamos</h3>
+                    <ul>
+                        <li><svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M5 5l10 10M15 5L5 15"/></svg><span data-i18n="col_n1">Áudio das chamadas, nem gravado nem transmitido.</span></li>
+                        <li><svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M5 5l10 10M15 5L5 15"/></svg><span data-i18n="col_n2">O que foi dito ou escrito na conversa.</span></li>
+                        <li><svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M5 5l10 10M15 5L5 15"/></svg><span data-i18n="col_n3">Nomes dos dispositivos de áudio instalados.</span></li>
+                        <li><svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M5 5l10 10M15 5L5 15"/></svg><span data-i18n="col_n4">Endereço completo, parâmetros ou conteúdo das chamadas de API do CCaaS.</span></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="sec-banner">
+                <div>
+                    <ul class="sec-checks">
+                        <li><svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg><span data-i18n="sec_c3">Cada cliente fica isolado, com chaves diferentes para agentes e supervisores.</span></li>
+                        <li><svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg><span data-i18n="sec_c4">Dados cifrados em trânsito (HTTPS e WSS).</span></li>
+                        <li><svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg><span data-i18n="sec_c5">Todo dado enviado pela estação é tratado como não confiável pelo servidor.</span></li>
+                    </ul>
+                </div>
+                <div class="sec-aside">
+                    <span class="sec-tag" data-i18n="honest_label">Seja direto com seu jurídico</span>
+                    <h3 data-i18n="honest_title">Seguimos as diretrizes da LGPD e da GDPR, sem certificação</h3>
+                    <p data-i18n="honest_desc">Projetamos o produto para coletar o mínimo, mas não temos certificação. Nome do operador e ID da estação continuam sendo dado pessoal, e a sua empresa segue como responsável pelo tratamento. </p>
+                    <p class="honest"><a href="/privacy" style="text-decoration:underline" data-i18n="honest_link">Ler a política de privacidade</a></p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="section alt" id="planos">
         <div class="container">
             <div class="sec-head">
                 <span class="sec-tag" data-i18n="plan_tag">Planos</span>
-                <h2 class="sec-title" data-i18n="plan_title">Licenciamento por escopo de operação</h2>
-                <p class="sec-desc" data-i18n="plan_desc">Do piloto de avaliação a operações de grande porte. Valores e limites definidos em proposta.</p>
+                <h2 class="sec-title" data-i18n="plan_title">Quanto maior a operação, menor o preço por posição</h2>
+                <p class="sec-desc" data-i18n="plan_desc">Do piloto a operações de grande porte. Não publicamos valores: conversamos sobre o seu cenário e enviamos uma proposta.</p>
             </div>
-
             <div class="pricing-grid">
-                <div class="price-card">
-                    <div class="price-body">
-                        <div class="price-name" data-i18n="p1_name">Piloto</div>
-                        <div class="price-desc" data-i18n="p1_desc">Para validação técnica e homologação em um grupo reduzido de posições.</div>
-                        <div class="price-rate" data-i18n="p1_price">Sob consulta</div>
-                        <ul class="price-features">
-                            <li>
-                                <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
-                                <span data-i18n="p1_f1">Escopo de PAs definido junto ao cliente</span>
-                            </li>
-                            <li>
-                                <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
-                                <span data-i18n="p1_f2">Métricas WebRTC e MOS em tempo real</span>
-                            </li>
-                            <li>
-                                <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
-                                <span data-i18n="p1_f3">Detecção de Wi-Fi ou cabo</span>
-                            </li>
-                        </ul>
-                    </div>
-                    <a class="btn-secondary" href="mailto:contato@trustco.pro?subject=VoiceVanguard%20Pilot%20Evaluation" data-i18n="p1_btn">
-                        Solicitar piloto →
-                    </a>
-                </div>
-
-                <div class="price-card featured">
-                    <div class="price-body">
-                        <div class="price-name" data-i18n="p2_name">Operação</div>
-                        <div class="price-desc" data-i18n="p2_desc">Para operações que exigem auditoria contínua de chamadas e remediação remota.</div>
-                        <div class="price-rate" data-i18n="p2_price">Sob consulta</div>
-                        <ul class="price-features">
-                            <li>
-                                <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
-                                <span data-i18n="p2_f1">Console de supervisão por tenant</span>
-                            </li>
-                            <li>
-                                <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
-                                <span data-i18n="p2_f2">Remediação segura de cache remota</span>
-                            </li>
-                            <li>
-                                <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
-                                <span data-i18n="p2_f3">Projetado para Genesys Cloud CX e Amazon Connect</span>
-                            </li>
-                            <li>
-                                <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
-                                <span data-i18n="p2_f4">Suporte de engenharia, com condições acordadas em contrato</span>
-                            </li>
-                        </ul>
-                    </div>
-                    <a class="btn-primary" href="mailto:contato@trustco.pro?subject=VoiceVanguard%20Proposal%20Request" data-i18n="p2_btn">
-                        Solicitar proposta →
-                    </a>
-                </div>
-
-                <div class="price-card">
-                    <div class="price-body">
-                        <div class="price-name" data-i18n="p3_name">Dedicado</div>
-                        <div class="price-desc" data-i18n="p3_desc">Para grandes operações com requisitos específicos de implantação.</div>
-                        <div class="price-rate" data-i18n="p3_price">Sob consulta</div>
-                        <ul class="price-features">
-                            <li>
-                                <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
-                                <span data-i18n="p3_f1">Escala e regiões definidas em projeto</span>
-                            </li>
-                            <li>
-                                <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
-                                <span data-i18n="p3_f2">Modelo de implantação dedicado, a combinar</span>
-                            </li>
-                            <li>
-                                <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
-                                <span data-i18n="p3_f3">Integrações com sistemas do cliente, sob demanda</span>
-                            </li>
-                            <li>
-                                <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
-                                <span data-i18n="p3_f4">Acompanhamento técnico dedicado</span>
-                            </li>
-                        </ul>
-                    </div>
-                    <a class="btn-secondary" href="mailto:contato@trustco.pro?subject=VoiceVanguard%20Dedicated%20Deployment" data-i18n="p3_btn">
-                        Conversar sobre o projeto →
-                    </a>
-                </div>
+                <div class="price-card"><div class="price-body">
+<div class="price-name" data-i18n="p1_name">Piloto</div>
+<div class="price-desc" data-i18n="p1_desc">Para validar a ideia em um grupo pequeno de posições.</div>
+<div class="price-rate" data-i18n="p1_price">Fale conosco</div>
+<ul class="price-features"><li><svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg><span data-i18n="p1_f1">Escopo de PAs definido junto ao cliente</span></li>
+<li><svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg><span data-i18n="p1_f2">Métricas de rede e MOS em tempo real</span></li>
+<li><svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg><span data-i18n="p1_f3">Detecção de Wi-Fi ou cabo</span></li></ul></div>
+<a class="btn-secondary" href="mailto:contato@trustco.pro?subject=VoiceVanguard%20Pilot%20Evaluation" data-i18n="p1_btn">Solicitar piloto →</a></div>
+                <div class="price-card featured"><div class="price-body">
+<div class="price-name" data-i18n="p2_name">Operação</div>
+<div class="price-desc" data-i18n="p2_desc">Para operações que acompanham as chamadas de perto e precisam agir.</div>
+<div class="price-rate" data-i18n="p2_price">Fale conosco</div>
+<ul class="price-features"><li><svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg><span data-i18n="p2_f1">Console de supervisão com visão por torre</span></li>
+<li><svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg><span data-i18n="p2_f2">Limpeza de cache remota e segura</span></li>
+<li><svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg><span data-i18n="p2_f3">Projetado para Genesys Cloud CX e Amazon Connect</span></li>
+<li><svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg><span data-i18n="p2_f4">Suporte de engenharia, com condições acordadas em contrato</span></li></ul></div>
+<a class="btn-primary" href="mailto:contato@trustco.pro?subject=VoiceVanguard%20Proposal%20Request" data-i18n="p2_btn">Solicitar proposta →</a></div>
+                <div class="price-card"><div class="price-body">
+<div class="price-name" data-i18n="p3_name">Dedicado</div>
+<div class="price-desc" data-i18n="p3_desc">Para grandes operações com requisitos específicos de implantação.</div>
+<div class="price-rate" data-i18n="p3_price">Fale conosco</div>
+<ul class="price-features"><li><svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg><span data-i18n="p3_f1">Escala e regiões definidas em projeto</span></li>
+<li><svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg><span data-i18n="p3_f2">Modelo de implantação dedicado, a combinar</span></li>
+<li><svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg><span data-i18n="p3_f3">Integrações com sistemas do cliente, sob demanda</span></li>
+<li><svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg><span data-i18n="p3_f4">Acompanhamento técnico dedicado</span></li></ul></div>
+<a class="btn-secondary" href="mailto:contato@trustco.pro?subject=VoiceVanguard%20Dedicated%20Deployment" data-i18n="p3_btn">Conversar sobre o projeto →</a></div>
+            </div>
+            <div class="plan-logic">
+                <strong data-i18n="logic_title">Como o preço funciona</strong>
+                <span data-i18n="logic_desc">Você paga por posição de atendimento monitorada, e o preço por posição cai conforme a operação cresce. Supervisores são ilimitados e as torres do mesmo cliente somam na mesma faixa de volume.</span>
             </div>
         </div>
     </section>
 
-    <!-- CTA final -->
     <div class="container">
         <div class="cta-box">
-            <h2 data-i18n="cta_box_title">Avalie o VoiceVanguard na sua operação</h2>
-            <p data-i18n="cta_box_desc">Agende uma demonstração com a equipe da TrustCo Technologies e veja a telemetria ITU-T G.107 em funcionamento na sua plataforma de CCaaS.</p>
+            <h2 data-i18n="cta_box_title">Veja na sua operação</h2>
+            <p data-i18n="cta_box_desc">Agende uma conversa com a equipe da TrustCo Technologies e veja o VoiceVanguard medindo estações de verdade, com a sua plataforma de CCaaS.</p>
             <div class="cta-actions">
-                <a class="btn-primary" href="mailto:contato@trustco.pro?subject=VoiceVanguard%20Demo%20Request" data-i18n="cta_box_btn">
-                    Solicitar demonstração →
-                </a>
-                <a class="btn-secondary" href="/app" data-i18n="cta_box_signin">
-                    Acessar console
-                </a>
+                <a class="btn-primary" href="mailto:contato@trustco.pro?subject=VoiceVanguard%20Demo%20Request" data-i18n="cta_box_btn">Solicitar demo →</a>
+                <a class="btn-secondary" href="/app" data-i18n="cta_box_signin">Abrir console</a>
             </div>
         </div>
     </div>
 
-    <!-- Rodapé -->
     <footer>
         <div class="container">
             <div class="footer-grid">
                 <div>
-                    <div class="brand-box footer-brand">
-                        <svg class="brand-mark" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2.5L4 6v5.5c0 4.7 3.3 8.7 8 10 4.7-1.3 8-5.3 8-10V6l-8-3.5z"/><path d="M8.5 12h1.8l1.2-3 1.8 6 1.2-3h1"/></svg>
-                        <span>VoiceVanguard CCaaS</span>
-                    </div>
-                    <p class="footer-desc" data-i18n="footer_desc">
-                        Observabilidade de chamadas WebRTC, estimativa de MOS (ITU-T G.107) e remediação pós-chamada de estações de atendimento em contact centers em nuvem.
-                    </p>
+                    <div class="brand-box footer-brand"><svg class="brand-mark" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2.5L4 6v5.5c0 4.7 3.3 8.7 8 10 4.7-1.3 8-5.3 8-10V6l-8-3.5z"/><path d="M8.5 12h1.8l1.2-3 1.8 6 1.2-3h1"/></svg><span>VoiceVanguard CCaaS</span></div>
+                    <p class="footer-desc" data-i18n="footer_desc">Saiba por que a ligação ficou ruim: qualidade de voz, rede e microfone da estação do atendente, para Genesys Cloud CX e Amazon Connect.</p>
                 </div>
                 <div class="footer-col">
                     <h5 data-i18n="f_col_prod">Plataforma</h5>
                     <ul>
                         <li><a href="/app" data-i18n="f_app">Console de operações</a></li>
                         <li><a href="#recursos" data-i18n="f_feat">Recursos</a></li>
-                        <li><a href="#seguranca" data-i18n="f_sec">Segurança e privacidade</a></li>
+                        <li><a href="#seguranca" data-i18n="f_sec">Confiança e privacidade</a></li>
+                        <li><a href="/privacy" data-i18n="f_privacy">Política de privacidade</a></li>
                         <li><a href="https://www.trustco.pro" target="_blank" rel="noopener">TrustCo Technologies</a></li>
                     </ul>
                 </div>
@@ -561,7 +534,7 @@
                 </div>
             </div>
             <div class="footer-bottom">
-                <span>© <span id="year"></span> VoiceVanguard CCaaS • TrustCo Technologies. <span data-i18n="f_rights">Todos os direitos reservados.</span></span>
+                <span>© <span id="year"></span> VoiceVanguard CCaaS • TrustCo Technologies. <span data-i18n="f_rights">Todos os direitos reservados.</span> · <a href="/privacy" data-i18n="f_privacy">Política de privacidade</a></span>
             </div>
         </div>
     </footer>
@@ -571,180 +544,296 @@
 
         const translations = {
             pt: {
-                meta_title: "VoiceVanguard CCaaS — Observabilidade WebRTC e qualidade de voz em tempo real",
-                meta_desc: "Observabilidade WebRTC para contact centers em nuvem (Genesys Cloud CX e Amazon Connect). Estimativa de MOS (ITU-T G.107), detecção de Wi-Fi e remediação segura de cache após a chamada.",
+                meta_title: "VoiceVanguard CCaaS | Voz boa no atendimento, sem adivinhar",
+                meta_desc: "Saiba por que a ligação ficou ruim: rede, Wi-Fi ou microfone da estação do atendente. Para Genesys Cloud CX e Amazon Connect. Sem gravar áudio.",
+                skip: "Ir para o conteúdo",
                 nav_features: "Recursos",
-                nav_security: "Segurança",
+                nav_how: "Como funciona",
+                nav_security: "Confiança",
                 nav_pricing: "Planos",
-                nav_demo: "Solicitar demonstração",
+                nav_demo: "Solicitar demo",
                 nav_signin: "Entrar →",
-                hero_badge: "Observabilidade WebRTC para contact centers",
-                hero_title: "Qualidade de voz em tempo real para operações de CCaaS.",
-                hero_desc: "Monitore a estação do atendente diretamente no navegador. Estime o MOS (ITU-T G.107), identifique instabilidade de Wi-Fi e execute limpeza segura de cache após a chamada em Genesys Cloud CX e Amazon Connect.",
-                cta_request_demo: "Solicitar demonstração →",
-                cta_signin: "Acessar console",
+                hero_badge: "Para contact centers no Genesys Cloud CX e Amazon Connect",
+                hero_title: "A cliente diz que não ouve. O agente jura que está tudo certo.",
+                hero_desc: "De quem é a culpa? Da rede da casa dele, do Wi-Fi, do microfone, da plataforma? Hoje, na maioria das vezes, ninguém sabe, e a ligação já caiu.",
+                hero_desc2: "O VoiceVanguard mostra o que acontece na estação do atendente enquanto a chamada acontece: qualidade da voz, tipo de conexão, áudio mudo ou só de um lado. Assim a equipe resolve o problema em vez de discutir de quem foi.",
+                cta_request_demo: "Solicitar demo →",
+                cta_signin: "Abrir console",
+                mock_aria: "Ilustração do console com nomes e dados fictícios",
                 mock_title: "Telemetria ao vivo",
                 mock_connected: "Relay conectado",
                 mock_agent1: "PA-304 • Carlos Lima",
-                mock_ethernet: "Ethernet",
+                mock_ethernet: "Cabo",
                 mock_agent2: "PA-211 • Mariana Souza",
                 mock_wifi: "Wi-Fi 2.4 GHz",
-                mock_cache_label: "Remediação segura",
-                mock_cache_val: "Bloqueada durante a chamada; executa após o encerramento",
-                mock_note: "Ilustração com dados fictícios.",
+                mock_agent3: "PA-118 • Rafael Costa",
+                mock_mute: "Sem áudio enviado",
+                mock_cache_label: "Limpeza de cache",
+                mock_cache_val: "Fica na fila durante a chamada e roda só depois que ela termina",
+                mock_note: "Ilustração com nomes e dados fictícios.",
                 metric_1_val: "ITU-T G.107",
-                metric_1_label: "MOS estimado pelo modelo E",
+                metric_1_label: "Nota de qualidade (MOS) estimada pelo modelo E",
                 metric_2_val: "Zero áudio",
-                metric_2_label: "Nenhuma captura ou transmissão de áudio; apenas estatísticas de rede",
+                metric_2_label: "Nenhuma conversa é gravada ou transmitida; só números de rede",
                 metric_3_val: "Tempo real",
-                metric_3_label: "Telemetria enviada por WebSocket seguro (WSS)",
-                metric_4_val: "Multi-tenant",
-                metric_4_label: "Isolamento lógico por organização",
+                metric_3_label: "Telemetria enviada por conexão segura (WSS)",
+                metric_4_val: "Por operação",
+                metric_4_label: "Cada cliente e cada torre ficam separados",
                 feat_tag: "Recursos",
-                feat_title: "O que o VoiceVanguard monitora",
-                feat_desc: "Diagnóstico de voz na estação do atendente, para reduzir a incerteza na análise de problemas em home office e em contact centers.",
-                f1_title: "Estimativa de MOS (ITU-T G.107)",
-                f1_desc: "Calcula a qualidade de voz percebida a partir de jitter, RTT e perda de pacotes, sem depender de pesquisas subjetivas.",
-                f2_title: "Telemetria WebRTC contínua",
-                f2_desc: "Lê as estatísticas do navegador pela API padrão WebRTC getStats, sem drivers de kernel nem agente nativo. Requer a extensão para Chrome ou Edge.",
-                f3_title: "Wi-Fi ou cabo Ethernet",
-                f3_desc: "Identifica quando o atendente usa Wi-Fi, sujeito a interferências, e sinaliza o risco aos supervisores durante a chamada.",
-                f4_title: "Remediação segura de cache",
-                f4_desc: "A limpeza remota de cache nunca roda durante uma chamada ativa: o comando fica na fila e é executado após o encerramento da ligação.",
-                sec_head: "Segurança e privacidade",
-                sec_sub: "O VoiceVanguard é projetado para minimizar dados pessoais (privacy by design). A plataforma processa métricas numéricas de rede; não captura áudio nem o conteúdo das conversas.",
-                sec_c1: "Zero captura de áudio: nenhum pacote de áudio é transmitido ou gravado nos servidores do VoiceVanguard.",
-                sec_c2: "Projetado para minimizar dados pessoais, apoiando a adequação do cliente à LGPD e ao GDPR.",
-                sec_c3: "Isolamento lógico por tenant, com chaves de licença distintas para agentes e supervisores.",
-                sec_c4: "Comunicação cifrada em trânsito (HTTPS e WSS).",
-                sec_arch_label: "Isolamento",
-                sec_arch_title: "Cada supervisor vê apenas o seu tenant",
-                sec_arch_desc: "Cada organização (tenant) usa canais WebSocket e histórico segregados. Supervisores visualizam somente as métricas das estações do próprio tenant.",
+                feat_title: "O que você passa a enxergar",
+                feat_desc: "Tudo medido na estação do atendente, no navegador, para trocar o palpite por um dado.",
+                f1_title: "Nota da qualidade da voz",
+                f1_desc: "Estima o MOS (ITU-T G.107) a partir de jitter, latência e perda de pacotes, sem depender de pesquisa de satisfação.",
+                f2_title: "Wi-Fi ou cabo",
+                f2_desc: "Identifica quando o atendente está no Wi-Fi, mais sujeito a interferência, e avisa o supervisor durante a chamada.",
+                f3_title: "Áudio mudo ou de um lado só",
+                f3_desc: "Avisa quando não chega áudio, não sai áudio, o microfone foi desconectado ou está mudo no sistema. O mudo que o próprio atendente aperta não conta como problema.",
+                f4_title: "Pré-check de turno",
+                f4_desc: "Antes de atender, o atendente clica num botão e a extensão testa latência, jitter e perda até o relay, além de microfone, saída de áudio, conexão e equipamento. O resultado (pronta, atenção ou não pronta) vem com orientação e aparece no console. O teste vai até o relay, não até o servidor do CCaaS.",
+                f5_title: "Latência das APIs do CCaaS",
+                f5_desc: "Mede o tempo de resposta das chamadas que a tela do atendente faz ao Genesys Cloud ou ao Amazon Connect, por domínio: média, p95, máximo e erros. Não lê endereço completo, parâmetros nem conteúdo.",
+                f6_title: "Limpeza de cache sem derrubar chamada",
+                f6_desc: "A limpeza remota nunca roda durante uma chamada ativa. O comando espera na fila e é executado depois que a ligação termina.",
+                who_tag: "Para quem",
+                who_title: "Cada pessoa da operação ganha clareza",
+                who1_role: "Supervisor",
+                who1_desc: "Vê na hora quem está com problema e se a causa parece ser rede, Wi-Fi ou microfone, em vez de discutir de quem é a culpa.",
+                who2_role: "Agente",
+                who2_desc: "Sabe antes de atender se a estação está pronta e recebe orientação simples quando algo precisa de ajuste.",
+                who3_role: "TI",
+                who3_desc: "Instala a extensão por GPO ou Intune com a chave da torre de cada equipe e acompanha a saúde das estações no console.",
+                how_tag: "Como funciona",
+                how_title: "Três passos, sem mexer no seu CCaaS",
+                how1_title: "Instale a extensão",
+                how1_desc: "A TI distribui a extensão para Chrome ou Edge nas estações. Ela só tem permissão nas páginas do Genesys Cloud e do Amazon Connect.",
+                how2_title: "Meça durante a chamada",
+                how2_desc: "A extensão lê as estatísticas de rede que o próprio navegador já expõe (getStats) e envia só números ao relay. Nenhum áudio sai da estação.",
+                how3_title: "Veja e aja no console",
+                how3_desc: "O supervisor acompanha tudo ao vivo no console e, se precisar, pede a limpeza de cache, que só roda depois da chamada.",
+                tw_tag: "Operações e torres",
+                tw_title: "Vários supervisores, cada um com a sua operação",
+                tw_desc: "Uma empresa pode ter várias operações dentro da mesma contratação. Cada supervisor vê e comanda apenas as torres dele.",
+                tw_b1: "Quem define a torre é a TI do cliente, ao distribuir a extensão. O agente não escolhe e não consegue mudar.",
+                tw_b2: "Uma chave de supervisor pode cobrir uma torre, várias ou todas, para a gerência.",
+                tw_b3: "A cobrança é por posição monitorada, com supervisores ilimitados. As torres do mesmo cliente somam no mesmo contrato.",
+                tw_aria: "Ilustração: cada supervisor vê apenas a sua torre",
+                tw_s1: "Supervisor de Fraudes",
+                tw_s1_sees: "Vê só os agentes de Golpes e Fraudes",
+                tw_n1: "1 torre",
+                tw_s2: "Supervisor de Empréstimo",
+                tw_s2_sees: "Vê só os agentes de Empréstimo",
+                tw_n2: "1 torre",
+                tw_s3: "Gerência",
+                tw_s3_sees: "Vê todas as torres",
+                tw_n3: "Todas",
+                tw_note: "Exemplo ilustrativo com uma empresa fictícia.",
+                sec_tag: "Confiança",
+                sec_head: "O que coletamos e o que nunca coletamos",
+                sec_sub: "Em linguagem simples: o VoiceVanguard olha para a qualidade da conexão, não para o que as pessoas dizem.",
+                col_yes_title: "O que coletamos",
+                col_y1: "Números de rede da chamada: jitter, latência e perda de pacotes.",
+                col_y2: "Se a estação usa Wi-Fi ou cabo.",
+                col_y3: "Avisos de áudio: sem áudio recebido, sem áudio enviado, microfone desconectado ou mudo no sistema.",
+                col_y4: "Resultado do pré-check e tempo de resposta das APIs do CCaaS, agrupado por domínio.",
+                col_y5: "O identificador da estação e o nome do operador, para o supervisor saber de quem é o alerta.",
+                col_no_title: "O que nunca coletamos",
+                col_n1: "Áudio das chamadas, nem gravado nem transmitido.",
+                col_n2: "O que foi dito ou escrito na conversa.",
+                col_n3: "Nomes dos dispositivos de áudio instalados.",
+                col_n4: "Endereço completo, parâmetros ou conteúdo das chamadas de API do CCaaS.",
+                sec_c3: "Cada cliente fica isolado, com chaves diferentes para agentes e supervisores.",
+                sec_c4: "Dados cifrados em trânsito (HTTPS e WSS).",
+                sec_c5: "Todo dado enviado pela estação é tratado como não confiável pelo servidor.",
+                honest_label: "Seja direto com seu jurídico",
+                honest_title: "Seguimos as diretrizes da LGPD e da GDPR, sem certificação",
+                honest_desc: "Projetamos o produto para coletar o mínimo, mas não temos certificação. Nome do operador e ID da estação continuam sendo dado pessoal, e a sua empresa segue como responsável pelo tratamento.",
+                honest_link: "Ler a política de privacidade",
                 plan_tag: "Planos",
-                plan_title: "Licenciamento por escopo de operação",
-                plan_desc: "Do piloto de avaliação a operações de grande porte. Valores e limites definidos em proposta.",
+                plan_title: "Quanto maior a operação, menor o preço por posição",
+                plan_desc: "Do piloto a operações de grande porte. Não publicamos valores: conversamos sobre o seu cenário e enviamos uma proposta.",
                 p1_name: "Piloto",
-                p1_desc: "Para validação técnica e homologação em um grupo reduzido de posições.",
-                p1_price: "Sob consulta",
+                p1_desc: "Para validar a ideia em um grupo pequeno de posições.",
+                p1_price: "Fale conosco",
                 p1_f1: "Escopo de PAs definido junto ao cliente",
-                p1_f2: "Métricas WebRTC e MOS em tempo real",
+                p1_f2: "Métricas de rede e MOS em tempo real",
                 p1_f3: "Detecção de Wi-Fi ou cabo",
                 p1_btn: "Solicitar piloto →",
                 p2_name: "Operação",
-                p2_desc: "Para operações que exigem auditoria contínua de chamadas e remediação remota.",
-                p2_price: "Sob consulta",
-                p2_f1: "Console de supervisão por tenant",
-                p2_f2: "Remediação segura de cache remota",
+                p2_desc: "Para operações que acompanham as chamadas de perto e precisam agir.",
+                p2_price: "Fale conosco",
+                p2_f1: "Console de supervisão com visão por torre",
+                p2_f2: "Limpeza de cache remota e segura",
                 p2_f3: "Projetado para Genesys Cloud CX e Amazon Connect",
                 p2_f4: "Suporte de engenharia, com condições acordadas em contrato",
                 p2_btn: "Solicitar proposta →",
                 p3_name: "Dedicado",
                 p3_desc: "Para grandes operações com requisitos específicos de implantação.",
-                p3_price: "Sob consulta",
+                p3_price: "Fale conosco",
                 p3_f1: "Escala e regiões definidas em projeto",
                 p3_f2: "Modelo de implantação dedicado, a combinar",
                 p3_f3: "Integrações com sistemas do cliente, sob demanda",
                 p3_f4: "Acompanhamento técnico dedicado",
                 p3_btn: "Conversar sobre o projeto →",
-                cta_box_title: "Avalie o VoiceVanguard na sua operação",
-                cta_box_desc: "Agende uma demonstração com a equipe da TrustCo Technologies e veja a telemetria ITU-T G.107 em funcionamento na sua plataforma de CCaaS.",
-                cta_box_btn: "Solicitar demonstração →",
-                cta_box_signin: "Acessar console",
-                footer_desc: "Observabilidade de chamadas WebRTC, estimativa de MOS (ITU-T G.107) e remediação pós-chamada de estações de atendimento em contact centers em nuvem.",
+                logic_title: "Como o preço funciona",
+                logic_desc: "Você paga por posição de atendimento monitorada, e o preço por posição cai conforme a operação cresce. Supervisores são ilimitados e as torres do mesmo cliente somam na mesma faixa de volume.",
+                cta_box_title: "Veja na sua operação",
+                cta_box_desc: "Agende uma conversa com a equipe da TrustCo Technologies e veja o VoiceVanguard medindo estações de verdade, com a sua plataforma de CCaaS.",
+                cta_box_btn: "Solicitar demo →",
+                cta_box_signin: "Abrir console",
+                footer_desc: "Saiba por que a ligação ficou ruim: qualidade de voz, rede e microfone da estação do atendente, para Genesys Cloud CX e Amazon Connect.",
                 f_col_prod: "Plataforma",
                 f_app: "Console de operações",
                 f_feat: "Recursos",
-                f_sec: "Segurança e privacidade",
+                f_sec: "Confiança e privacidade",
+                f_privacy: "Política de privacidade",
                 f_col_contact: "Contato",
                 f_hq: "Brasília, DF • Brasil",
                 f_hours: "Atendimento: 08h às 18h (BRT)",
                 f_rights: "Todos os direitos reservados."
             },
             en: {
-                meta_title: "VoiceVanguard CCaaS — Real-time WebRTC observability and voice quality",
-                meta_desc: "WebRTC observability for cloud contact centers (Genesys Cloud CX and Amazon Connect). MOS estimation (ITU-T G.107), Wi-Fi detection and safe post-call cache remediation.",
+                meta_title: "VoiceVanguard CCaaS | Good call audio, no guessing",
+                meta_desc: "Find out why a call sounded bad: network, Wi-Fi or the agent's microphone. For Genesys Cloud CX and Amazon Connect. No audio recording.",
+                skip: "Skip to content",
                 nav_features: "Features",
-                nav_security: "Security",
+                nav_how: "How it works",
+                nav_security: "Trust",
                 nav_pricing: "Plans",
                 nav_demo: "Request demo",
                 nav_signin: "Sign in →",
-                hero_badge: "WebRTC observability for contact centers",
-                hero_title: "Real-time voice quality for CCaaS operations.",
-                hero_desc: "Monitor the agent workstation right in the browser. Estimate MOS (ITU-T G.107), spot Wi-Fi instability and run safe post-call cache cleanup on Genesys Cloud CX and Amazon Connect.",
+                hero_badge: "For contact centers on Genesys Cloud CX and Amazon Connect",
+                hero_title: "The customer says she can't hear. The agent swears everything is fine.",
+                hero_desc: "Whose fault is it? The home network, the Wi-Fi, the microphone, the platform? Most of the time nobody knows, and the call is already over.",
+                hero_desc2: "VoiceVanguard shows what is happening at the agent's workstation while the call is live: voice quality, connection type, muted or one-way audio. So the team fixes the problem instead of arguing about who caused it.",
                 cta_request_demo: "Request a demo →",
                 cta_signin: "Open console",
+                mock_aria: "Illustration of the console with fictional names and data",
                 mock_title: "Live telemetry",
                 mock_connected: "Relay connected",
                 mock_agent1: "WS-304 • Carlos Lima",
-                mock_ethernet: "Ethernet",
+                mock_ethernet: "Cable",
                 mock_agent2: "WS-211 • Mariana Souza",
                 mock_wifi: "Wi-Fi 2.4 GHz",
-                mock_cache_label: "Safe remediation",
-                mock_cache_val: "Blocked during the call; runs after it ends",
-                mock_note: "Illustration with fictional data.",
+                mock_agent3: "WS-118 • Rafael Costa",
+                mock_mute: "No outgoing audio",
+                mock_cache_label: "Cache cleanup",
+                mock_cache_val: "Queued during the call and run only after it ends",
+                mock_note: "Illustration with fictional names and data.",
                 metric_1_val: "ITU-T G.107",
-                metric_1_label: "MOS estimated with the E-model",
+                metric_1_label: "Quality score (MOS) estimated with the E-model",
                 metric_2_val: "Zero audio",
-                metric_2_label: "No audio is captured or transmitted; network statistics only",
+                metric_2_label: "No conversation is recorded or transmitted; network numbers only",
                 metric_3_val: "Real time",
-                metric_3_label: "Telemetry sent over secure WebSocket (WSS)",
-                metric_4_val: "Multi-tenant",
-                metric_4_label: "Logical isolation per organization",
+                metric_3_label: "Telemetry sent over a secure connection (WSS)",
+                metric_4_val: "Per operation",
+                metric_4_label: "Each customer and each tower stay separate",
                 feat_tag: "Features",
-                feat_title: "What VoiceVanguard monitors",
-                feat_desc: "Voice diagnostics at the agent workstation, to remove guesswork when analyzing problems in home-office and contact center teams.",
-                f1_title: "MOS estimation (ITU-T G.107)",
-                f1_desc: "Computes perceived voice quality from jitter, RTT and packet loss, without relying on subjective surveys.",
-                f2_title: "Continuous WebRTC telemetry",
-                f2_desc: "Reads browser statistics through the standard WebRTC getStats API, with no kernel drivers or native agent. Requires the Chrome or Edge extension.",
-                f3_title: "Wi-Fi or Ethernet",
-                f3_desc: "Detects when an agent is on Wi-Fi, which is prone to interference, and flags the risk to supervisors during the call.",
-                f4_title: "Safe cache remediation",
-                f4_desc: "Remote cache cleanup never runs during an active call: the command is queued and executed after the call ends.",
-                sec_head: "Security and privacy",
-                sec_sub: "VoiceVanguard is designed to minimize personal data (privacy by design). The platform processes numerical network metrics; it does not capture audio or conversation content.",
-                sec_c1: "Zero audio capture: no audio packets are transmitted to or stored on VoiceVanguard servers.",
-                sec_c2: "Designed to minimize personal data, supporting the customer's LGPD and GDPR compliance efforts.",
-                sec_c3: "Logical per-tenant isolation, with separate license keys for agents and supervisors.",
-                sec_c4: "Communication encrypted in transit (HTTPS and WSS).",
-                sec_arch_label: "Isolation",
-                sec_arch_title: "Each supervisor sees only their own tenant",
-                sec_arch_desc: "Each organization (tenant) uses segregated WebSocket channels and history. Supervisors see only metrics from workstations in their own tenant.",
+                feat_title: "What you start to see",
+                feat_desc: "Everything is measured at the agent's workstation, in the browser, to replace guesses with data.",
+                f1_title: "Voice quality score",
+                f1_desc: "Estimates MOS (ITU-T G.107) from jitter, latency and packet loss, with no satisfaction survey needed.",
+                f2_title: "Wi-Fi or cable",
+                f2_desc: "Detects when the agent is on Wi-Fi, which is more prone to interference, and warns the supervisor during the call.",
+                f3_title: "Muted or one-way audio",
+                f3_desc: "Warns when no audio is coming in, no audio is going out, the microphone was unplugged or it is muted by the system. A mute the agent presses on purpose is not treated as a problem.",
+                f4_title: "Shift pre-check",
+                f4_desc: "Before taking calls, the agent clicks a button and the extension tests latency, jitter and loss to the relay, plus microphone, audio output, connection and hardware. The result (ready, attention or not ready) comes with guidance and shows up in the console. The test reaches the relay, not the CCaaS server.",
+                f5_title: "CCaaS API latency",
+                f5_desc: "Measures how long the calls made by the agent's screen to Genesys Cloud or Amazon Connect take to answer, per domain: average, p95, maximum and errors. It does not read full addresses, parameters or content.",
+                f6_title: "Cache cleanup that never drops a call",
+                f6_desc: "Remote cleanup never runs during an active call. The command waits in a queue and runs after the call ends.",
+                who_tag: "Who it is for",
+                who_title: "Everyone in the operation gets clarity",
+                who1_role: "Supervisor",
+                who1_desc: "Sees right away who has a problem and whether the cause looks like network, Wi-Fi or microphone, instead of arguing about whose fault it is.",
+                who2_role: "Agent",
+                who2_desc: "Knows before taking calls whether the workstation is ready, and gets simple guidance when something needs fixing.",
+                who3_role: "IT",
+                who3_desc: "Installs the extension through GPO or Intune with each team's tower key, and follows workstation health in the console.",
+                how_tag: "How it works",
+                how_title: "Three steps, no changes to your CCaaS",
+                how1_title: "Install the extension",
+                how1_desc: "IT deploys the extension for Chrome or Edge to the workstations. It only has permission on Genesys Cloud and Amazon Connect pages.",
+                how2_title: "Measure during the call",
+                how2_desc: "The extension reads the network statistics the browser already exposes (getStats) and sends only numbers to the relay. No audio leaves the workstation.",
+                how3_title: "See and act in the console",
+                how3_desc: "The supervisor follows everything live in the console and, if needed, requests a cache cleanup, which only runs after the call.",
+                tw_tag: "Operations and towers",
+                tw_title: "Many supervisors, each with their own operation",
+                tw_desc: "One company can run several operations under the same contract. Each supervisor sees and manages only their own towers.",
+                tw_b1: "The customer's IT defines the tower when it deploys the extension. Agents do not choose it and cannot change it.",
+                tw_b2: "A supervisor key can cover one tower, several, or all of them for management.",
+                tw_b3: "Billing is per monitored workstation, with unlimited supervisors. Towers of the same customer add up under the same contract.",
+                tw_aria: "Illustration: each supervisor sees only their own tower",
+                tw_s1: "Fraud supervisor",
+                tw_s1_sees: "Sees only Scams and Fraud agents",
+                tw_n1: "1 tower",
+                tw_s2: "Loans supervisor",
+                tw_s2_sees: "Sees only Loans agents",
+                tw_n2: "1 tower",
+                tw_s3: "Management",
+                tw_s3_sees: "Sees every tower",
+                tw_n3: "All",
+                tw_note: "Illustrative example with a fictional company.",
+                sec_tag: "Trust",
+                sec_head: "What we collect and what we never collect",
+                sec_sub: "In plain words: VoiceVanguard looks at the quality of the connection, not at what people say.",
+                col_yes_title: "What we collect",
+                col_y1: "Call network numbers: jitter, latency and packet loss.",
+                col_y2: "Whether the workstation uses Wi-Fi or a cable.",
+                col_y3: "Audio warnings: no incoming audio, no outgoing audio, microphone unplugged or muted by the system.",
+                col_y4: "Pre-check results and the response time of CCaaS APIs, grouped by domain.",
+                col_y5: "The workstation ID and the operator name, so the supervisor knows whose alert it is.",
+                col_no_title: "What we never collect",
+                col_n1: "Call audio, neither recorded nor transmitted.",
+                col_n2: "What was said or written in the conversation.",
+                col_n3: "Names of the installed audio devices.",
+                col_n4: "Full addresses, parameters or content of CCaaS API calls.",
+                sec_c3: "Each customer is isolated, with different keys for agents and supervisors.",
+                sec_c4: "Data encrypted in transit (HTTPS and WSS).",
+                sec_c5: "Everything a workstation sends is treated as untrusted by the server.",
+                honest_label: "Straight talk for your legal team",
+                honest_title: "We follow LGPD and GDPR guidelines, without certification",
+                honest_desc: "We designed the product to collect the minimum, but we do not hold a certification. The operator name and workstation ID are still personal data, and your company remains the data controller.",
+                honest_link: "Read the privacy policy",
                 plan_tag: "Plans",
-                plan_title: "Licensing by operation scope",
-                plan_desc: "From an evaluation pilot to large-scale operations. Pricing and limits are defined in a proposal.",
+                plan_title: "The larger the operation, the lower the price per seat",
+                plan_desc: "From a pilot to large operations. We do not publish prices: we talk about your scenario and send a proposal.",
                 p1_name: "Pilot",
-                p1_desc: "For technical validation and acceptance testing on a small group of workstations.",
-                p1_price: "Contact us",
+                p1_desc: "To validate the idea with a small group of workstations.",
+                p1_price: "Talk to us",
                 p1_f1: "Workstation scope agreed with the customer",
-                p1_f2: "Real-time WebRTC and MOS metrics",
-                p1_f3: "Wi-Fi or Ethernet detection",
+                p1_f2: "Real-time network metrics and MOS",
+                p1_f3: "Wi-Fi or cable detection",
                 p1_btn: "Request a pilot →",
                 p2_name: "Operations",
-                p2_desc: "For operations that need continuous call auditing and remote remediation.",
-                p2_price: "Contact us",
-                p2_f1: "Per-tenant supervisor console",
-                p2_f2: "Safe remote cache remediation",
+                p2_desc: "For operations that follow calls closely and need to act.",
+                p2_price: "Talk to us",
+                p2_f1: "Supervisor console with a per-tower view",
+                p2_f2: "Safe remote cache cleanup",
                 p2_f3: "Designed for Genesys Cloud CX and Amazon Connect",
                 p2_f4: "Engineering support, with terms agreed in contract",
                 p2_btn: "Request a proposal →",
                 p3_name: "Dedicated",
                 p3_desc: "For large operations with specific deployment requirements.",
-                p3_price: "Contact us",
+                p3_price: "Talk to us",
                 p3_f1: "Scale and regions defined per project",
                 p3_f2: "Dedicated deployment model, to be agreed",
                 p3_f3: "Integrations with customer systems, on request",
                 p3_f4: "Dedicated technical follow-up",
                 p3_btn: "Discuss your project →",
-                cta_box_title: "Evaluate VoiceVanguard in your operation",
-                cta_box_desc: "Schedule a demo with the TrustCo Technologies team and see ITU-T G.107 telemetry running on your CCaaS platform.",
+                logic_title: "How pricing works",
+                logic_desc: "You pay per monitored agent seat, and the price per seat drops as the operation grows. Supervisors are unlimited and towers of the same customer add up in the same volume tier.",
+                cta_box_title: "See it in your operation",
+                cta_box_desc: "Book a conversation with the TrustCo Technologies team and watch VoiceVanguard measure real workstations on your CCaaS platform.",
                 cta_box_btn: "Request a demo →",
                 cta_box_signin: "Open console",
-                footer_desc: "WebRTC call observability, MOS estimation (ITU-T G.107) and post-call remediation of agent workstations in cloud contact centers.",
+                footer_desc: "Find out why a call sounded bad: voice quality, network and microphone at the agent's workstation, for Genesys Cloud CX and Amazon Connect.",
                 f_col_prod: "Platform",
                 f_app: "Operations console",
                 f_feat: "Features",
-                f_sec: "Security and privacy",
+                f_sec: "Trust and privacy",
+                f_privacy: "Privacy policy",
                 f_col_contact: "Contact",
                 f_hq: "Brasília, DF • Brazil",
                 f_hours: "Hours: 08:00 to 18:00 (BRT)",
@@ -754,7 +843,7 @@
 
         function setLanguage(lang) {
             if (!translations[lang]) lang = 'pt';
-            localStorage.setItem('vv_lang', lang);
+            try { localStorage.setItem('vv_lang', lang); } catch (e) {}
             document.documentElement.lang = lang === 'pt' ? 'pt-BR' : 'en';
 
             document.querySelectorAll('.lang-btn').forEach(btn => {
@@ -772,6 +861,11 @@
                 }
             });
 
+            document.querySelectorAll('[data-i18n-aria]').forEach(el => {
+                const key = el.getAttribute('data-i18n-aria');
+                if (translations[lang][key]) el.setAttribute('aria-label', translations[lang][key]);
+            });
+
             document.querySelectorAll('[data-i18n-html]').forEach(el => {
                 const key = el.getAttribute('data-i18n-html');
                 if (translations[lang][key]) {
@@ -781,7 +875,8 @@
         }
 
         function initLanguage() {
-            const saved = localStorage.getItem('vv_lang');
+            let saved = null;
+            try { saved = localStorage.getItem('vv_lang'); } catch (e) {}
             if (saved && (saved === 'pt' || saved === 'en')) {
                 setLanguage(saved);
             } else {

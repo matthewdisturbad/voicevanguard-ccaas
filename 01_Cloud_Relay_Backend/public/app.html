@@ -141,13 +141,116 @@
         .btn-login:disabled { background: var(--surface-2); border-color: var(--border-strong); color: var(--text-3); cursor: not-allowed; }
         .auth-foot { margin-top: var(--s4); font-size: var(--fs-xs); color: var(--text-3); line-height: 1.6; }
         .auth-foot a { color: var(--accent); text-decoration: underline; }
+
+        [hidden] { display: none !important; }
+        .sr-only { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+        button, select, input { font-family: inherit; }
+        button:focus-visible, select:focus-visible, input:focus-visible, a:focus-visible, [tabindex]:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+
+        /* Conexão ao vivo */
+        .live-dot.is-live { background: var(--ok); box-shadow: 0 0 0 3px var(--ok-tint); }
+        .live-dot.is-connecting { background: var(--warn); box-shadow: 0 0 0 3px var(--warn-tint); }
+        .live-dot.is-down { background: var(--crit); box-shadow: 0 0 0 3px var(--crit-tint); border-radius: 1px; }
+        .conn-pill { display: inline-flex; align-items: center; gap: var(--s2); padding: 2px var(--s3); border-radius: 999px; border: 1px solid var(--border-strong); font-weight: 600; }
+        .conn-pill.live { color: var(--ok); border-color: var(--ok); background: var(--ok-tint); }
+        .conn-pill.connecting { color: var(--warn); border-color: var(--warn); background: var(--warn-tint); }
+        .conn-pill.down { color: var(--crit); border-color: var(--crit); background: var(--crit-tint); }
+        .tower-box { display: flex; align-items: center; gap: var(--s2); }
+        .tower-box select { padding: var(--s1) var(--s2); border: 1px solid var(--border-strong); border-radius: var(--radius); background: var(--surface); color: var(--text); font-size: var(--fs-sm); max-width: 200px; }
+        .stale-banner { background: var(--warn-tint); color: var(--warn); border: 1px solid var(--warn); border-radius: var(--radius); padding: var(--s2) var(--s3); font-size: var(--fs-sm); font-weight: 600; margin-bottom: var(--s4); }
+
+        /* Atenção e filtros */
+        .attention { display: flex; align-items: center; justify-content: space-between; gap: var(--s3); flex-wrap: wrap; padding: var(--s3) var(--s4); border-radius: 8px; border: 1px solid var(--border); background: var(--surface); margin-bottom: var(--s3); font-size: var(--fs-sm); }
+        .attention.has-alert { border-color: var(--crit); background: var(--crit-tint); }
+        .attention strong { font-size: var(--fs-md); }
+        .attention.has-alert strong { color: var(--crit); }
+        .attention.is-clear strong { color: var(--ok); }
+        .toolbar { display: flex; flex-wrap: wrap; gap: var(--s3); align-items: flex-end; margin-bottom: var(--s3); }
+        .field { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+        .field label { font-size: var(--fs-xs); font-weight: 600; color: var(--text-2); }
+        .field input, .field select { padding: var(--s2) var(--s3); border: 1px solid var(--border-strong); border-radius: var(--radius); background: var(--surface); color: var(--text); font-size: var(--fs-sm); min-height: 36px; }
+        .field.grow { flex: 1 1 240px; }
+        .btn-quiet { padding: var(--s2) var(--s3); border: 1px solid var(--border-strong); border-radius: var(--radius); background: transparent; color: var(--text); font-size: var(--fs-sm); font-weight: 500; cursor: pointer; min-height: 36px; }
+        .btn-quiet:hover:not(:disabled) { background: var(--surface-2); }
+        .btn-quiet:disabled { color: var(--text-3); cursor: not-allowed; opacity: 0.6; }
+        .btn-quiet[aria-pressed="true"] { background: var(--accent-tint); border-color: var(--accent); color: var(--accent); }
+        .pager { display: flex; align-items: center; justify-content: space-between; gap: var(--s3); flex-wrap: wrap; margin-top: var(--s3); font-size: var(--fs-sm); color: var(--text-2); }
+        .pager-btns { display: flex; gap: var(--s2); align-items: center; }
+        .result-count { font-size: var(--fs-sm); color: var(--text-2); margin: 0 0 var(--s2); }
+        .card-hint { font-size: var(--fs-xs); color: var(--text-3); margin-top: var(--s1); min-height: 1.2em; }
+        .cause { font-size: var(--fs-sm); color: var(--text); max-width: 34ch; }
+        .cause .more { color: var(--text-3); font-size: var(--fs-xs); }
+        .badge-sym { font-weight: 700; margin-right: 3px; }
+        tr.row-attn { background: var(--warn-tint); }
+        tr.row-selected { outline: 2px solid var(--accent); outline-offset: -2px; }
+        .cmd-flag { display: block; font-size: var(--fs-xs); color: var(--warn); font-weight: 600; }
+
+        /* Painel de detalhes da PA */
+        .panel-backdrop { position: fixed; inset: 0; background: var(--overlay); z-index: 900; }
+        .agent-panel { position: fixed; top: 0; right: 0; bottom: 0; width: min(440px, 100%); background: var(--surface); border-left: 1px solid var(--border-strong); z-index: 901; display: flex; flex-direction: column; box-shadow: -8px 0 24px rgba(0,0,0,0.18); }
+        .ap-head { display: flex; justify-content: space-between; align-items: flex-start; gap: var(--s3); padding: var(--s4) var(--s5); border-bottom: 1px solid var(--border); }
+        .ap-head h2 { font-size: var(--fs-lg); line-height: 1.3; word-break: break-word; }
+        .ap-body { padding: var(--s4) var(--s5) var(--s5); overflow-y: auto; flex: 1; }
+        .ap-body h3 { font-size: var(--fs-sm); font-weight: 600; color: var(--text-2); margin: var(--s4) 0 var(--s2); }
+        .ap-body h3:first-child { margin-top: 0; }
+        .ap-dl { display: grid; grid-template-columns: max-content 1fr; gap: var(--s1) var(--s4); font-size: var(--fs-sm); }
+        .ap-dl dt { color: var(--text-3); }
+        .ap-dl dd { word-break: break-word; font-variant-numeric: tabular-nums; }
+        .ap-causes { list-style: none; display: grid; gap: var(--s2); }
+        .ap-causes li { padding: var(--s2) var(--s3); border-left: 3px solid var(--warn); background: var(--bg); border-radius: var(--radius); font-size: var(--fs-sm); }
+        .ap-causes li.crit { border-left-color: var(--crit); }
+        .ap-causes li.none { border-left-color: var(--ok); color: var(--text-2); }
+        .ap-cmd { border: 1px solid var(--border); border-radius: var(--radius); padding: var(--s3); background: var(--bg); font-size: var(--fs-sm); }
+        .ap-cmd p { margin-bottom: var(--s3); color: var(--text-2); }
+        .ap-cmd .row { display: flex; gap: var(--s2); flex-wrap: wrap; }
+        .btn-primary { padding: var(--s2) var(--s4); border-radius: var(--radius); border: 1px solid var(--accent); background: var(--accent); color: var(--on-accent); font-weight: 600; font-size: var(--fs-sm); cursor: pointer; min-height: 36px; }
+        .btn-primary:hover { background: var(--accent-hover); }
+        .btn-danger { padding: var(--s2) var(--s4); border-radius: var(--radius); border: 1px solid var(--crit); background: var(--crit); color: var(--on-accent); font-weight: 600; font-size: var(--fs-sm); cursor: pointer; min-height: 36px; }
+        .cmd-state { margin-top: var(--s3); padding: var(--s2) var(--s3); border-radius: var(--radius); font-weight: 600; font-size: var(--fs-sm); background: var(--surface-2); color: var(--text-2); }
+        .cmd-state.queued { background: var(--warn-tint); color: var(--warn); }
+        .cmd-state.done { background: var(--ok-tint); color: var(--ok); }
+        .cmd-state.fail { background: var(--crit-tint); color: var(--crit); }
+
+        /* Avisos na tela (substituem alert) */
+        .toast-region { position: fixed; left: 50%; transform: translateX(-50%); bottom: var(--s4); z-index: 9000; display: grid; gap: var(--s2); width: min(520px, calc(100% - 32px)); pointer-events: none; }
+        .toast { pointer-events: auto; display: flex; align-items: flex-start; justify-content: space-between; gap: var(--s3); background: var(--surface); color: var(--text); border: 1px solid var(--border-strong); border-left-width: 4px; border-radius: var(--radius); padding: var(--s3) var(--s4); font-size: var(--fs-sm); box-shadow: 0 6px 20px rgba(0,0,0,0.2); }
+        .toast.ok { border-left-color: var(--ok); }
+        .toast.warn { border-left-color: var(--warn); }
+        .toast.err { border-left-color: var(--crit); }
+        .toast button { background: none; border: none; color: var(--text-2); cursor: pointer; font-size: var(--fs-md); line-height: 1; padding: 0 var(--s1); }
+
+        /* Celular: tabelas viram cartões */
+        @media (max-width: 720px) {
+            .tower-box select { max-width: 100%; }
+            .stack-table { min-width: 0; }
+            .table-box { background: transparent; border: none; overflow: visible; }
+            .stack-table thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+            .stack-table, .stack-table tbody { display: block; }
+            .stack-table tr { display: block; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; margin-bottom: var(--s3); padding: var(--s2) var(--s3); }
+            .stack-table tr.row-crit { background: var(--crit-tint); border-color: var(--crit); }
+            .stack-table tr.row-attn { background: var(--warn-tint); }
+            .stack-table tbody tr:hover { background: var(--surface); }
+            .stack-table td { display: flex; justify-content: space-between; align-items: baseline; gap: var(--s3); padding: var(--s1) 0; border-bottom: 1px dashed var(--border); text-align: right; }
+            .stack-table td:last-child { border-bottom: none; }
+            .stack-table td::before { content: attr(data-label); flex: 0 0 38%; text-align: left; font-size: var(--fs-xs); font-weight: 600; color: var(--text-3); }
+            .stack-table td.empty { display: block; text-align: center; }
+            .stack-table td.empty::before { content: none; }
+            .stack-table td.cell-action { display: block; padding-top: var(--s2); }
+            .stack-table td.cell-action::before { content: none; }
+            .stack-table td.cell-action .btn-action { width: 100%; min-height: 44px; font-size: var(--fs-sm); }
+            .cause { max-width: none; }
+            .btn-quiet, .btn-primary, .btn-danger, .btn-top, .tab-btn { min-height: 44px; }
+            .field { flex: 1 1 100%; }
+            .field input, .field select { min-height: 44px; }
+            .agent-panel { width: 100%; border-left: none; }
+        }
     </style>
 </head>
 <body>
 
 <!-- Autenticação do supervisor -->
 <div id="authOverlay" style="display: none;">
-    <div class="auth-card" role="dialog" aria-labelledby="authTitle">
+    <div class="auth-card" role="dialog" aria-modal="true" aria-labelledby="authTitle">
         <div class="auth-header">
             <svg class="brand-mark" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2.5L4 6v5.5c0 4.7 3.3 8.7 8 10 4.7-1.3 8-5.3 8-10V6l-8-3.5z"/><path d="M8.5 12h1.8l1.2-3 1.8 6 1.2-3h1"/></svg>
             <h2 id="authTitle">VoiceVanguard CCaaS</h2>
@@ -163,7 +266,7 @@
                 <label for="inputSupervisorName">Identificação do supervisor</label>
                 <input type="text" id="inputSupervisorName" value="Supervisor Principal" placeholder="Nome ou matrícula">
             </div>
-            <button id="btnSubmitLogin" class="btn-login" onclick="authenticateSupervisor()">
+            <button id="btnSubmitLogin" class="btn-login" type="button">
                 Entrar no console
             </button>
             <div class="auth-foot">
@@ -185,85 +288,147 @@
     </div>
 
     <div class="tenant-status-box">
-        <span class="live-dot" id="liveDotIndicator" aria-hidden="true"></span>
-        <span id="connStatus" role="status">Verificando credenciais...</span>
+        <span class="tower-box" id="towerBox" hidden></span>
+        <span class="conn-pill connecting" id="connPill">
+            <span class="live-dot is-connecting" id="liveDotIndicator" aria-hidden="true"></span>
+            <span id="connStatus" role="status">Verificando credenciais...</span>
+        </span>
+        <button class="btn-top" id="btnReconnect" type="button" hidden>Reconectar agora</button>
         <span id="tenantOrgDisplay" class="org-name">--</span>
-        <button class="btn-top" onclick="logoutSupervisor()">Sair</button>
+        <button class="btn-top" id="btnLogout" type="button">Sair</button>
     </div>
 </header>
 
 <main class="container">
-    <div class="tabs" role="group" aria-label="Seções do console">
-        <button class="tab-btn active" id="tabLiveBtn" onclick="switchTab('live')">Monitoramento ao vivo</button>
-        <button class="tab-btn" id="tabCallsBtn" onclick="switchTab('calls')">Auditoria de chamadas</button>
-        <button class="tab-btn" id="tabHealthBtn" onclick="switchTab('health')">Saúde da estação</button>
-        <button class="tab-btn" id="tabBiBtn" onclick="switchTab('bi')">BI e causa raiz</button>
+    <div class="tabs" role="tablist" aria-label="Seções do console">
+        <button class="tab-btn active" id="tabLiveBtn" role="tab" aria-selected="true" aria-controls="tabContentLive" type="button" data-tab="live">Monitoramento ao vivo</button>
+        <button class="tab-btn" id="tabCallsBtn" role="tab" aria-selected="false" aria-controls="tabContentCalls" type="button" data-tab="calls">Auditoria de chamadas</button>
+        <button class="tab-btn" id="tabHealthBtn" role="tab" aria-selected="false" aria-controls="tabContentHealth" type="button" data-tab="health">Saúde da estação</button>
+        <button class="tab-btn" id="tabBiBtn" role="tab" aria-selected="false" aria-controls="tabContentBi" type="button" data-tab="bi">BI e causa raiz</button>
     </div>
+
+    <div id="staleBanner" class="stale-banner" role="status" hidden>Sem conexão com o relay: os dados abaixo podem estar desatualizados até a reconexão.</div>
 
     <!-- Indicadores -->
     <div class="cards-grid">
         <div class="card">
             <div class="card-label">PAs conectadas</div>
             <div class="card-val" id="cardTotalAgents">0</div>
+            <div class="card-hint" id="hintTotalAgents"></div>
         </div>
         <div class="card">
             <div class="card-label">PAs com status OK</div>
             <div class="card-val" id="cardAgentsOk">—</div>
+            <div class="card-hint" id="hintAgentsOk"></div>
         </div>
         <div class="card">
             <div class="card-label">MOS médio (G.107)</div>
             <div class="card-val" id="cardAvgMos">—</div>
+            <div class="card-hint"></div>
         </div>
         <div class="card">
             <div class="card-label">Jitter médio</div>
             <div class="card-val" id="cardAvgJitter">—</div>
+            <div class="card-hint"></div>
         </div>
         <div class="card">
             <div class="card-label">Chamadas auditadas</div>
             <div class="card-val" id="cardTotalCalls">0</div>
+            <div class="card-hint"></div>
         </div>
         <div class="card">
             <div class="card-label">Chamadas excelentes ou boas</div>
             <div class="card-val" id="cardSuccessCalls">—</div>
+            <div class="card-hint" id="hintSuccessCalls"></div>
         </div>
     </div>
 
     <!-- Aba 1: monitoramento de PAs -->
-    <div id="tabContentLive">
+    <div id="tabContentLive" role="tabpanel" aria-labelledby="tabLiveBtn">
+        <div class="attention is-clear" id="attentionBar">
+            <span><strong id="attentionTitle">Precisam de atenção agora: 0</strong> <span id="attentionSub" class="muted"></span></span>
+            <button class="btn-quiet" id="btnAttention" type="button" aria-pressed="false">Ver só as que precisam de atenção</button>
+        </div>
+
+        <div class="toolbar" role="search" aria-label="Filtros da lista de PAs">
+            <div class="field grow">
+                <label for="fltSearch">Buscar por operador, estação ou ID</label>
+                <input type="search" id="fltSearch" placeholder="Ex.: Ana, PA-0123, ID da chamada" autocomplete="off">
+            </div>
+            <div class="field">
+                <label for="fltStatus">Status</label>
+                <select id="fltStatus">
+                    <option value="all">Todos</option>
+                    <option value="attention">Precisam de atenção</option>
+                    <option value="ok">OK</option>
+                    <option value="incall">Em chamada</option>
+                    <option value="free">Livres</option>
+                    <option value="offline">Offline</option>
+                </select>
+            </div>
+            <div class="field" id="fltTowerField" hidden>
+                <label for="fltTower">Torre</label>
+                <select id="fltTower"></select>
+            </div>
+            <div class="field">
+                <label for="fltSort">Ordenar por</label>
+                <select id="fltSort">
+                    <option value="priority">Prioridade (alertas primeiro)</option>
+                    <option value="mos">MOS (menor primeiro)</option>
+                    <option value="rtt">RTT (maior primeiro)</option>
+                    <option value="jitter">Jitter (maior primeiro)</option>
+                    <option value="loss">Perda (maior primeiro)</option>
+                    <option value="station">Estação (A–Z)</option>
+                    <option value="operator">Operador (A–Z)</option>
+                </select>
+            </div>
+            <button class="btn-quiet" id="btnClearFilters" type="button">Limpar filtros</button>
+        </div>
+        <p class="result-count" id="resultCount"></p>
+
         <div class="table-box">
-            <table>
+            <table class="stack-table">
                 <thead>
                     <tr>
-                        <th>Status</th>
-                        <th>Plataforma</th>
-                        <th>Estação / PA</th>
-                        <th>Operador</th>
-                        <th>Rede</th>
-                        <th>Carga da máquina</th>
-                        <th>MOS</th>
-                        <th>RTT | Jitter</th>
-                        <th>Chamada</th>
-                        <th>Ações</th>
+                        <th scope="col">Status</th>
+                        <th scope="col">Plataforma</th>
+                        <th scope="col">Estação / PA</th>
+                        <th scope="col">Operador</th>
+                        <th scope="col">Rede</th>
+                        <th scope="col">Carga da máquina</th>
+                        <th scope="col">MOS</th>
+                        <th scope="col">RTT | Jitter | Perda</th>
+                        <th scope="col">Chamada</th>
+                        <th scope="col">Causa provável</th>
+                        <th scope="col">Ações</th>
                     </tr>
                 </thead>
                 <tbody id="agentsTableBody">
-                    <tr><td colspan="10" class="empty">Aguardando conexão com o relay.</td></tr>
+                    <tr><td colspan="11" class="empty">Aguardando conexão com o relay.</td></tr>
                 </tbody>
             </table>
         </div>
+        <nav class="pager" aria-label="Paginação da lista de PAs">
+            <span id="pagerInfo"></span>
+            <span class="pager-btns">
+                <button class="btn-quiet" id="btnPrev" type="button">Anterior</button>
+                <span id="pagerPage"></span>
+                <button class="btn-quiet" id="btnNext" type="button">Próxima</button>
+            </span>
+        </nav>
     </div>
 
     <!-- Aba: saúde da estação (pré-check de turno e latência das APIs do agent desktop) -->
-    <div id="tabContentHealth" style="display:none;">
+    <div id="tabContentHealth" role="tabpanel" aria-labelledby="tabHealthBtn" hidden>
         <div class="table-box">
-            <table>
+            <table class="stack-table">
                 <thead>
                     <tr>
-                        <th>Estação / PA</th>
-                        <th>Operador</th>
-                        <th>Pré-check de turno</th>
-                        <th>Pontos de atenção</th>
-                        <th>Latência das APIs do CCaaS (p95 · erros)</th>
+                        <th scope="col">Estação / PA</th>
+                        <th scope="col">Operador</th>
+                        <th scope="col">Pré-check de turno</th>
+                        <th scope="col">Pontos de atenção</th>
+                        <th scope="col">Latência das APIs do CCaaS (p95 · erros)</th>
                     </tr>
                 </thead>
                 <tbody id="healthTableBody">
@@ -271,25 +436,26 @@
                 </tbody>
             </table>
         </div>
-        <p class="muted" style="margin-top: var(--s3); font-size: var(--fs-sm);">A latência é agregada por servidor (hostname) em janelas de 30 s; endereços completos, caminhos e identificadores não são coletados.</p>
+        <p class="muted" id="healthNote" style="margin-top: var(--s3); font-size: var(--fs-sm);">A latência é agregada por servidor (hostname) em janelas de 30 s; endereços completos, caminhos e identificadores não são coletados.</p>
     </div>
 
     <!-- Aba 2: auditoria de chamadas -->
-    <div id="tabContentCalls" style="display:none;">
+    <div id="tabContentCalls" role="tabpanel" aria-labelledby="tabCallsBtn" hidden>
+        <p class="result-count" id="callsCount"></p>
         <div class="table-box">
-            <table>
+            <table class="stack-table">
                 <thead>
                     <tr>
-                        <th>Classificação</th>
-                        <th>Plataforma</th>
-                        <th>ID da interação</th>
-                        <th>Operador / PA</th>
-                        <th>Horário</th>
-                        <th>Duração</th>
-                        <th>MOS médio / mín.</th>
-                        <th>Jitter pico</th>
-                        <th>Perda</th>
-                        <th>Protocolo</th>
+                        <th scope="col">Classificação</th>
+                        <th scope="col">Plataforma</th>
+                        <th scope="col">ID da interação</th>
+                        <th scope="col">Operador / PA</th>
+                        <th scope="col">Horário</th>
+                        <th scope="col">Duração</th>
+                        <th scope="col">MOS médio / mín.</th>
+                        <th scope="col">Jitter pico</th>
+                        <th scope="col">Perda</th>
+                        <th scope="col">Protocolo</th>
                     </tr>
                 </thead>
                 <tbody id="callsTableBody">
@@ -300,7 +466,7 @@
     </div>
 
     <!-- Aba 3: BI -->
-    <div id="tabContentBi" style="display:none;">
+    <div id="tabContentBi" role="tabpanel" aria-labelledby="tabBiBtn" hidden>
         <div class="panel">
             <h3>Fatores locais que afetam a qualidade de voz</h3>
             <p>Wi-Fi, abas duplicadas e falhas de áudio no posto do atendente podem degradar a voz antes de virar chamado técnico.</p>
@@ -324,38 +490,75 @@
     </div>
 </main>
 
+<!-- Detalhes da PA (limpeza de cache fica aqui, não nas linhas) -->
+<div class="panel-backdrop" id="panelBackdrop" hidden></div>
+<aside class="agent-panel" id="agentPanel" role="dialog" aria-modal="true" aria-labelledby="apTitle" hidden>
+    <div class="ap-head">
+        <h2 id="apTitle">Detalhes da PA</h2>
+        <button class="btn-quiet" id="btnClosePanel" type="button" aria-label="Fechar detalhes da PA">Fechar</button>
+    </div>
+    <div class="ap-body" id="apBody"></div>
+</aside>
+
+<!-- Avisos na tela (leitores de tela anunciam via aria-live) -->
+<div class="toast-region" id="toastRegion" role="status" aria-live="polite" aria-atomic="false"></div>
+
 <script>
     let activeTenantKey = null;
     let activeTenantName = null;
     let ws = null;
-    let agentsMap = new Map();
-    let callsList = [];
+    let agentsMap = new Map();   // chave = torre|agentId
     let stationsMap = new Map();
+    let callsList = [];
+    let initTowers = [];
+    const cmdFeedback = new Map(); // chave da PA -> { state, text, ts }
 
-    function showAuthError(msg) {
-        const box = document.getElementById('authErrorBox');
-        box.textContent = msg;
-        box.style.display = 'block';
+    const PAGE_SIZE = 50;
+    const MIN_SAMPLE_CALLS = 5;
+    const RESCUE_MOS = 3.30;
+    const ui = { tab: 'live', tower: '', q: '', status: 'all', sort: 'priority', page: 0, selected: null, confirming: null };
+
+    const $ = (id) => document.getElementById(id);
+
+    // Todo dado vindo de agente é não confiável: escapar antes de montar HTML.
+    function esc(v) {
+        return String(v ?? '').replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
+    }
+    const akey = (o) => `${o.tower || ''}|${o.agentId}`;
+
+    /* ---------- Avisos na tela ---------- */
+    function showToast(msg, kind = 'ok') {
+        const el = document.createElement('div');
+        el.className = `toast ${kind}`;
+        const span = document.createElement('span');
+        span.textContent = msg;
+        const close = document.createElement('button');
+        close.type = 'button';
+        close.setAttribute('aria-label', 'Dispensar aviso');
+        close.textContent = '×';
+        close.addEventListener('click', () => el.remove());
+        el.append(span, close);
+        const region = $('toastRegion');
+        region.appendChild(el);
+        while (region.children.length > 4) region.firstChild.remove();
+        setTimeout(() => el.remove(), 9000);
     }
 
-    function hideAuthError() {
-        const box = document.getElementById('authErrorBox');
-        box.style.display = 'none';
-    }
-
+    /* ---------- Login ---------- */
+    function showAuthError(msg) { const box = $('authErrorBox'); box.textContent = msg; box.style.display = 'block'; }
+    function hideAuthError() { $('authErrorBox').style.display = 'none'; }
     function showLoginModal() {
         hideAuthError();
-        document.getElementById('authOverlay').style.display = 'flex';
-        document.getElementById('inputTenantKey').focus();
+        $('authOverlay').style.display = 'flex';
+        $('inputTenantKey').focus();
+        setConn('down', 'Aguardando login');
     }
 
     async function validateTenantKey(key) {
         try {
             const resp = await fetch('/api/validate-tenant', { headers: { 'X-Tenant-Key': key } });
             const data = await resp.json();
-            if (resp.ok && data.valid) {
-                return data;
-            }
+            if (resp.ok && data.valid) return data;
             return null;
         } catch (e) {
             console.error("Erro na validação do tenant:", e);
@@ -364,13 +567,10 @@
     }
 
     async function authenticateSupervisor() {
-        const key = document.getElementById('inputTenantKey').value.trim();
-        if (!key) {
-            showAuthError("Informe a chave de supervisor do tenant para prosseguir.");
-            return;
-        }
+        const key = $('inputTenantKey').value.trim();
+        if (!key) { showAuthError("Informe a chave de supervisor do tenant para prosseguir."); return; }
 
-        const btn = document.getElementById('btnSubmitLogin');
+        const btn = $('btnSubmitLogin');
         btn.disabled = true;
         btn.textContent = "Validando chave...";
         hideAuthError();
@@ -381,11 +581,9 @@
             sessionStorage.setItem('vv_tenant_name', result.tenant);
             sessionStorage.setItem('vv_tenant_plan', result.plan);
             sessionStorage.setItem('vv_logged_in', 'true');
-
             activeTenantKey = key;
             activeTenantName = result.tenant;
-
-            document.getElementById('authOverlay').style.display = 'none';
+            $('authOverlay').style.display = 'none';
             updateTenantDisplay(key, result.tenant);
             connectWs();
         } else {
@@ -396,120 +594,118 @@
     }
 
     function logoutSupervisor() {
-        sessionStorage.removeItem('vv_tenant_key');
-        sessionStorage.removeItem('vv_tenant_name');
-        sessionStorage.removeItem('vv_tenant_plan');
-        sessionStorage.removeItem('vv_logged_in');
-        if (ws) {
-            try { ws.close(); } catch(e){}
-        }
+        ['vv_tenant_key', 'vv_tenant_name', 'vv_tenant_plan', 'vv_logged_in'].forEach(k => sessionStorage.removeItem(k));
+        clearTimeout(reconnectTimer); clearInterval(countdownTimer);
+        if (ws) { try { ws.close(); } catch (e) {} }
         location.reload();
     }
 
     function updateTenantDisplay(key, name) {
-        document.getElementById('tenantBadge').textContent = (name || 'TENANT').split(/\s+/)[0].toUpperCase().slice(0, 12); // nunca exibir parte da chave
-        document.getElementById('tenantOrgDisplay').textContent = name || key;
+        $('tenantBadge').textContent = (name || 'TENANT').split(/\s+/)[0].toUpperCase().slice(0, 12); // nunca exibir parte da chave
+        $('tenantOrgDisplay').textContent = name || '--';
+    }
+
+    /* ---------- Conexão ao vivo (verde / âmbar / vermelho, sempre com texto) ---------- */
+    function setConn(kind, text) {
+        const cls = { live: 'is-live', connecting: 'is-connecting', down: 'is-down' }[kind];
+        const dot = $('liveDotIndicator');
+        dot.className = `live-dot ${cls}`;
+        $('connPill').className = `conn-pill ${kind}`;
+        $('connStatus').textContent = text;
+        $('btnReconnect').hidden = kind !== 'down' || !activeTenantKey;
+        $('staleBanner').hidden = !(kind === 'down' && activeTenantKey);
+    }
+
+    let reconnectTimer = null, countdownTimer = null, attempt = 0;
+
+    function scheduleReconnect() {
+        clearTimeout(reconnectTimer); clearInterval(countdownTimer);
+        attempt++;
+        const delay = Math.min(30, 2 * Math.pow(2, Math.min(attempt - 1, 4)));
+        let left = delay;
+        const label = () => setConn('down', `Desconectado — reconectando em ${left}s (tentativa ${attempt})`);
+        label();
+        countdownTimer = setInterval(() => { left = Math.max(0, left - 1); label(); }, 1000);
+        reconnectTimer = setTimeout(() => {
+            clearInterval(countdownTimer);
+            if (activeTenantKey && sessionStorage.getItem('vv_logged_in')) connectWs();
+        }, delay * 1000);
     }
 
     function connectWs() {
         if (!activeTenantKey) return;
-        if (ws) {
-            try { ws.close(); } catch(e){}
-        }
+        clearTimeout(reconnectTimer); clearInterval(countdownTimer);
+        if (ws) { const old = ws; ws = null; try { old.close(); } catch (e) {} }
 
         const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
         const wsUrl = `${protocol}//${location.host}?key=${encodeURIComponent(activeTenantKey)}`;
-        
-        document.getElementById('connStatus').textContent = "Conectando...";
-        ws = new WebSocket(wsUrl);
+        setConn('connecting', attempt ? `Reconectando (tentativa ${attempt})...` : 'Conectando...');
+        const sock = new WebSocket(wsUrl);
+        ws = sock;
 
-        ws.onopen = () => {
-            document.getElementById('connStatus').textContent = "Ao vivo";
+        sock.onopen = () => {
+            if (sock !== ws) return;
+            attempt = 0;
+            setConn('live', 'Ao vivo');
         };
 
-        ws.onmessage = (event) => {
+        sock.onmessage = (event) => {
+            if (sock !== ws) return;
             try {
                 const msg = JSON.parse(event.data);
-
                 if (msg.type === 'INIT_STATE') {
-                    agentsMap.clear();
-                    if (Array.isArray(msg.agents)) {
-                        msg.agents.forEach(a => agentsMap.set(a.agentId, a));
-                    }
-                    callsList = msg.callHistory || [];
-                    stationsMap.clear();
-                    if (Array.isArray(msg.stations)) {
-                        msg.stations.forEach(st => stationsMap.set(st.agentId, st));
-                    }
-                    renderAll();
-                } else if (msg.type === 'TELEMETRY_UPDATE') {
-                    agentsMap.set(msg.payload.agentId, msg.payload);
-                    renderAll();
-                } else if (msg.type === 'STATION_HEALTH_UPDATE') {
-                    stationsMap.set(msg.payload.agentId, msg.payload);
-                    renderAll();
-                } else if (msg.type === 'NEW_CALL_AUDIT') {
+                    agentsMap.clear(); stationsMap.clear();
+                    if (Array.isArray(msg.agents)) msg.agents.forEach(a => agentsMap.set(akey(a), a));
+                    callsList = Array.isArray(msg.callHistory) ? msg.callHistory : [];
+                    if (Array.isArray(msg.stations)) msg.stations.forEach(st => stationsMap.set(akey(st), st));
+                    initTowers = Array.isArray(msg.towers) ? msg.towers.map(String) : [];
+                    scheduleRender();
+                } else if (msg.type === 'TELEMETRY_UPDATE' && msg.payload) {
+                    agentsMap.set(akey(msg.payload), msg.payload);
+                    scheduleRender();
+                } else if (msg.type === 'STATION_HEALTH_UPDATE' && msg.payload) {
+                    stationsMap.set(akey(msg.payload), msg.payload);
+                    scheduleRender();
+                } else if (msg.type === 'NEW_CALL_AUDIT' && msg.payload) {
                     callsList.unshift(msg.payload);
                     if (callsList.length > 200) callsList.pop();
-                    renderAll();
+                    scheduleRender();
                 } else if (msg.type === 'AGENT_COMMAND_FEEDBACK') {
-                    const r = msg.result || {};
-                    alert(`Feedback da PA (${String(msg.agentId)}):\n${r.success ? 'Cache limpo com sucesso.' : (r.message || 'Ação não executada.')}`);
+                    handleCommandFeedback(msg);
                 }
             } catch (err) {
                 console.error("Erro ao decodificar frame WS:", err);
             }
         };
 
-        ws.onclose = (ev) => {
+        sock.onclose = (ev) => {
+            if (sock !== ws) return;
             if (ev.code === 4001) {
-                document.getElementById('connStatus').textContent = "Chave recusada";
+                setConn('down', 'Chave recusada');
                 logoutSupervisor();
                 return;
             }
-            document.getElementById('connStatus').textContent = "Desconectado. Tentando reconectar...";
-            setTimeout(() => {
-                if (activeTenantKey && sessionStorage.getItem('vv_logged_in')) {
-                    connectWs();
-                }
-            }, 5000);
+            scheduleReconnect();
         };
     }
 
-    function switchTab(tab) {
-        document.getElementById('tabLiveBtn').classList.toggle('active', tab === 'live');
-        document.getElementById('tabCallsBtn').classList.toggle('active', tab === 'calls');
-        document.getElementById('tabBiBtn').classList.toggle('active', tab === 'bi');
-        document.getElementById('tabHealthBtn').classList.toggle('active', tab === 'health');
-        document.getElementById('tabContentHealth').style.display = tab === 'health' ? 'block' : 'none';
-
-        document.getElementById('tabContentLive').style.display = tab === 'live' ? 'block' : 'none';
-        document.getElementById('tabContentCalls').style.display = tab === 'calls' ? 'block' : 'none';
-        document.getElementById('tabContentBi').style.display = tab === 'bi' ? 'block' : 'none';
-    }
-
-    function sendRemoteClearCache(agentId) {
-        if (!confirm(`Deseja disparar limpeza de cache segura para a estação ${agentId}?\nSe a PA estiver em atendimento, a limpeza aguardará o término da ligação.`)) return;
-
-        if (ws && ws.readyState === WebSocket.OPEN) {
-            ws.send(JSON.stringify({
-                type: 'SUPERVISOR_COMMAND',
-                targetAgentId: agentId,
-                command: 'SAFE_CACHE_CLEAR'
-            }));
-            alert(`Comando de limpeza segura enviado para a estação ${agentId}!`);
+    /* ---------- Rede e causa provável (apenas dados já recebidos) ---------- */
+    function netInfo(a) {
+        const raw = String(a.networkType || '').toUpperCase();
+        const norm = raw.replace(/[^A-Z0-9.]/g, '');
+        if (/WI_?FI|WIFI|WLAN/.test(raw.replace(/-/g, '_')) || norm.includes('WIFI')) {
+            let label = 'Wi-Fi';
+            if (/OR_CELLULAR|CELULAR|CELLULAR/.test(raw)) label = 'Wi-Fi ou celular';
+            else if (/PROVAVEL/.test(raw)) label = 'Wi-Fi (provável)';
+            else if (/2[._]?4/.test(raw)) label = 'Wi-Fi 2,4 GHz';
+            else if (/(^|[^0-9])5([._]?0)?($|[^0-9])/.test(raw.replace(/WI_?FI/, ''))) label = 'Wi-Fi 5 GHz';
+            return { kind: 'wifi', label };
         }
+        if (/ETHERNET|CABO|WIRED|LAN/.test(raw)) return { kind: 'eth', label: 'Ethernet' };
+        if (/CELL|LTE|4G|5G|3G/.test(raw)) return { kind: 'cell', label: 'Celular' };
+        if (raw === 'REDE_ESTAVEL') return { kind: 'unk', label: 'Rede estável' };
+        return { kind: 'unk', label: 'Tipo de rede não informado' };
     }
-
-    // Todo dado vindo de agente é não confiável: escapar antes de montar HTML.
-    function esc(v) {
-        return String(v ?? '').replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
-    }
-
-    document.getElementById('agentsTableBody').addEventListener('click', (e) => {
-        const btn = e.target.closest('[data-clear-agent]');
-        if (btn) sendRemoteClearCache(btn.dataset.clearAgent);
-    });
 
     const AUDIO_ISSUE_LABELS = {
         SEM_AUDIO_RECEBIDO: 'Sem áudio recebido',
@@ -517,20 +713,122 @@
         MIC_DESCONECTADO: 'Microfone desconectado',
         MIC_MUDO_SISTEMA: 'Microfone mudo no sistema'
     };
-    const PRECHECK_LABELS = { PRONTA: 'Pronta', ATENCAO: 'Atenção', NAO_PRONTA: 'Não pronta' };
-    const PRECHECK_BADGE = { PRONTA: 'badge-ok', ATENCAO: 'badge-warn', NAO_PRONTA: 'badge-danger' };
-    const PRECHECK_ITEM_NAMES = {
-        relay: 'Servidor', rede: 'Rede', rede_rtt: 'Latência', rede_jitter: 'Jitter', rede_perda: 'Perda de pacotes',
-        microfone: 'Microfone', saida_audio: 'Saída de áudio', conexao: 'Conexão', hardware: 'Equipamento'
-    };
 
-    function renderHealth() {
-        const tbody = document.getElementById('healthTableBody');
-        const list = Array.from(stationsMap.values());
-        if (list.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="5" class="empty">Nenhuma estação executou o pré-check ou reportou latência de API ainda.</td></tr>`;
+    function isOffline(a) { return a.status === 'OFFLINE'; }
+    function isRescue(a) { return !!a.callActive && Number(a.mosScore) < RESCUE_MOS; }
+    function hasAudioIssue(a) { return !!AUDIO_ISSUE_LABELS[a.audioIssue]; }
+    function needsAttention(a) { return !isOffline(a) && (a.status === 'ALERTA' || hasAudioIssue(a) || isRescue(a)); }
+
+    // Retorna [{ text, crit }]; vazio = nada anormal nos dados recebidos.
+    function causesOf(a) {
+        if (isOffline(a)) return [{ text: 'Estação sem conexão com o relay', crit: false }];
+        const out = [];
+        if (hasAudioIssue(a)) out.push({ text: AUDIO_ISSUE_LABELS[a.audioIssue], crit: true });
+        const loss = Number(a.lossPct), jit = Number(a.jitterMs), rtt = Number(a.rttMs);
+        const net = [];
+        if (loss >= 2) net.push(`perda de pacotes alta (${loss}%)`);
+        if (jit > 30) net.push(`jitter alto (${jit} ms)`);
+        if (rtt > 150) net.push(`latência alta (${rtt} ms)`);
+        if (net.length) {
+            const txt = netInfo(a).kind === 'wifi' ? `Wi-Fi instável: ${net.join(', ')}` : net.join(', ').replace(/^./, c => c.toUpperCase());
+            out.push({ text: txt, crit: loss >= 5 || jit > 60 });
+        }
+        if (a.cpuStress === 'ALTO_CONSUMO_RAM') out.push({ text: 'Máquina com consumo alto de memória', crit: false });
+        if (!out.length && isRescue(a)) out.push({ text: `Qualidade de voz baixa (MOS ${a.mosScore}) sem causa isolada nos dados recebidos`, crit: true });
+        if (!out.length && a.status === 'ALERTA') out.push({ text: 'Alerta reportado pela estação, sem causa identificada nos dados recebidos', crit: false });
+        return out;
+    }
+
+    /* ---------- Filtro, ordenação, torres ---------- */
+    function allTowers() {
+        const set = new Set(initTowers);
+        agentsMap.forEach(a => { if (a.tower) set.add(String(a.tower)); });
+        return Array.from(set).sort((x, y) => x.localeCompare(y, 'pt-BR'));
+    }
+    const towerOk = (o) => !ui.tower || String(o.tower || '') === ui.tower;
+
+    function renderTowers() {
+        const towers = allTowers();
+        const box = $('towerBox'), fld = $('fltTowerField');
+        if (ui.tower && !towers.includes(ui.tower)) ui.tower = '';
+        if (towers.length === 0) { box.hidden = true; fld.hidden = true; return; }
+        box.hidden = false;
+        if (towers.length === 1) {
+            box.innerHTML = `<span class="muted">Torre:</span> <span class="org-name">${esc(towers[0])}</span>`;
+            fld.hidden = true;
             return;
         }
+        const opts = [`<option value="">Todas as torres (${towers.length})</option>`].concat(towers.map(t => `<option value="${esc(t)}"${t === ui.tower ? ' selected' : ''}>${esc(t)}</option>`)).join('');
+        if (!box.querySelector('select')) box.innerHTML = `<label for="towerSelect" class="muted">Torre:</label> <select id="towerSelect" aria-label="Selecionar torre"></select>`;
+        const sel = box.querySelector('select');
+        if (sel.dataset.sig !== opts) { sel.innerHTML = opts; sel.dataset.sig = opts; }
+        sel.value = ui.tower;
+        fld.hidden = true; // o seletor do cabeçalho já filtra
+    }
+
+    function agentSearchText(a) {
+        return `${a.operator || ''} ${a.station || ''} ${a.agentId || ''} ${a.currentCallId || ''} ${a.platform || ''}`.toLowerCase();
+    }
+
+    function statusOk(a) {
+        switch (ui.status) {
+            case 'attention': return needsAttention(a);
+            case 'ok': return !isOffline(a) && !needsAttention(a);
+            case 'incall': return !isOffline(a) && !!a.callActive;
+            case 'free': return !isOffline(a) && !a.callActive;
+            case 'offline': return isOffline(a);
+            default: return true;
+        }
+    }
+
+    function sortAgents(list) {
+        const num = (v, d) => { const n = parseFloat(v); return isNaN(n) ? d : n; };
+        const txt = (v) => String(v || '');
+        const byStation = (x, y) => txt(x.station).localeCompare(txt(y.station), 'pt-BR', { numeric: true });
+        const cmp = {
+            priority: (x, y) => {
+                const rank = (a) => needsAttention(a) ? 0 : (isOffline(a) ? 2 : 1);
+                return rank(x) - rank(y) || (rank(x) === 0 ? (isRescue(y) - isRescue(x)) || (hasAudioIssue(y) - hasAudioIssue(x)) : 0) || num(x.mosScore, 9) - num(y.mosScore, 9) || byStation(x, y);
+            },
+            mos: (x, y) => num(x.mosScore, 9) - num(y.mosScore, 9) || byStation(x, y),
+            rtt: (x, y) => num(y.rttMs, -1) - num(x.rttMs, -1) || byStation(x, y),
+            jitter: (x, y) => num(y.jitterMs, -1) - num(x.jitterMs, -1) || byStation(x, y),
+            loss: (x, y) => num(y.lossPct, -1) - num(x.lossPct, -1) || byStation(x, y),
+            station: byStation,
+            operator: (x, y) => txt(x.operator).localeCompare(txt(y.operator), 'pt-BR') || byStation(x, y)
+        }[ui.sort] || byStation;
+        return list.sort(cmp);
+    }
+
+    /* ---------- Renderização (agrupada para suportar milhares de PAs) ---------- */
+    let renderTimer = null;
+    function scheduleRender() {
+        if (renderTimer) return;
+        renderTimer = setTimeout(() => { renderTimer = null; renderAll(); }, 150);
+    }
+
+    function keepFocus(container, attr, fn) {
+        const ae = document.activeElement;
+        const keep = ae && container.contains(ae) && ae.getAttribute(attr) ? ae.getAttribute(attr) : null;
+        fn();
+        if (keep) {
+            const again = Array.from(container.querySelectorAll(`[${attr}]`)).find(n => n.getAttribute(attr) === keep);
+            if (again) again.focus({ preventScroll: true });
+        }
+    }
+
+    function renderHealth() {
+        const tbody = $('healthTableBody');
+        const all = Array.from(stationsMap.values()).filter(towerOk);
+        if (all.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="5" class="empty">Nenhuma estação executou o pré-check ou reportou latência de API ainda.</td></tr>`;
+            $('healthNote').textContent = 'A latência é agregada por servidor (hostname) em janelas de 30 s; endereços completos, caminhos e identificadores não são coletados.';
+            return;
+        }
+        const sev = { NAO_PRONTA: 0, ATENCAO: 1, PRONTA: 2 };
+        all.sort((x, y) => (sev[x.precheck && x.precheck.status] ?? 3) - (sev[y.precheck && y.precheck.status] ?? 3));
+        const LIMIT = 100;
+        const list = all.slice(0, LIMIT);
         tbody.innerHTML = list.map(st => {
             const pc = st.precheck;
             const pcCell = pc
@@ -541,132 +839,355 @@
                 ? st.api.hosts.map(h => `<div>${esc(h.host)} — <b>${esc(h.p95Ms)} ms</b> · ${esc(h.errors)} erro(s) em ${esc(h.count)}</div>`).join('')
                 : `<span class="muted">Sem dados</span>`;
             return `<tr>
-                <td><b>${esc(st.station)}</b></td>
-                <td>${esc(st.operator)}</td>
-                <td>${pcCell}</td>
-                <td>${issues || '<span class="muted">—</span>'}</td>
-                <td>${apiCell}</td>
+                <td data-label="Estação / PA"><b>${esc(st.station)}</b></td>
+                <td data-label="Operador">${esc(st.operator)}</td>
+                <td data-label="Pré-check">${pcCell}</td>
+                <td data-label="Atenção">${issues || '<span class="muted">—</span>'}</td>
+                <td data-label="APIs do CCaaS">${apiCell}</td>
             </tr>`;
+        }).join('');
+        $('healthNote').textContent = (all.length > LIMIT ? `Mostrando as ${LIMIT} estações mais críticas de ${all.length}. ` : '') +
+            'A latência é agregada por servidor (hostname) em janelas de 30 s; endereços completos, caminhos e identificadores não são coletados.';
+    }
+    const PRECHECK_LABELS = { PRONTA: 'Pronta', ATENCAO: 'Atenção', NAO_PRONTA: 'Não pronta' };
+    const PRECHECK_BADGE = { PRONTA: 'badge-ok', ATENCAO: 'badge-warn', NAO_PRONTA: 'badge-danger' };
+    const PRECHECK_ITEM_NAMES = {
+        relay: 'Servidor', rede: 'Rede', rede_rtt: 'Latência', rede_jitter: 'Jitter', rede_perda: 'Perda de pacotes',
+        microfone: 'Microfone', saida_audio: 'Saída de áudio', conexao: 'Conexão', hardware: 'Equipamento'
+    };
+
+    function statusBadge(a) {
+        if (isOffline(a)) return `<span class="badge badge-offline"><span class="badge-sym" aria-hidden="true">○</span>Offline</span>`;
+        if (needsAttention(a)) return `<span class="badge badge-danger"><span class="badge-sym" aria-hidden="true">▲</span>${a.status === 'ALERTA' || !isRescue(a) ? 'Alerta' : 'Risco'}</span>`;
+        return `<span class="badge badge-ok"><span class="badge-sym" aria-hidden="true">✓</span>OK</span>`;
+    }
+
+    function netBadge(a) {
+        const n = netInfo(a);
+        const cls = n.kind === 'wifi' ? 'badge-warn' : 'badge-neutral';
+        return `<span class="badge ${cls}">${esc(n.label)}</span>`;
+    }
+
+    function causeCell(a) {
+        const c = causesOf(a);
+        if (!c.length) return `<span class="muted">Sem anormalidades</span>`;
+        return `<div class="cause">${esc(c[0].text)}${c.length > 1 ? ` <span class="more">+${c.length - 1} fator(es)</span>` : ''}</div>`;
+    }
+
+    function renderLive(agents) {
+        const online = agents.filter(a => !isOffline(a));
+        $('cardTotalAgents').textContent = online.length;
+        $('hintTotalAgents').textContent = agents.length > online.length ? `${agents.length - online.length} offline` : '';
+        const okCount = online.filter(a => !needsAttention(a)).length;
+        $('cardAgentsOk').textContent = online.length ? `${Math.round((okCount / online.length) * 100)}%` : '—';
+        $('hintAgentsOk').textContent = online.length ? `${okCount} de ${online.length}` : '';
+
+        let totalMos = 0, mosN = 0, totalJ = 0, jN = 0, wifi = 0;
+        online.forEach(a => {
+            const m = parseFloat(a.mosScore); if (!isNaN(m) && m > 0) { totalMos += m; mosN++; }
+            const j = parseFloat(a.jitterMs); if (!isNaN(j)) { totalJ += j; jN++; }
+        });
+        agents.forEach(a => { if (netInfo(a).kind === 'wifi') wifi++; });
+        $('cardAvgMos').textContent = mosN ? (totalMos / mosN).toFixed(2) : '—';
+        $('cardAvgJitter').textContent = jN ? `${(totalJ / jN).toFixed(1)}ms` : '—';
+        $('biWifiIssues').textContent = `${wifi} PAs`;
+
+        // Faixa de atenção
+        const attn = online.filter(needsAttention);
+        const bar = $('attentionBar');
+        bar.className = 'attention ' + (attn.length ? 'has-alert' : 'is-clear');
+        $('attentionTitle').textContent = attn.length
+            ? `${attn.length} ${attn.length === 1 ? 'PA precisa' : 'PAs precisam'} de atenção agora`
+            : 'Nenhuma PA precisa de atenção agora';
+        const aud = attn.filter(hasAudioIssue).length, resc = attn.filter(isRescue).length;
+        $('attentionSub').textContent = attn.length ? `${aud} com falha de áudio · ${resc} com risco de queda em chamada` : '';
+        const btnA = $('btnAttention');
+        btnA.hidden = attn.length === 0 && ui.status !== 'attention';
+        btnA.setAttribute('aria-pressed', String(ui.status === 'attention'));
+        btnA.textContent = ui.status === 'attention' ? 'Mostrar todas as PAs' : 'Ver só as que precisam de atenção';
+
+        // Lista filtrada, ordenada e paginada
+        const q = ui.q.trim().toLowerCase();
+        const list = sortAgents(agents.filter(a => statusOk(a) && (!q || agentSearchText(a).includes(q))));
+        const pages = Math.max(1, Math.ceil(list.length / PAGE_SIZE));
+        if (ui.page >= pages) ui.page = pages - 1;
+        const from = ui.page * PAGE_SIZE;
+        const slice = list.slice(from, from + PAGE_SIZE);
+
+        $('resultCount').textContent = agents.length === 0 ? '' : `${list.length} de ${agents.length} PAs${(q || ui.status !== 'all') ? ' (filtros ativos)' : ''}`;
+        $('pagerInfo').textContent = list.length ? `Mostrando ${from + 1}–${from + slice.length} de ${list.length}` : 'Nenhuma PA para mostrar';
+        $('pagerPage').textContent = `Página ${ui.page + 1} de ${pages}`;
+        $('btnPrev').disabled = ui.page <= 0;
+        $('btnNext').disabled = ui.page >= pages - 1;
+        document.querySelector('.pager').hidden = list.length <= PAGE_SIZE;
+
+        const tbody = $('agentsTableBody');
+        keepFocus(tbody, 'data-open-agent', () => {
+            if (agents.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="11" class="empty">Nenhuma PA conectada a este tenant.</td></tr>`;
+            } else if (slice.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="11" class="empty">Nenhuma PA corresponde aos filtros. Use "Limpar filtros".</td></tr>`;
+            } else {
+                tbody.innerHTML = slice.map(a => {
+                    const key = akey(a);
+                    const audioLabel = AUDIO_ISSUE_LABELS[a.audioIssue];
+                    const audioFlag = audioLabel ? `<div class="txt-crit">${esc(audioLabel)}</div>` : '';
+                    const callStatus = (a.callActive ? `<span class="txt-ok">Em chamada (${esc((a.currentCallId || '').slice(-6))})</span>` : `<span class="muted">Livre</span>`) + audioFlag;
+                    const cpuBadge = a.cpuStress === 'ALTO_CONSUMO_RAM'
+                        ? `<span class="badge badge-danger">Alta carga</span>` : `<span class="badge badge-neutral">Normal</span>`;
+                    const rescue = isRescue(a);
+                    const mosDisplay = rescue
+                        ? `<b class="txt-crit">${esc(a.mosScore)} (risco de queda)</b>`
+                        : `<b>${esc(a.mosScore ?? 'N/D')}</b> <span class="muted">/ 4.50</span>`;
+                    const fb = cmdFeedback.get(key);
+                    const cmdFlag = fb && fb.state === 'queued' ? `<span class="cmd-flag">Limpeza enfileirada para o pós-chamada</span>` : '';
+                    const name = `${a.station || a.agentId}${a.operator ? ' — ' + a.operator : ''}`;
+                    return `<tr class="${rescue ? 'row-crit' : (needsAttention(a) ? 'row-attn' : '')}${ui.selected === key ? ' row-selected' : ''}">
+                        <td data-label="Status">${statusBadge(a)}</td>
+                        <td data-label="Plataforma"><span class="plat">${esc(a.platform || 'WebRTC')}</span></td>
+                        <td data-label="Estação / PA"><b>${esc(a.station)}</b>${a.tower ? ` <span class="muted">· ${esc(a.tower)}</span>` : ''}</td>
+                        <td data-label="Operador">${esc(a.operator)}</td>
+                        <td data-label="Rede">${netBadge(a)}</td>
+                        <td data-label="Carga">${cpuBadge}</td>
+                        <td data-label="MOS">${mosDisplay}</td>
+                        <td data-label="RTT | Jitter | Perda" class="num">${esc(a.rttMs || 0)} ms | ${esc(a.jitterMs || 0)} ms | ${esc(a.lossPct || 0)}%</td>
+                        <td data-label="Chamada">${callStatus}</td>
+                        <td data-label="Causa provável">${causeCell(a)}</td>
+                        <td class="cell-action">${cmdFlag}<button class="btn-action" type="button" data-open-agent="${esc(key)}" aria-label="Abrir detalhes da PA ${esc(name)}">Detalhes</button></td>
+                    </tr>`;
+                }).join('');
+            }
+        });
+    }
+
+    function renderCalls() {
+        const calls = callsList.filter(towerOk);
+        $('cardTotalCalls').textContent = calls.length;
+        const good = calls.filter(c => c.classificacao === 'EXCELENTE' || c.classificacao === 'BOA').length;
+        if (calls.length >= MIN_SAMPLE_CALLS) {
+            $('cardSuccessCalls').textContent = `${Math.round((good / calls.length) * 100)}%`;
+            $('hintSuccessCalls').textContent = `${good} de ${calls.length} chamadas`;
+        } else {
+            $('cardSuccessCalls').textContent = calls.length ? `${good} de ${calls.length}` : '—';
+            $('hintSuccessCalls').textContent = `Amostra insuficiente (mín. ${MIN_SAMPLE_CALLS} chamadas)`;
+        }
+
+        const SHOW = 50;
+        $('callsCount').textContent = calls.length > SHOW ? `Mostrando as ${SHOW} chamadas mais recentes de ${calls.length}.` : '';
+        const tbody = $('callsTableBody');
+        if (calls.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="10" class="empty">Nenhuma chamada finalizada neste turno.</td></tr>`;
+            return;
+        }
+        tbody.innerHTML = calls.slice(0, SHOW).map(c => {
+            const tagClass = c.classificacao === 'CRÍTICA' ? 'badge-danger' : (c.classificacao === 'DEGRADADA' ? 'badge-warn' : 'badge-ok');
+            const sym = c.classificacao === 'CRÍTICA' ? '▲' : (c.classificacao === 'DEGRADADA' ? '!' : '✓');
+            const durMin = Math.floor((c.durationSeconds || 0) / 60);
+            const durSec = (c.durationSeconds || 0) % 60;
+            return `
+                <tr>
+                    <td data-label="Classificação"><span class="badge ${tagClass}"><span class="badge-sym" aria-hidden="true">${sym}</span>${esc(c.classificacao)}</span>${(c.incidentesAudio && c.incidentesAudio.length) ? `<div class="txt-crit" style="font-size: var(--fs-xs); margin-top: 2px;">Áudio: ${esc(c.incidentesAudio.map(code => AUDIO_ISSUE_LABELS[code] || code).join(', '))}</div>` : ''}</td>
+                    <td data-label="Plataforma"><span class="plat">${esc(c.platform || 'WebRTC')}</span></td>
+                    <td data-label="ID da interação"><code>${esc(c.interactionId)}</code></td>
+                    <td data-label="Operador / PA">${esc(c.operator)} (${esc(c.station)})</td>
+                    <td data-label="Horário">${esc(c.startTime ? new Date(c.startTime).toLocaleTimeString('pt-BR') : '--:--')}</td>
+                    <td data-label="Duração">${durMin}m ${durSec}s</td>
+                    <td data-label="MOS médio / mín."><b>${esc(c.mosMedio)}</b> / ${esc(c.mosMinimo)}</td>
+                    <td data-label="Jitter pico">${esc(c.jitterPicoMs)}ms</td>
+                    <td data-label="Perda">${esc(c.perdaPacotesPct)}%</td>
+                    <td data-label="Protocolo">${esc(c.protocolo)}</td>
+                </tr>`;
         }).join('');
     }
 
     function renderAll() {
+        renderTowers();
+        const agents = Array.from(agentsMap.values()).filter(towerOk);
+        renderLive(agents);
+        renderCalls();
         renderHealth();
-        const agents = Array.from(agentsMap.values());
-        document.getElementById('cardTotalAgents').textContent = agents.length;
+        renderPanel();
+    }
 
-        const okCount = agents.filter(a => a.status === 'OK').length;
-        document.getElementById('cardAgentsOk').textContent = agents.length > 0 ? `${Math.round((okCount / agents.length) * 100)}%` : "100%";
+    /* ---------- Painel de detalhes da PA e limpeza de cache ---------- */
+    let panelOpener = null;
 
-        let totalMos = 0;
-        let validMosCount = 0;
-        let totalJitter = 0;
-        let wifiCount = 0;
-
-        agents.forEach(a => {
-            const m = parseFloat(a.mosScore);
-            if (!isNaN(m) && m > 0) {
-                totalMos += m;
-                validMosCount++;
-            }
-            const j = parseFloat(a.jitterMs);
-            if (!isNaN(j)) totalJitter += j;
-            if ((a.networkType || '').includes('WI_FI') || (a.protocol || '').includes('WIFI')) wifiCount++;
-        });
-
-        if (validMosCount > 0) {
-            document.getElementById('cardAvgMos').textContent = (totalMos / validMosCount).toFixed(2);
-            document.getElementById('cardAvgJitter').textContent = `${(totalJitter / agents.length).toFixed(1)}ms`;
-        }
-
-        document.getElementById('biWifiIssues').textContent = `${wifiCount} PAs`;
-
-        // Renderiza Tabela de PAs
-        const tbodyAgents = document.getElementById('agentsTableBody');
-        if (agents.length === 0) {
-            tbodyAgents.innerHTML = `<tr><td colspan="10" class="empty">Nenhuma PA conectada a este tenant.</td></tr>`;
-        } else {
-            tbodyAgents.innerHTML = agents.map(a => {
-                const badgeClass = a.status === 'OK' ? 'badge-ok' : (a.status === 'OFFLINE' ? 'badge-offline' : 'badge-danger');
-                const audioLabel = AUDIO_ISSUE_LABELS[a.audioIssue];
-                const audioFlag = audioLabel ? `<div class="txt-crit">${esc(audioLabel)}</div>` : '';
-                const callStatus = (a.callActive ? `<span class="txt-ok">Em chamada (${esc((a.currentCallId || '').slice(-6))})</span>` : `<span class="muted">Livre</span>`) + audioFlag;
-                
-                // Badge de Wi-Fi vs Cabo
-                const isWifi = (a.networkType || '').includes('WI_FI') || (a.protocol || '').includes('WIFI');
-                const netBadge = isWifi 
-                    ? `<span class="badge badge-warn">Wi-Fi</span>`
-                    : `<span class="badge badge-neutral">Ethernet</span>`;
-
-                // Badge de Stress de CPU
-                const isHighCpu = a.cpuStress === 'ALTO_CONSUMO_RAM';
-                const cpuBadge = isHighCpu
-                    ? `<span class="badge badge-danger">Alta carga</span>`
-                    : `<span class="badge badge-neutral">Normal</span>`;
-
-                // Alerta In-Call MOS Rescue
-                const isRescueNeeded = a.callActive && Number(a.mosScore) < 3.30;
-                const mosDisplay = isRescueNeeded
-                    ? `<b class="txt-crit">${esc(a.mosScore)} (risco de queda)</b>`
-                    : `<b>${esc(a.mosScore ?? 'N/D')}</b> <span class="muted">/ 4.50</span>`;
-
-                return `
-                    <tr class="${isRescueNeeded ? 'row-crit' : ''}">
-                        <td><span class="badge ${badgeClass}">${esc(a.status)}</span></td>
-                        <td><span class="plat">${esc(a.platform || 'WebRTC')}</span></td>
-                        <td><b>${esc(a.station)}</b></td>
-                        <td>${esc(a.operator)}</td>
-                        <td>${netBadge}</td>
-                        <td>${cpuBadge}</td>
-                        <td>${mosDisplay}</td>
-                        <td class="num">${esc(a.rttMs || 0)} ms | ${esc(a.jitterMs || 0)} ms</td>
-                        <td>${callStatus}</td>
-                        <td>
-                            <button class="btn-action btn-clear" data-clear-agent="${esc(a.agentId)}">
-                                Limpar cache
-                            </button>
-                        </td>
-                    </tr>
-                `;
-            }).join('');
-        }
-
-        // Renderiza Chamadas
-        document.getElementById('cardTotalCalls').textContent = callsList.length;
-        const goodCalls = callsList.filter(c => c.classificacao === 'EXCELENTE' || c.classificacao === 'BOA').length;
-        document.getElementById('cardSuccessCalls').textContent = callsList.length > 0 ? `${Math.round((goodCalls / callsList.length) * 100)}%` : "100%";
-
-        const tbodyCalls = document.getElementById('callsTableBody');
-        if (callsList.length === 0) {
-            tbodyCalls.innerHTML = `<tr><td colspan="10" class="empty">Nenhuma chamada finalizada neste turno.</td></tr>`;
-        } else {
-            tbodyCalls.innerHTML = callsList.slice(0, 30).map(c => {
-                const tagClass = c.classificacao === 'CRÍTICA' ? 'badge-danger' : (c.classificacao === 'DEGRADADA' ? 'badge-warn' : 'badge-ok');
-                const durMin = Math.floor((c.durationSeconds || 0) / 60);
-                const durSec = (c.durationSeconds || 0) % 60;
-                return `
-                    <tr>
-                        <td><span class="badge ${tagClass}">${esc(c.classificacao)}</span>${(c.incidentesAudio && c.incidentesAudio.length) ? `<div class="txt-crit" style="font-size: var(--fs-xs); margin-top: 2px;">Áudio: ${esc(c.incidentesAudio.map(code => AUDIO_ISSUE_LABELS[code] || code).join(', '))}</div>` : ''}</td>
-                        <td><span class="plat">${esc(c.platform || 'WebRTC')}</span></td>
-                        <td><code>${esc(c.interactionId)}</code></td>
-                        <td>${esc(c.operator)} (${esc(c.station)})</td>
-                        <td>${esc(c.startTime ? new Date(c.startTime).toLocaleTimeString('pt-BR') : '--:--')}</td>
-                        <td>${durMin}m ${durSec}s</td>
-                        <td><b>${esc(c.mosMedio)}</b> / ${esc(c.mosMinimo)}</td>
-                        <td>${esc(c.jitterPicoMs)}ms</td>
-                        <td>${esc(c.perdaPacotesPct)}%</td>
-                        <td>${esc(c.protocolo)}</td>
-                    </tr>
-                `;
-            }).join('');
+    function openPanel(key, opener) {
+        ui.selected = key; ui.confirming = null;
+        panelOpener = opener || null;
+        $('agentPanel').hidden = false; $('panelBackdrop').hidden = false;
+        renderPanel();
+        $('btnClosePanel').focus();
+        scheduleRender();
+    }
+    function closePanel() {
+        ui.selected = null; ui.confirming = null;
+        $('agentPanel').hidden = true; $('panelBackdrop').hidden = true;
+        const key = panelOpener && panelOpener.getAttribute('data-open-agent');
+        panelOpener = null;
+        renderAll();
+        if (key) {
+            const again = Array.from(document.querySelectorAll('[data-open-agent]')).find(n => n.getAttribute('data-open-agent') === key);
+            if (again) again.focus();
         }
     }
 
+    function fmtDate(v) { const d = new Date(v); return isNaN(d) ? '—' : d.toLocaleTimeString('pt-BR'); }
+
+    function renderPanel() {
+        const panel = $('agentPanel');
+        if (!ui.selected) { panel.hidden = true; $('panelBackdrop').hidden = true; return; }
+        const a = agentsMap.get(ui.selected);
+        const body = $('apBody');
+        keepFocus(body, 'data-keep', () => {
+            if (!a) {
+                $('apTitle').textContent = 'PA indisponível';
+                body.innerHTML = `<p>Esta PA não está mais na lista (saiu do relay ou foi removida).</p>`;
+                return;
+            }
+            const n = netInfo(a);
+            const causes = causesOf(a);
+            const fb = cmdFeedback.get(ui.selected);
+            $('apTitle').textContent = `${a.station || a.agentId}${a.operator ? ' — ' + a.operator : ''}`;
+            const causeHtml = causes.length
+                ? causes.map(c => `<li class="${c.crit ? 'crit' : ''}">${esc(c.text)}</li>`).join('')
+                : `<li class="none">Sem anormalidades nos dados recebidos.</li>`;
+            let cmdHtml;
+            if (ui.confirming === ui.selected) {
+                cmdHtml = `<p><b>Confirmar limpeza segura de cache na estação ${esc(a.station || a.agentId)}?</b><br>${a.callActive ? 'A PA está em chamada: o comando será enfileirado e só executa no pós-chamada.' : 'A PA está livre: o comando será executado agora.'}</p>
+                    <div class="row"><button class="btn-danger" type="button" data-confirm-clear data-keep="confirm">Confirmar limpeza</button>
+                    <button class="btn-quiet" type="button" data-cancel-clear data-keep="cancel">Cancelar</button></div>`;
+            } else {
+                cmdHtml = `<p>Remove o cache de telefonia da estação. Durante uma chamada ativa o comando não executa: fica enfileirado para o pós-chamada.</p>
+                    <div class="row"><button class="btn-action" type="button" data-clear-agent="${esc(ui.selected)}" data-keep="clear" ${isOffline(a) ? 'disabled' : ''}>Limpar cache</button></div>${isOffline(a) ? '<p class="muted" style="margin-top:8px">Estação offline: indisponível.</p>' : ''}`;
+            }
+            const fbHtml = fb ? `<div class="cmd-state ${esc(fb.state)}" data-cmd-state>${esc(fb.text)} <span class="muted">(${esc(fmtDate(fb.ts))})</span></div>` : '';
+            body.innerHTML = `
+                <h3>Situação</h3>
+                <dl class="ap-dl">
+                    <dt>Status</dt><dd>${statusBadge(a)}</dd>
+                    <dt>Plataforma</dt><dd>${esc(a.platform || 'WebRTC')}</dd>
+                    ${a.tower ? `<dt>Torre</dt><dd>${esc(a.tower)}</dd>` : ''}
+                    <dt>ID da PA</dt><dd><code>${esc(a.agentId)}</code></dd>
+                    <dt>Chamada</dt><dd>${a.callActive ? `Em chamada (${esc(a.currentCallId || 'sem ID')})` : 'Livre'}</dd>
+                    <dt>Última leitura</dt><dd>${esc(fmtDate(a.lastSeen))}</dd>
+                </dl>
+                <h3>Causa provável</h3>
+                <ul class="ap-causes">${causeHtml}</ul>
+                <h3>Métricas</h3>
+                <dl class="ap-dl">
+                    <dt>MOS (G.107)</dt><dd>${esc(a.mosScore ?? 'N/D')} / 4.50</dd>
+                    <dt>RTT</dt><dd>${esc(a.rttMs || 0)} ms</dd>
+                    <dt>Jitter</dt><dd>${esc(a.jitterMs || 0)} ms</dd>
+                    <dt>Perda de pacotes</dt><dd>${esc(a.lossPct || 0)}%</dd>
+                    <dt>Rede</dt><dd>${esc(n.label)} <span class="muted">(reportado: ${esc(a.networkType || 'n/d')})</span></dd>
+                    <dt>Protocolo</dt><dd>${esc(a.protocol || 'n/d')}</dd>
+                    <dt>Carga da máquina</dt><dd>${a.cpuStress === 'ALTO_CONSUMO_RAM' ? 'Alta carga' : 'Normal'}</dd>
+                </dl>
+                <h3>Remediação pós-chamada</h3>
+                <div class="ap-cmd">${cmdHtml}${fbHtml}</div>`;
+        });
+    }
+
+    function sendRemoteClearCache(key) {
+        const a = agentsMap.get(key);
+        if (!a) return;
+        if (!ws || ws.readyState !== WebSocket.OPEN) {
+            cmdFeedback.set(key, { state: 'fail', text: 'Sem conexão com o relay: comando não enviado.', ts: Date.now() });
+            showToast('Sem conexão com o relay: o comando não foi enviado.', 'err');
+            renderPanel();
+            return;
+        }
+        ws.send(JSON.stringify({ type: 'SUPERVISOR_COMMAND', targetAgentId: a.agentId, command: 'SAFE_CACHE_CLEAR' }));
+        cmdFeedback.set(key, { state: 'sent', text: 'Comando enviado. Aguardando retorno da PA…', ts: Date.now() });
+        showToast(`Limpeza de cache enviada para a estação ${a.station || a.agentId}.`, 'ok');
+    }
+
+    function handleCommandFeedback(msg) {
+        const key = `${msg.tower || ''}|${msg.agentId}`;
+        const r = msg.result || {};
+        const a = agentsMap.get(key);
+        const who = (a && a.station) || String(msg.agentId);
+        let fb;
+        if (r.inCall) {
+            fb = { state: 'queued', text: 'Enfileirado para o pós-chamada: a PA está em atendimento e a limpeza roda ao encerrar.' };
+            showToast(`Estação ${who}: limpeza enfileirada para o pós-chamada.`, 'warn');
+        } else if (r.success) {
+            fb = { state: 'done', text: 'Cache limpo com sucesso.' };
+            showToast(`Estação ${who}: cache limpo com sucesso.`, 'ok');
+        } else {
+            fb = { state: 'fail', text: r.message || 'Ação não executada.' };
+            showToast(`Estação ${who}: ${r.message || 'ação não executada.'}`, 'err');
+        }
+        fb.ts = Date.now();
+        cmdFeedback.set(key, fb);
+        scheduleRender();
+    }
+
+    /* ---------- Abas e eventos ---------- */
+    function switchTab(tab) {
+        ui.tab = tab;
+        const map = { live: ['tabLiveBtn', 'tabContentLive'], calls: ['tabCallsBtn', 'tabContentCalls'], health: ['tabHealthBtn', 'tabContentHealth'], bi: ['tabBiBtn', 'tabContentBi'] };
+        Object.entries(map).forEach(([k, [btn, pane]]) => {
+            $(btn).classList.toggle('active', k === tab);
+            $(btn).setAttribute('aria-selected', String(k === tab));
+            $(pane).hidden = k !== tab;
+        });
+    }
+
+    function resetPageAndRender() { ui.page = 0; renderAll(); }
+
+    document.querySelectorAll('.tab-btn').forEach(b => b.addEventListener('click', () => switchTab(b.dataset.tab)));
+    $('btnSubmitLogin').addEventListener('click', authenticateSupervisor);
+    $('btnLogout').addEventListener('click', logoutSupervisor);
+    $('btnReconnect').addEventListener('click', () => { attempt = 0; connectWs(); });
+    $('inputTenantKey').addEventListener('keypress', (e) => { if (e.key === 'Enter') authenticateSupervisor(); });
+
+    $('fltSearch').addEventListener('input', (e) => { ui.q = e.target.value; resetPageAndRender(); });
+    $('fltStatus').addEventListener('change', (e) => { ui.status = e.target.value; resetPageAndRender(); });
+    $('fltSort').addEventListener('change', (e) => { ui.sort = e.target.value; resetPageAndRender(); });
+    $('fltTower').addEventListener('change', (e) => { ui.tower = e.target.value; resetPageAndRender(); });
+    $('towerBox').addEventListener('change', (e) => { if (e.target.id === 'towerSelect') { ui.tower = e.target.value; resetPageAndRender(); } });
+    $('btnAttention').addEventListener('click', () => {
+        ui.status = ui.status === 'attention' ? 'all' : 'attention';
+        $('fltStatus').value = ui.status;
+        resetPageAndRender();
+    });
+    $('btnClearFilters').addEventListener('click', () => {
+        ui.q = ''; ui.status = 'all'; ui.sort = 'priority'; ui.tower = '';
+        $('fltSearch').value = ''; $('fltStatus').value = 'all'; $('fltSort').value = 'priority';
+        resetPageAndRender();
+    });
+    $('btnPrev').addEventListener('click', () => { ui.page = Math.max(0, ui.page - 1); renderAll(); });
+    $('btnNext').addEventListener('click', () => { ui.page++; renderAll(); });
+
+    $('agentsTableBody').addEventListener('click', (e) => {
+        const btn = e.target.closest('[data-open-agent]');
+        if (btn) openPanel(btn.getAttribute('data-open-agent'), btn);
+    });
+    $('apBody').addEventListener('click', (e) => {
+        if (e.target.closest('[data-clear-agent]')) { ui.confirming = ui.selected; renderPanel(); const c = $('apBody').querySelector('[data-keep="confirm"]'); if (c) c.focus(); }
+        else if (e.target.closest('[data-confirm-clear]')) { const k = ui.selected; ui.confirming = null; sendRemoteClearCache(k); renderPanel(); const b = $('apBody').querySelector('[data-keep="clear"]'); if (b) b.focus(); }
+        else if (e.target.closest('[data-cancel-clear]')) { ui.confirming = null; renderPanel(); const b = $('apBody').querySelector('[data-keep="clear"]'); if (b) b.focus(); }
+    });
+    $('btnClosePanel').addEventListener('click', closePanel);
+    $('panelBackdrop').addEventListener('click', closePanel);
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && ui.selected) closePanel();
+        // Mantém o foco dentro do painel enquanto aberto
+        if (e.key === 'Tab' && ui.selected) {
+            const f = Array.from($('agentPanel').querySelectorAll('button:not([disabled])'));
+            if (!f.length) return;
+            const first = f[0], last = f[f.length - 1];
+            if (!$('agentPanel').contains(document.activeElement)) { e.preventDefault(); first.focus(); }
+            else if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+            else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+        }
+    });
+
     // Inicialização e Route Guard Estrito
     (async function initAuthGuard() {
-        const sessionTenant = sessionStorage.getItem('vv_tenant_key');
-        const candidateKey = sessionTenant; // chaves nunca são aceitas via URL (vazam em logs e histórico)
-
+        const candidateKey = sessionStorage.getItem('vv_tenant_key'); // chaves nunca são aceitas via URL (vazam em logs e histórico)
         if (candidateKey) {
             const check = await validateTenantKey(candidateKey);
             if (check) {
@@ -681,15 +1202,8 @@
                 return;
             }
         }
-
-        // Sem credenciais válidas: força o modal
         showLoginModal();
     })();
-
-    // Suporte a pressionar Enter no formulário
-    document.getElementById('inputTenantKey').addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') authenticateSupervisor();
-    });
 </script>
 
 </body>

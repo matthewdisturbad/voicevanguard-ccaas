@@ -76,7 +76,7 @@ window.endCall = () => { (window.__pcs||[]).forEach(p => p.close()); };
 
     // Telemetria aparece no console
     await sup.bringToFront();
-    await sup.waitForFunction(() => document.querySelectorAll('#agentsTableBody [data-clear-agent]').length > 0, null, { timeout: 20000 })
+    await sup.waitForFunction(() => document.querySelectorAll('#agentsTableBody [data-open-agent]').length > 0, null, { timeout: 20000 })
       .then(() => check('telemetria da extensão chega ao console do supervisor', true), () => check('telemetria da extensão chega ao console do supervisor', false));
     await sup.screenshot({ path: path.join(OUT, 'console-em-chamada.png') });
     const rowText = await sup.locator('#agentsTableBody').innerText();
@@ -84,10 +84,13 @@ window.endCall = () => { (window.__pcs||[]).forEach(p => p.close()); };
     check('chamada ativa exibida', /em chamada/i.test(rowText));
 
     // In-Call Lock: comando durante a chamada deve ser adiado
-    const feedback = new Promise(res => sup.on('dialog', d => { const m = d.message(); d.accept(); if (/Feedback/.test(m)) res(m); }));
-    await sup.locator('[data-clear-agent]').first().click();
-    const fb = await Promise.race([feedback, sleep(6000).then(() => 'TIMEOUT')]);
+    await sup.locator('[data-open-agent]').first().click();   // limpeza agora vive no painel de detalhes
+    await sup.locator('#agentPanel [data-clear-agent]').click();
+    await sup.locator('#agentPanel [data-confirm-clear]').click();
+    const fb = await sup.waitForFunction(() => { const e = document.querySelector('#agentPanel [data-cmd-state]'); return e && /pós-chamada/.test(e.textContent) ? e.textContent : null; }, null, { timeout: 6000 })
+      .then(h => h.jsonValue(), () => 'TIMEOUT');
     check('In-Call Lock: limpeza adiada durante chamada ativa', /adiada|agendada|chamada/i.test(fb), JSON.stringify(fb));
+    await sup.click('#btnClosePanel');
 
     // Áudio parado no meio da chamada (o sender deixa de enviar; o hook vê o inbound parar)
     await agentPage.evaluate(() => window.__pcs[0].getSenders()[0].replaceTrack(null));
