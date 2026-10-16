@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>VoiceVanguard CCaaS</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+        body { width: 340px; background: #f8fafc; color: #1e293b; padding: 14px; }
+
+        .header { display: flex; align-items: center; justify-content: space-between; border-bottom: 2px solid #0284c7; padding-bottom: 8px; margin-bottom: 12px; }
+        .header-title { display: flex; align-items: center; gap: 8px; }
+        .header-title h1 { font-size: 14px; font-weight: 700; color: #0284c7; }
+        .status-badge { font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 12px; text-transform: uppercase; }
+        .badge-ok { background: #dcfce7; color: #15803d; }
+        .badge-warn { background: #fef9c3; color: #a16207; }
+        .badge-danger { background: #fee2e2; color: #b91c1c; }
+        .badge-idle { background: #e2e8f0; color: #475569; }
+
+        .card { background: #ffffff; border-radius: 8px; padding: 12px; box-shadow: 0 1px 4px rgba(0,0,0,0.06); margin-bottom: 12px; border-left: 4px solid #0284c7; }
+        .card-row { display: flex; justify-content: space-between; font-size: 12px; padding: 4px 0; border-bottom: 1px dashed #f1f5f9; }
+        .card-row:last-child { border-bottom: none; }
+        .label { color: #64748b; font-weight: 500; }
+        .val { font-weight: 700; color: #0f172a; }
+
+        .btn { width: 100%; border: none; padding: 8px; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; }
+        .btn-clear { background: #0284c7; color: white; margin-bottom: 6px; }
+        .btn-clear:hover { background: #0369a1; }
+
+        .history-box { background: #ffffff; border-radius: 8px; padding: 10px; box-shadow: 0 1px 4px rgba(0,0,0,0.06); margin-bottom: 12px; max-height: 140px; overflow-y: auto; font-size: 11px; }
+        .tenant-box { font-size: 10.5px; color: #64748b; display: flex; justify-content: space-between; align-items: center; margin-top: 10px; padding-top: 8px; border-top: 1px solid #e2e8f0; }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <div class="header-title">
+        <span>🛡️</span>
+        <h1>VoiceVanguard CCaaS</h1>
+    </div>
+    <span id="badgeState" class="status-badge badge-idle">Em Espera</span>
+</div>
+
+<div class="card" id="callCard">
+    <div class="card-row">
+        <span class="label">ID da Chamada:</span>
+        <span class="val" id="valCallId">--</span>
+    </div>
+    <div class="card-row">
+        <span class="label">Voz (Score MOS):</span>
+        <span class="val" id="valMos">Pronto</span>
+    </div>
+    <div class="card-row">
+        <span class="label">Latência RTT:</span>
+        <span class="val" id="valRtt">Pronto</span>
+    </div>
+    <div class="card-row">
+        <span class="label">Jitter Áudio:</span>
+        <span class="val" id="valJitter">0 ms</span>
+    </div>
+    <div class="card-row">
+        <span class="label">Perda de Pacotes:</span>
+        <span class="val" id="valLoss">0.0 %</span>
+    </div>
+    <div class="card-row">
+        <span class="label">Protocolo Mídia:</span>
+        <span class="val" id="valProto">UDP (RTP)</span>
+    </div>
+</div>
+
+<div class="history-box" id="historyBox">
+    <div style="font-weight:700; color:#0284c7; margin-bottom:6px;">📞 Chamadas Recentes (Auditoria)</div>
+    <div id="historyList" style="color:#94a3b8; text-align:center; padding:6px 0;">Nenhuma chamada finalizada neste turno.</div>
+</div>
+
+<div style="margin-bottom: 8px;">
+    <button class="btn btn-clear" id="btnClearCache">
+        🧹 Limpeza Segura de Cache (Preserva Login)
+    </button>
+    <div id="cacheFeedback" style="font-size: 10.5px; text-align: center; color: #64748b; min-height: 14px;"></div>
+</div>
+
+<div class="tenant-box">
+    <span>Licença: <b id="lblTenant">DEMO</b></span>
+    <span id="lblStation">PA-0000</span>
+</div>
+
+<script src="popup.js"></script>
+</body>
+</html>

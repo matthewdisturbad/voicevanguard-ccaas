@@ -1,0 +1,48 @@
+{
+  "manifest_version": 3,
+  "name": "VoiceVanguard &bull; Universal CCaaS WebRTC Sentinel",
+  "version": "1.0.0",
+  "description": "Enterprise Voice Observability & ITU-T G.107 MOS Auditing for Genesys Cloud, Amazon Connect, Twilio, Webex, Five9 and any cloud contact center.",
+  "author": "TrustCo Technologies",
+  "icons": {
+    "16": "icon16.png",
+    "48": "icon48.png",
+    "128": "icon128.png"
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icon16.png",
+      "48": "icon48.png",
+      "128": "icon128.png"
+    },
+    "default_title": "VoiceVanguard Universal Sentinel"
+  },
+  "permissions": [
+    "storage",
+    "alarms",
+    "browsingData"
+  ],
+  "host_permissions": [
+    "<all_urls>"
+  ],
+  "content_scripts": [
+    {
+      "matches": [
+        "https://*/*",
+        "http://*/*"
+      ],
+      "js": ["content.js"],
+      "run_at": "document_start"
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["injected_webrtc_hook.js"],
+      "matches": ["<all_urls>"]
+    }
+  ],
+  "background": {
+    "service_worker": "background.js"
+  }
+}

@@ -1,0 +1,828 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VoiceVanguard CCaaS — Observabilidade WebRTC & Qualidade de Voz em Tempo Real</title>
+    <meta name="description" content="Plataforma enterprise de observabilidade WebRTC para contact centers em nuvem (Genesys Cloud CX, Amazon Connect e Twilio). Auditoria contínua ITU-T G.107 MOS, detecção de Wi-Fi e remediação remota de cache.">
+    
+    <!-- Favicon SVG -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%230284c7'%3E%3Cpath d='M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm-1 6h2v6h-2V7zm0 8h2v2h-2v-2z'/%3E%3C/svg%3E">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@600;700&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --primary: #0284c7;
+            --primary-dark: #0369a1;
+            --primary-light: #e0f2fe;
+            --accent: #38bdf8;
+            --bg: #ffffff;
+            --bg-alt: #f8fafc;
+            --border: #e2e8f0;
+            --border-dark: #cbd5e1;
+            --text-main: #0f172a;
+            --text-muted: #475569;
+            --text-sub: #64748b;
+            --dark-card: #0f172a;
+            --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            --font-heading: 'Space Grotesk', -apple-system, BlinkMacSystemFont, sans-serif;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        html { scroll-behavior: smooth; }
+        body {
+            font-family: var(--font-sans);
+            background: var(--bg);
+            color: var(--text-main);
+            line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
+        }
+        a { color: inherit; text-decoration: none; }
+        .container { width: min(1200px, 92vw); margin: 0 auto; }
+
+        /* Top Nav */
+        nav {
+            position: sticky; top: 0; z-index: 100;
+            background: rgba(255, 255, 255, 0.96);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid var(--border);
+        }
+        .nav-inner {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 16px 0;
+        }
+        .brand-box {
+            display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 19px;
+            font-family: var(--font-heading); color: var(--text-main);
+        }
+        .brand-badge-shield {
+            width: 34px; height: 34px; border-radius: 8px;
+            background: linear-gradient(135deg, #0284c7, #0369a1);
+            display: flex; align-items: center; justify-content: center;
+            color: white; font-size: 18px; box-shadow: 0 2px 8px rgba(2, 132, 199, 0.35);
+        }
+        .nav-right { display: flex; align-items: center; gap: 18px; }
+        .nav-menu { display: flex; align-items: center; gap: 24px; font-size: 14px; font-weight: 500; color: var(--text-muted); }
+        .nav-menu a:hover { color: var(--primary); }
+
+        /* Language Toggle Pill */
+        .lang-toggle {
+            display: inline-flex; align-items: center;
+            background: #f1f5f9; border: 1px solid var(--border-dark);
+            border-radius: 20px; padding: 3px 5px; gap: 3px;
+        }
+        .lang-btn {
+            background: transparent; border: none; font-size: 12px; font-weight: 600;
+            padding: 4px 9px; border-radius: 14px; cursor: pointer; color: var(--text-sub);
+            transition: all 0.2s ease; line-height: 1; display: flex; align-items: center; gap: 4px;
+        }
+        .lang-btn.active {
+            background: #ffffff; color: var(--text-main);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.12); font-weight: 700;
+        }
+
+        .btn-nav-login {
+            padding: 8px 16px; border-radius: 6px; font-size: 13.5px; font-weight: 600;
+            background: #0f172a; color: white; transition: background 0.2s;
+        }
+        .btn-nav-login:hover { background: #1e293b; }
+
+        @media (max-width: 860px) { .nav-menu a:not(.btn-nav-login) { display: none; } }
+
+        /* Hero */
+        header {
+            padding: 76px 0 64px;
+            background: radial-gradient(circle at 50% 0%, #f0f9ff 0%, #ffffff 70%);
+            border-bottom: 1px solid var(--border);
+        }
+        .hero-tag {
+            display: inline-flex; align-items: center; gap: 8px;
+            font-size: 12.5px; font-weight: 700; color: #0369a1; background: var(--primary-light);
+            border: 1px solid #bae6fd; padding: 5px 14px; border-radius: 20px; margin-bottom: 22px;
+            letter-spacing: 0.02em; text-transform: uppercase;
+        }
+        h1 {
+            font-family: var(--font-heading);
+            font-size: clamp(2.4rem, 5.2vw, 3.8rem);
+            font-weight: 700; line-height: 1.15; letter-spacing: -0.025em;
+            color: var(--text-main); max-width: 23ch;
+        }
+        .hero-desc {
+            font-size: 18.5px; color: var(--text-muted); max-width: 68ch;
+            margin-top: 20px; line-height: 1.6;
+        }
+        .hero-ctas {
+            display: flex; gap: 14px; margin-top: 36px; flex-wrap: wrap; align-items: center;
+        }
+        .btn-primary {
+            padding: 13px 28px; border-radius: 6px; font-size: 15px; font-weight: 700;
+            background: var(--primary); color: white; display: inline-flex; align-items: center; gap: 8px;
+            box-shadow: 0 4px 14px rgba(2, 132, 199, 0.25); transition: all 0.2s;
+        }
+        .btn-primary:hover { background: var(--primary-dark); transform: translateY(-1px); }
+        .btn-secondary {
+            padding: 13px 26px; border-radius: 6px; font-size: 15px; font-weight: 600;
+            background: white; border: 1px solid var(--border-dark); color: var(--text-main);
+            display: inline-flex; align-items: center; gap: 8px; transition: all 0.2s;
+        }
+        .btn-secondary:hover { background: #f8fafc; border-color: #94a3b8; }
+
+        .hero-grid {
+            display: grid; grid-template-columns: 1.15fr 0.85fr; gap: 48px; align-items: center; margin-top: 40px;
+        }
+        @media (max-width: 960px) { .hero-grid { grid-template-columns: 1fr; } }
+
+        /* Mockup Box */
+        .mockup-frame {
+            background: #0f172a; border-radius: 12px; overflow: hidden;
+            border: 1px solid #334155; box-shadow: 0 20px 35px -8px rgba(0,0,0,0.22);
+        }
+        .mockup-header {
+            background: #1e293b; padding: 10px 14px; display: flex; align-items: center; gap: 10px;
+            border-bottom: 1px solid #334155;
+        }
+        .mockup-dots { display: flex; gap: 6px; }
+        .dot { width: 10px; height: 10px; border-radius: 50%; }
+        .dot-r { background: #ef4444; } .dot-y { background: #f59e0b; } .dot-g { background: #10b981; }
+        .mockup-addr {
+            background: #0f172a; border-radius: 4px; padding: 3px 12px; font-size: 11.5px;
+            color: #94a3b8; font-family: monospace; flex: 1; text-align: center;
+        }
+        .mockup-body { background: #ffffff; padding: 20px; font-size: 12.5px; }
+
+        .vv-ui { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 14px; }
+        .vv-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid #e2e8f0; }
+        .vv-row:last-child { border-bottom: none; }
+        .badge-mos { font-weight: 700; color: #0284c7; background: #e0f2fe; padding: 3px 8px; border-radius: 12px; }
+        .badge-net-cable { background: #dcfce7; color: #166534; padding: 2px 8px; border-radius: 10px; font-weight: 700; font-size: 11px; }
+        .badge-net-wifi { background: #fef3c7; color: #b45309; padding: 2px 8px; border-radius: 10px; font-weight: 700; font-size: 11px; }
+
+        /* Trust Metrics Bar */
+        .trust-bar {
+            display: flex; gap: 48px; margin-top: 48px; padding-top: 36px;
+            border-top: 1px solid var(--border); flex-wrap: wrap;
+        }
+        .metric-card b { display: block; font-size: 24px; font-weight: 700; font-family: var(--font-heading); color: var(--text-main); }
+        .metric-card span { font-size: 13.5px; color: var(--text-sub); }
+
+        /* Features Section */
+        .section { padding: 90px 0; }
+        .sec-head { text-align: center; max-width: 720px; margin: 0 auto 56px; }
+        .sec-tag { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--primary); }
+        .sec-title { font-family: var(--font-heading); font-size: 32px; font-weight: 700; margin-top: 8px; }
+        .sec-desc { font-size: 16px; color: var(--text-muted); margin-top: 12px; }
+
+        .features-grid {
+            display: grid; grid-template-columns: repeat(4, 1fr); gap: 24px;
+        }
+        @media (max-width: 1024px) { .features-grid { grid-template-columns: repeat(2, 1fr); } }
+        @media (max-width: 640px) { .features-grid { grid-template-columns: 1fr; } }
+
+        .feat-box {
+            background: white; border: 1px solid var(--border); border-radius: 12px; padding: 28px;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.02); transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .feat-box:hover { transform: translateY(-3px); box-shadow: 0 10px 15px -3px rgba(0,0,0,0.05); }
+        .feat-icon {
+            width: 44px; height: 44px; border-radius: 10px; background: #e0f2fe; color: var(--primary);
+            display: flex; align-items: center; justify-content: center; font-size: 22px; margin-bottom: 20px;
+        }
+        .feat-box h3 { font-family: var(--font-heading); font-size: 18px; font-weight: 700; margin-bottom: 10px; color: var(--text-main); }
+        .feat-box p { font-size: 14px; color: var(--text-muted); line-height: 1.55; }
+
+        /* Security Banner */
+        .sec-banner {
+            background: #0f172a; color: white; border-radius: 16px; padding: 56px 48px;
+            margin: 40px 0; display: grid; grid-template-columns: 1fr 1fr; gap: 48px; align-items: center;
+        }
+        @media (max-width: 900px) { .sec-banner { grid-template-columns: 1fr; padding: 36px 24px; } }
+        .sec-banner h2 { font-family: var(--font-heading); font-size: 30px; font-weight: 700; margin-bottom: 14px; }
+        .sec-banner p { color: #cbd5e1; font-size: 15px; line-height: 1.6; margin-bottom: 24px; }
+        .sec-checks { list-style: none; display: flex; flex-direction: column; gap: 12px; font-size: 14px; }
+        .sec-checks li { display: flex; align-items: center; gap: 10px; color: #e2e8f0; }
+
+        /* Pricing Section */
+        .pricing-grid {
+            display: grid; grid-template-columns: repeat(3, 1fr); gap: 28px; align-items: stretch;
+        }
+        @media (max-width: 960px) { .pricing-grid { grid-template-columns: 1fr; } }
+        .price-card {
+            background: white; border: 1px solid var(--border); border-radius: 14px; padding: 36px;
+            display: flex; flex-direction: column; justify-content: space-between; position: relative;
+        }
+        .price-card.featured {
+            border: 2px solid var(--primary); box-shadow: 0 12px 24px -6px rgba(2, 132, 199, 0.12);
+        }
+        .price-pill {
+            position: absolute; top: -12px; right: 28px; background: var(--primary);
+            color: white; font-size: 11px; font-weight: 700; text-transform: uppercase;
+            padding: 4px 10px; border-radius: 12px; letter-spacing: 0.05em;
+        }
+        .price-name { font-family: var(--font-heading); font-size: 22px; font-weight: 700; margin-bottom: 8px; }
+        .price-desc { font-size: 14px; color: var(--text-muted); margin-bottom: 24px; min-height: 42px; }
+        .price-rate { font-size: 32px; font-weight: 700; font-family: var(--font-heading); color: var(--text-main); margin-bottom: 20px; }
+        .price-rate span { font-size: 14px; font-weight: 500; color: var(--text-sub); }
+        .price-features { list-style: none; display: flex; flex-direction: column; gap: 12px; font-size: 14px; margin-bottom: 32px; flex: 1; }
+        .price-features li { display: flex; align-items: flex-start; gap: 8px; color: var(--text-main); }
+        .price-features li svg { flex-shrink: 0; color: #16a34a; margin-top: 3px; }
+
+        /* CTA Section */
+        .cta-box {
+            background: radial-gradient(circle at 50% 0%, #0369a1 0%, #0f172a 100%);
+            color: white; border-radius: 16px; padding: 64px 32px; text-align: center; margin: 40px 0 80px;
+        }
+        .cta-box h2 { font-family: var(--font-heading); font-size: 34px; font-weight: 700; margin-bottom: 16px; }
+        .cta-box p { font-size: 17px; color: #cbd5e1; max-width: 600px; margin: 0 auto 32px; }
+
+        /* Footer */
+        footer {
+            border-top: 1px solid var(--border); padding: 50px 0 32px; font-size: 13.5px; color: var(--text-sub);
+            background: var(--bg-alt);
+        }
+        .footer-grid {
+            display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 48px; margin-bottom: 40px;
+        }
+        @media (max-width: 768px) { .footer-grid { grid-template-columns: 1fr; gap: 32px; } }
+        .footer-col h5 { font-size: 12px; font-weight: 700; text-transform: uppercase; color: var(--text-main); margin-bottom: 12px; }
+        .footer-col ul { list-style: none; display: flex; flex-direction: column; gap: 8px; }
+        .footer-col a:hover { color: var(--primary); }
+    </style>
+</head>
+<body>
+
+    <!-- Navegação -->
+    <nav>
+        <div class="container nav-inner">
+            <a class="brand-box" href="/">
+                <div class="brand-badge-shield">🛡️</div>
+                <span>VoiceVanguard CCaaS</span>
+            </a>
+            <div class="nav-right">
+                <div class="nav-menu">
+                    <a href="#recursos" data-i18n="nav_features">Recursos</a>
+                    <a href="#seguranca" data-i18n="nav_security">Segurança</a>
+                    <a href="#planos" data-i18n="nav_pricing">Planos</a>
+                    <a href="mailto:contato@trustco.pro?subject=VoiceVanguard%20Enterprise%20Demo%20Request" data-i18n="nav_demo">Solicitar Demonstração</a>
+                    <a class="btn-nav-login" href="/app" data-i18n="nav_signin">Enterprise Sign In →</a>
+                </div>
+
+                <!-- Language Selector Pill -->
+                <div class="lang-toggle" role="group" aria-label="Language selection">
+                    <button type="button" class="lang-btn active" data-lang="pt" title="Português">
+                        <span>🇧🇷</span> PT
+                    </button>
+                    <button type="button" class="lang-btn" data-lang="en" title="English">
+                        <span>🇺🇸</span> EN
+                    </button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <header>
+        <div class="container">
+            <div class="hero-grid">
+                <div>
+                    <span class="hero-tag" data-i18n="hero_badge">● WebRTC Voice Observability & Sentinel</span>
+                    <h1 data-i18n="hero_title">Inteligência de Qualidade de Voz em Tempo Real para CCaaS.</h1>
+                    <p class="hero-desc" data-i18n="hero_desc">
+                        Monitore a estação de trabalho do atendente diretamente no navegador. Audite pontuações ITU-T G.107 (MOS), antecipe quedas por instabilidade de Wi-Fi e execute limpeza segura de cache remoto nas principais plataformas em nuvem: Genesys Cloud CX, Amazon Connect e Twilio.
+                    </p>
+                    <div class="hero-ctas">
+                        <a class="btn-primary" href="mailto:contato@trustco.pro?subject=VoiceVanguard%20Enterprise%20Demo%20Request" data-i18n="cta_request_demo">
+                            Solicitar Demo Enterprise →
+                        </a>
+                        <a class="btn-secondary" href="/app" data-i18n="cta_signin">
+                            🔑 Enterprise Sign In
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Mockup de Interface -->
+                <div class="mockup-frame">
+                    <div class="mockup-header">
+                        <div class="mockup-dots"><span class="dot dot-r"></span><span class="dot dot-y"></span><span class="dot dot-g"></span></div>
+                        <div class="mockup-addr">voicevanguard.trustco.pro/app</div>
+                    </div>
+                    <div class="mockup-body">
+                        <div class="vv-ui">
+                            <div style="font-weight:700; color:#0f172a; margin-bottom:12px; display:flex; justify-content:space-between; align-items:center;">
+                                <span data-i18n="mock_title">📡 Sentinel Live Telemetry Hub</span>
+                                <span style="background:#dcfce7; color:#166534; font-size:11px; font-weight:700; padding:2px 8px; border-radius:10px;" data-i18n="mock_connected">● Cloud Relay Conectado</span>
+                            </div>
+                            <div class="vv-row">
+                                <div>
+                                    <b data-i18n="mock_agent1">PA-304 &bull; Carlos Lima</b>
+                                    <div style="font-size:11px; color:#64748b;">Sessão WebRTC • Fila Sinistros</div>
+                                </div>
+                                <span class="badge-mos">MOS 4.45</span>
+                                <span class="badge-net-cable" data-i18n="mock_ethernet">🔌 Ethernet</span>
+                            </div>
+                            <div class="vv-row">
+                                <div>
+                                    <b data-i18n="mock_agent2">PA-211 &bull; Mariana Souza</b>
+                                    <div style="font-size:11px; color:#64748b;">Sessão WebRTC • Fila SAC</div>
+                                </div>
+                                <span class="badge-mos" style="background:#fef3c7; color:#b45309;">MOS 3.82</span>
+                                <span class="badge-net-wifi" data-i18n="mock_wifi">📶 Wi-Fi 2.4GHz</span>
+                            </div>
+                            <div class="vv-row" style="background:#f1f5f9; padding:8px; border-radius:6px; margin-top:8px;">
+                                <span style="color:#475569; font-size:11px;" data-i18n="mock_cache_label">Remediação Segura:</span>
+                                <span style="color:#0284c7; font-weight:700; font-size:11px;" data-i18n="mock_cache_val">Trava Ativa: Executa após fim da chamada</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Métricas de Confiança -->
+            <div class="trust-bar">
+                <div class="metric-card">
+                    <b data-i18n="metric_1_val">ITU-T G.107</b>
+                    <span data-i18n="metric_1_label">Cálculo matemático rigoroso do MOS</span>
+                </div>
+                <div class="metric-card">
+                    <b data-i18n="metric_2_val">100% LGPD & GDPR</b>
+                    <span data-i18n="metric_2_label">Zero gravação ou escuta de áudio</span>
+                </div>
+                <div class="metric-card">
+                    <b data-i18n="metric_3_val">&lt; 150ms</b>
+                    <span data-i18n="metric_3_label">Broadcast de telemetria via WebSockets</span>
+                </div>
+                <div class="metric-card">
+                    <b data-i18n="metric_4_val">Multi-Tenant</b>
+                    <span data-i18n="metric_4_label">Isolamento rigoroso por organização</span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Recursos Principais -->
+    <section class="section" id="recursos">
+        <div class="container">
+            <div class="sec-head">
+                <span class="sec-tag" data-i18n="feat_tag">Engenharia Especializada</span>
+                <h2 class="sec-title" data-i18n="feat_title">Tecnologia Feita para a Realidade dos Contact Centers</h2>
+                <p class="sec-desc" data-i18n="feat_desc">Projetado por especialistas em telefonia IP para eliminar a incerteza no diagnóstico de problemas de voz em operadores em home office e contact centers.</p>
+            </div>
+
+            <div class="features-grid">
+                <div class="feat-box">
+                    <div class="feat-icon">📊</div>
+                    <h3 data-i18n="f1_title">Motor MOS ITU-T G.107</h3>
+                    <p data-i18n="f1_desc">Audita em tempo real o jitter, RTT, perda de pacotes e codec (Opus / G.711) para estimar a qualidade de voz percebida sem depender de pesquisas subjetivas.</p>
+                </div>
+                <div class="feat-box">
+                    <div class="feat-icon">📡</div>
+                    <h3 data-i18n="f2_title">Telemetria WebRTC Contínua</h3>
+                    <p data-i18n="f2_desc">Inspeciona estatísticas do navegador através da API padrão WebRTC Stats sem necessidade de instalar drivers de kernel ou softwares invasivos.</p>
+                </div>
+                <div class="feat-box">
+                    <div class="feat-icon">🔌</div>
+                    <h3 data-i18n="f3_title">Wi-Fi vs Cabo Ethernet</h3>
+                    <p data-i18n="f3_desc">Detecta automaticamente quando o atendente está conectado via Wi-Fi residencial sujeito a interferências e alerta supervisores antes da perda da chamada.</p>
+                </div>
+                <div class="feat-box">
+                    <div class="feat-icon">🧹</div>
+                    <h3 data-i18n="f4_title">Remediação Segura de Cache</h3>
+                    <p data-i18n="f4_desc">Comando remoto de limpeza de cache de telefonia com proteção operacional garantida: a faxina só é aplicada após o encerramento seguro da ligação ativa.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Segurança & Arquitetura -->
+    <section class="section" style="background:var(--bg-alt); border-top:1px solid var(--border); border-bottom:1px solid var(--border);" id="seguranca">
+        <div class="container">
+            <div class="sec-banner">
+                <div>
+                    <h2 data-i18n="sec_head">Segurança, Privacidade e Conformidade Rigorosa</h2>
+                    <p data-i18n="sec_sub">
+                        O VoiceVanguard foi projetado do zero sob o princípio de Privacidade por Padrão (Privacy by Design). Nossa infraestrutura analisa unicamente métricas numéricas e cabeçalhos de rede.
+                    </p>
+                    <ul class="sec-checks">
+                        <li>
+                            <span>🔒</span>
+                            <span data-i18n="sec_c1">Zero Gravação de Voz: Nenhum pacote de áudio trafega ou é gravado em nossos servidores.</span>
+                        </li>
+                        <li>
+                            <span>🛡️</span>
+                            <span data-i18n="sec_c2">Conformidade total com LGPD, GDPR e normas bancárias / PCI-DSS.</span>
+                        </li>
+                        <li>
+                            <span>🏢</span>
+                            <span data-i18n="sec_c3">Particionamento Lógico Multi-Tenant com chaves de licença isoladas por BPO.</span>
+                        </li>
+                        <li>
+                            <span>⚡</span>
+                            <span data-i18n="sec_c4">Comunicação ponto-a-ponto protegida por TLS 1.3 e WSS criptografado.</span>
+                        </li>
+                    </ul>
+                </div>
+
+                <div style="background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); border-radius:12px; padding:32px;">
+                    <div style="font-size:12px; font-weight:700; color:var(--accent); text-transform:uppercase; margin-bottom:10px;" data-i18n="sec_arch_label">Arquitetura de Isolamento</div>
+                    <h3 style="font-size:20px; font-weight:700; color:white; margin-bottom:14px;" data-i18n="sec_arch_title">Nenhum dado cruza as fronteiras do seu Tenant</h3>
+                    <p style="font-size:13.5px; color:#94a3b8; line-height:1.6;" data-i18n="sec_arch_desc">
+                        Cada organização (Tenant) possui canais WebSocket e armazenamento de histórico completamente segregados. Supervisores visualizam exclusivamente as métricas de suas próprias estações de trabalho autorizadas.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Planos / Tiers -->
+    <section class="section" id="planos">
+        <div class="container">
+            <div class="sec-head">
+                <span class="sec-tag" data-i18n="plan_tag">Licenciamento Enterprise</span>
+                <h2 class="sec-title" data-i18n="plan_title">Planos Transparentes para Qualquer Escala de CCaaS</h2>
+                <p class="sec-desc" data-i18n="plan_desc">Da avaliação de tecnologia em 50 PAs à operação de BPOs globais com milhares de posições simultâneas.</p>
+            </div>
+
+            <div class="pricing-grid">
+                <!-- Tier 1 -->
+                <div class="price-card">
+                    <div>
+                        <div class="price-name" data-i18n="p1_name">Pilot Evaluation</div>
+                        <div class="price-desc" data-i18n="p1_desc">Ideal para validação técnica e homologação com até 50 posições de atendimento.</div>
+                        <div class="price-rate" data-i18n-html="p1_price">Sob Consulta <span>/ 30 dias</span></div>
+                        <ul class="price-features">
+                            <li>
+                                <svg width="18" height="18" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+                                <span data-i18n="p1_f1">Até 50 PAs simultâneas</span>
+                            </li>
+                            <li>
+                                <svg width="18" height="18" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+                                <span data-i18n="p1_f2">Métricas WebRTC e MOS em tempo real</span>
+                            </li>
+                            <li>
+                                <svg width="18" height="18" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+                                <span data-i18n="p1_f3">Detecção de Wi-Fi vs Cabo</span>
+                            </li>
+                        </ul>
+                    </div>
+                    <a class="btn-secondary" href="mailto:contato@trustco.pro?subject=VoiceVanguard%20Pilot%20Evaluation" style="justify-content:center;" data-i18n="p1_btn">
+                        Solicitar Piloto →
+                    </a>
+                </div>
+
+                <!-- Tier 2 (Featured) -->
+                <div class="price-card featured">
+                    <span class="price-pill" data-i18n="p2_badge">Mais Escolhido</span>
+                    <div>
+                        <div class="price-name" data-i18n="p2_name">Enterprise Growth</div>
+                        <div class="price-desc" data-i18n="p2_desc">Para operações de médio e grande porte exigindo auditoria contínua e remediação remota.</div>
+                        <div class="price-rate" data-i18n-html="p2_price">Enterprise <span>/ anual</span></div>
+                        <ul class="price-features">
+                            <li>
+                                <svg width="18" height="18" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+                                <span data-i18n="p2_f1">Até 1.000 PAs simultâneas por Tenant</span>
+                            </li>
+                            <li>
+                                <svg width="18" height="18" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+                                <span data-i18n="p2_f2">Remediação Segura de Cache Remota</span>
+                            </li>
+                            <li>
+                                <svg width="18" height="18" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+                                <span data-i18n="p2_f3">Projetado para integração com Genesys Cloud CX</span>
+                            </li>
+                            <li>
+                                <svg width="18" height="18" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+                                <span data-i18n="p2_f4">SLA de Suporte de Engenharia Prioritário</span>
+                            </li>
+                        </ul>
+                    </div>
+                    <a class="btn-primary" href="mailto:contato@trustco.pro?subject=VoiceVanguard%20Enterprise%20Growth%20Proposal" style="justify-content:center;" data-i18n="p2_btn">
+                        Solicitar Proposta →
+                    </a>
+                </div>
+
+                <!-- Tier 3 -->
+                <div class="price-card">
+                    <div>
+                        <div class="price-name" data-i18n="p3_name">Sovereign BPO</div>
+                        <div class="price-desc" data-i18n="p3_desc">Ambiente dedicado e soberano para grandes BPOs e instituições financeiras.</div>
+                        <div class="price-rate" data-i18n-html="p3_price">Customizado <span>/ dedicado</span></div>
+                        <ul class="price-features">
+                            <li>
+                                <svg width="18" height="18" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+                                <span data-i18n="p3_f1">PAs ilimitadas em multi-regiões</span>
+                            </li>
+                            <li>
+                                <svg width="18" height="18" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+                                <span data-i18n="p3_f2">Relay dedicado em nuvem privada ou On-Prem</span>
+                            </li>
+                            <li>
+                                <svg width="18" height="18" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+                                <span data-i18n="p3_f3">Webhooks diretos para SIEM corporativo</span>
+                            </li>
+                            <li>
+                                <svg width="18" height="18" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+                                <span data-i18n="p3_f4">Engenheiro de Solução Dedicado</span>
+                            </li>
+                        </ul>
+                    </div>
+                    <a class="btn-secondary" href="mailto:contato@trustco.pro?subject=VoiceVanguard%20Sovereign%20Deployment" style="justify-content:center;" data-i18n="p3_btn">
+                        Consultar Projeto Sob Medida →
+                    </a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Banner Final CTA -->
+    <div class="container">
+        <div class="cta-box">
+            <h2 data-i18n="cta_box_title">Pronto para elevar a observabilidade da sua operação de voz?</h2>
+            <p data-i18n="cta_box_desc">Agende uma demonstração ao vivo com os arquitetos da TrustCo Technologies e veja a telemetria ITU-T G.107 em ação na sua própria plataforma de CCaaS.</p>
+            <div style="display:flex; justify-content:center; gap:16px; flex-wrap:wrap;">
+                <a class="btn-primary" href="mailto:contato@trustco.pro?subject=VoiceVanguard%20Enterprise%20Demo%20Request" data-i18n="cta_box_btn">
+                    Solicitar Demonstração Enterprise →
+                </a>
+                <a class="btn-secondary" href="/app" style="background:transparent; color:white; border-color:rgba(255,255,255,0.4);" data-i18n="cta_box_signin">
+                    Acessar Console / App
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Rodapé -->
+    <footer>
+        <div class="container">
+            <div class="footer-grid">
+                <div>
+                    <div class="brand-box" style="margin-bottom: 12px;">
+                        <div class="brand-badge-shield">🛡️</div>
+                        <span>VoiceVanguard CCaaS</span>
+                    </div>
+                    <p style="max-width: 420px; line-height: 1.6;" data-i18n="footer_desc">
+                        Plataforma de alta disponibilidade para observabilidade, auditoria de qualidade de voz ITU-T G.107 e remediação remota de PAs em contact centers em nuvem.
+                    </p>
+                </div>
+                <div class="footer-col">
+                    <h5 data-i18n="f_col_prod">Plataforma</h5>
+                    <ul>
+                        <li><a href="/app" data-i18n="f_app">Console de Operações (/app)</a></li>
+                        <li><a href="#recursos" data-i18n="f_feat">Módulos & Recursos</a></li>
+                        <li><a href="#seguranca" data-i18n="f_sec">Segurança & LGPD</a></li>
+                        <li><a href="https://www.trustco.pro" target="_blank" rel="noopener">TrustCo Technologies</a></li>
+                    </ul>
+                </div>
+                <div class="footer-col">
+                    <h5 data-i18n="f_col_contact">Contato Corporativo</h5>
+                    <ul>
+                        <li><a href="mailto:contato@trustco.pro">contato@trustco.pro</a></li>
+                        <li><span data-i18n="f_hq">Brasília, Distrito Federal &bull; Brasil 🇧🇷</span></li>
+                        <li><span data-i18n="f_hours">Horário de Operação: 08h às 18h BRT</span></li>
+                    </ul>
+                </div>
+            </div>
+            <div style="border-top:1px solid var(--border); padding-top:24px; display:flex; justify-content:space-between; flex-wrap:wrap; gap:12px;">
+                <span>© <span id="year"></span> VoiceVanguard CCaaS &bull; TrustCo Technologies. <span data-i18n="f_rights">Todos os direitos reservados.</span></span>
+                <span data-i18n="f_tech">Desenvolvido com tecnologia e infraestrutura própria.</span>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        document.getElementById('year').textContent = new Date().getFullYear();
+
+        const translations = {
+            pt: {
+                meta_title: "VoiceVanguard CCaaS — Observabilidade WebRTC & Qualidade de Voz em Tempo Real",
+                meta_desc: "Plataforma enterprise de observabilidade WebRTC para contact centers em nuvem. Auditoria contínua ITU-T G.107 MOS, detecção de Wi-Fi e remediação remota de cache.",
+                nav_features: "Recursos",
+                nav_security: "Segurança",
+                nav_pricing: "Planos",
+                nav_demo: "Solicitar Demonstração",
+                nav_signin: "Enterprise Sign In →",
+                hero_badge: "● WebRTC Voice Observability & Sentinel",
+                hero_title: "Inteligência de Qualidade de Voz em Tempo Real para CCaaS.",
+                hero_desc: "Monitore a estação de trabalho do atendente diretamente no navegador. Audite pontuações ITU-T G.107 (MOS), antecipe quedas por instabilidade de Wi-Fi e execute limpeza segura de cache remoto nas principais plataformas em nuvem: Genesys Cloud CX, Amazon Connect e Twilio.",
+                cta_request_demo: "Solicitar Demo Enterprise →",
+                cta_signin: "🔑 Enterprise Sign In",
+                mock_title: "📡 Sentinel Live Telemetry Hub",
+                mock_connected: "● Cloud Relay Conectado",
+                mock_agent1: "PA-304 • Carlos Lima",
+                mock_ethernet: "🔌 Ethernet",
+                mock_agent2: "PA-211 • Mariana Souza",
+                mock_wifi: "📶 Wi-Fi 2.4GHz",
+                mock_cache_label: "Remediação Segura:",
+                mock_cache_val: "Trava Ativa: Executa após fim da chamada",
+                metric_1_val: "ITU-T G.107",
+                metric_1_label: "Cálculo matemático rigoroso do MOS",
+                metric_2_val: "100% LGPD & GDPR",
+                metric_2_label: "Zero gravação ou escuta de áudio",
+                metric_3_val: "< 150ms",
+                metric_3_label: "Broadcast de telemetria via WebSockets",
+                metric_4_val: "Multi-Tenant",
+                metric_4_label: "Isolamento rigoroso por organização",
+                feat_tag: "Engenharia Especializada",
+                feat_title: "Tecnologia Feita para a Realidade dos Contact Centers",
+                feat_desc: "Projetado por especialistas em telefonia IP para eliminar a incerteza no diagnóstico de problemas de voz em operadores em home office e contact centers.",
+                f1_title: "Motor MOS ITU-T G.107",
+                f1_desc: "Audita em tempo real o jitter, RTT, perda de pacotes e codec (Opus / G.711) para estimar a qualidade de voz percebida sem depender de pesquisas subjetivas.",
+                f2_title: "Telemetria WebRTC Contínua",
+                f2_desc: "Inspeciona estatísticas do navegador através da API padrão WebRTC Stats sem necessidade de instalar drivers de kernel ou softwares invasivos.",
+                f3_title: "Wi-Fi vs Cabo Ethernet",
+                f3_desc: "Detecta automaticamente quando o atendente está conectado via Wi-Fi residencial sujeito a interferências e alerta supervisores antes da perda da chamada.",
+                f4_title: "Remediação Segura de Cache",
+                f4_desc: "Comando remoto de limpeza de cache de telefonia com proteção operacional garantida: a faxina só é aplicada após o encerramento seguro da ligação ativa.",
+                sec_head: "Segurança, Privacidade e Conformidade Rigorosa",
+                sec_sub: "O VoiceVanguard foi projetado do zero sob o princípio de Privacidade por Padrão (Privacy by Design). Nossa infraestrutura analisa unicamente métricas numéricas e cabeçalhos de rede.",
+                sec_c1: "Zero Gravação de Voz: Nenhum pacote de áudio trafega ou é gravado em nossos servidores.",
+                sec_c2: "Conformidade total com LGPD, GDPR e normas bancárias / PCI-DSS.",
+                sec_c3: "Particionamento Lógico Multi-Tenant com chaves de licença isoladas por BPO.",
+                sec_c4: "Comunicação ponto-a-ponto protegida por TLS 1.3 e WSS criptografado.",
+                sec_arch_label: "Arquitetura de Isolamento",
+                sec_arch_title: "Nenhum dado cruza as fronteiras do seu Tenant",
+                sec_arch_desc: "Cada organização (Tenant) possui canais WebSocket e armazenamento de histórico completamente segregados. Supervisores visualizam exclusivamente as métricas de suas próprias estações de trabalho autorizadas.",
+                plan_tag: "Licenciamento Enterprise",
+                plan_title: "Planos Transparentes para Qualquer Escala de CCaaS",
+                plan_desc: "Da avaliação de tecnologia em 50 PAs à operação de BPOs globais com milhares de posições simultâneas.",
+                p1_name: "Pilot Evaluation",
+                p1_desc: "Ideal para validação técnica e homologação com até 50 posições de atendimento.",
+                p1_price: "Sob Consulta <span>/ 30 dias</span>",
+                p1_f1: "Até 50 PAs simultâneas",
+                p1_f2: "Métricas WebRTC e MOS em tempo real",
+                p1_f3: "Detecção de Wi-Fi vs Cabo",
+                p1_btn: "Solicitar Piloto →",
+                p2_badge: "Mais Escolhido",
+                p2_name: "Enterprise Growth",
+                p2_desc: "Para operações de médio e grande porte exigindo auditoria contínua e remediação remota.",
+                p2_price: "Enterprise <span>/ anual</span>",
+                p2_f1: "Até 1.000 PAs simultâneas por Tenant",
+                p2_f2: "Remediação Segura de Cache Remota",
+                p2_f3: "Projetado para integração com Genesys Cloud CX",
+                p2_f4: "SLA de Suporte de Engenharia Prioritário",
+                p2_btn: "Solicitar Proposta →",
+                p3_name: "Sovereign BPO",
+                p3_desc: "Ambiente dedicado e soberano para grandes BPOs e instituições financeiras.",
+                p3_price: "Customizado <span>/ dedicado</span>",
+                p3_f1: "PAs ilimitadas em multi-regiões",
+                p3_f2: "Relay dedicado em nuvem privada ou On-Prem",
+                p3_f3: "Webhooks diretos para SIEM corporativo",
+                p3_f4: "Engenheiro de Solução Dedicado",
+                p3_btn: "Consultar Projeto Sob Medida →",
+                cta_box_title: "Pronto para elevar a observabilidade da sua operação de voz?",
+                cta_box_desc: "Agende uma demonstração ao vivo com os arquitetos da TrustCo Technologies e veja a telemetria ITU-T G.107 em ação na sua própria plataforma de CCaaS.",
+                cta_box_btn: "Solicitar Demonstração Enterprise →",
+                cta_box_signin: "Acessar Console / App",
+                footer_desc: "Plataforma de alta disponibilidade para observabilidade, auditoria de qualidade de voz ITU-T G.107 e remediação remota de PAs em contact centers em nuvem.",
+                f_col_prod: "Plataforma",
+                f_app: "Console de Operações (/app)",
+                f_feat: "Módulos & Recursos",
+                f_sec: "Segurança & LGPD",
+                f_col_contact: "Contato Corporativo",
+                f_hq: "Brasília, Distrito Federal • Brasil 🇧🇷",
+                f_hours: "Horário de Operação: 08h às 18h BRT",
+                f_rights: "Todos os direitos reservados.",
+                f_tech: "Desenvolvido com tecnologia e infraestrutura própria."
+            },
+            en: {
+                meta_title: "VoiceVanguard CCaaS — Real-Time WebRTC Observability & Voice Quality Intelligence",
+                meta_desc: "Enterprise WebRTC observability platform for cloud contact centers (Genesys Cloud CX, Amazon Connect, Twilio). Continuous ITU-T G.107 MOS auditing, Wi-Fi detection, and remote cache remediation.",
+                nav_features: "Features",
+                nav_security: "Security",
+                nav_pricing: "Pricing",
+                nav_demo: "Request Demo",
+                nav_signin: "Enterprise Sign In →",
+                hero_badge: "● WebRTC Voice Observability & Sentinel",
+                hero_title: "Real-Time Voice Quality Intelligence for CCaaS Operations.",
+                hero_desc: "Monitor agent workstations right inside the browser. Audit ITU-T G.107 (MOS) score vectors, anticipate residential Wi-Fi packet drops, and execute non-intrusive remote telephony cache remediation across Genesys Cloud CX, Amazon Connect, and Twilio.",
+                cta_request_demo: "Request Enterprise Demo →",
+                cta_signin: "🔑 Enterprise Sign In",
+                mock_title: "📡 Sentinel Live Telemetry Hub",
+                mock_connected: "● Cloud Relay Connected",
+                mock_agent1: "WS-304 • Carlos Lima",
+                mock_ethernet: "🔌 Ethernet",
+                mock_agent2: "WS-211 • Mariana Souza",
+                mock_wifi: "📶 Wi-Fi 2.4GHz",
+                mock_cache_label: "Safe Remediation:",
+                mock_cache_val: "Lock Active: Runs strictly after call wrap-up",
+                metric_1_val: "ITU-T G.107",
+                metric_1_label: "Rigorous mathematical MOS computation",
+                metric_2_val: "100% LGPD & GDPR",
+                metric_2_label: "Zero voice recording or eavesdropping",
+                metric_3_val: "< 150ms",
+                metric_3_label: "Real-time telemetry broadcast via WebSockets",
+                metric_4_val: "Multi-Tenant",
+                metric_4_label: "Strict cryptographic organizational isolation",
+                feat_tag: "Specialized Engineering",
+                feat_title: "Built for Real-World Contact Center Telephony",
+                feat_desc: "Engineered by IP telephony architects to remove guesswork from remote agent voice quality diagnostics across distributed home-office teams.",
+                f1_title: "ITU-T G.107 MOS Engine",
+                f1_desc: "Audits real-time jitter, RTT, packet loss, and codec profiles (Opus / G.711) to compute perceived voice quality Mean Opinion Score without subjective user surveys.",
+                f2_title: "Continuous WebRTC Telemetry",
+                f2_desc: "Inspects live browser network statistics directly via standard WebRTC getStats APIs without requiring invasive desktop kernel drivers or native agent installers.",
+                f3_title: "Wi-Fi vs Ethernet Auto-Detection",
+                f3_desc: "Automatically detects when an agent is operating over congested home Wi-Fi bands, alerting supervisors before customer calls degrade or drop.",
+                f4_title: "Safe Remote Cache Remediation",
+                f4_desc: "Remotely cleans corrupted browser telephony cache with operational safeguards: remediation queues and runs exclusively after the active call ends.",
+                sec_head: "Enterprise Security, Privacy & Strict Compliance",
+                sec_sub: "VoiceVanguard was built from the ground up under the Privacy by Design framework. Our telemetry infrastructure processes only numerical network statistics and protocol headers.",
+                sec_c1: "Zero Voice Recording: No audio payloads ever transit or get saved onto our servers.",
+                sec_c2: "Full compliance with LGPD, GDPR, and enterprise banking / PCI-DSS guidelines.",
+                sec_c3: "Logical Multi-Tenant partitioning with isolated license keys per BPO organization.",
+                sec_c4: "End-to-end communication secured by TLS 1.3 and encrypted Secure WebSockets (WSS).",
+                sec_arch_label: "Isolation Architecture",
+                sec_arch_title: "Zero cross-tenant data leakage",
+                sec_arch_desc: "Each tenant organization operates under strictly separated WebSocket channels and isolated history stores. Supervisors only ever view stations assigned to their licensed domain.",
+                plan_tag: "Enterprise Licensing",
+                plan_title: "Transparent Plans for Any CCaaS Scale",
+                plan_desc: "From 50-agent pilot evaluations to global BPOs running thousands of concurrent customer interactions.",
+                p1_name: "Pilot Evaluation",
+                p1_desc: "Engineered for technical evaluation and POC testing with up to 50 agent workstations.",
+                p1_price: "Contact Us <span>/ 30 days</span>",
+                p1_f1: "Up to 50 concurrent workstations",
+                p1_f2: "Real-time WebRTC & MOS metrics",
+                p1_f3: "Wi-Fi vs Ethernet classification",
+                p1_btn: "Request Pilot →",
+                p2_badge: "Most Popular",
+                p2_name: "Enterprise Growth",
+                p2_desc: "For mid-to-large contact centers requiring continuous auditing and remote remediation.",
+                p2_price: "Enterprise <span>/ annual</span>",
+                p2_f1: "Up to 1,000 concurrent workstations per Tenant",
+                p2_f2: "Safe Remote Cache Remediation",
+                p2_f3: "Engineered for integration with Genesys Cloud CX",
+                p2_f4: "Priority Engineering SLA Support",
+                p2_btn: "Request Proposal →",
+                p3_name: "Sovereign BPO",
+                p3_desc: "Dedicated sovereign cloud or on-prem deployment for major BPOs and financial enterprises.",
+                p3_price: "Custom <span>/ dedicated</span>",
+                p3_f1: "Unlimited workstations across multi-region clusters",
+                p3_f2: "Dedicated Cloud Relay in Private VPC or On-Prem",
+                p3_f3: "Direct webhooks to corporate SIEM",
+                p3_f4: "Dedicated Enterprise Solution Engineer",
+                p3_btn: "Inquire Custom Setup →",
+                cta_box_title: "Ready to elevate your CCaaS voice observability?",
+                cta_box_desc: "Schedule a live architecture walk-through with TrustCo Technologies engineers and see ITU-T G.107 real-time telemetry in action on your CCaaS platform.",
+                cta_box_btn: "Request Enterprise Demo →",
+                cta_box_signin: "Access Console / App",
+                footer_desc: "High-availability cloud platform for WebRTC voice observability, ITU-T G.107 quality auditing, and remote agent remediation for cloud contact centers.",
+                f_col_prod: "Platform",
+                f_app: "Operations Console (/app)",
+                f_feat: "Modules & Features",
+                f_sec: "Security & GDPR",
+                f_col_contact: "Enterprise Contact",
+                f_hq: "Brasília, DF • Brazil 🇧🇷",
+                f_hours: "Operating Hours: 08:00 - 18:00 BRT",
+                f_rights: "All rights reserved.",
+                f_tech: "Engineered and hosted on proprietary cloud infrastructure."
+            }
+        };
+
+        function setLanguage(lang) {
+            if (!translations[lang]) lang = 'pt';
+            localStorage.setItem('vv_lang', lang);
+            document.documentElement.lang = lang === 'pt' ? 'pt-BR' : 'en';
+
+            document.querySelectorAll('.lang-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.lang === lang);
+            });
+
+            document.title = translations[lang].meta_title;
+            const metaDesc = document.querySelector('meta[name="description"]');
+            if (metaDesc) metaDesc.setAttribute('content', translations[lang].meta_desc);
+
+            document.querySelectorAll('[data-i18n]').forEach(el => {
+                const key = el.getAttribute('data-i18n');
+                if (translations[lang][key]) {
+                    el.textContent = translations[lang][key];
+                }
+            });
+
+            document.querySelectorAll('[data-i18n-html]').forEach(el => {
+                const key = el.getAttribute('data-i18n-html');
+                if (translations[lang][key]) {
+                    el.innerHTML = translations[lang][key];
+                }
+            });
+        }
+
+        function initLanguage() {
+            const saved = localStorage.getItem('vv_lang');
+            if (saved && (saved === 'pt' || saved === 'en')) {
+                setLanguage(saved);
+            } else {
+                const browserLang = (navigator.language || navigator.userLanguage || 'pt').toLowerCase();
+                const defaultLang = browserLang.startsWith('pt') ? 'pt' : 'en';
+                setLanguage(defaultLang);
+            }
+
+            document.querySelectorAll('.lang-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    setLanguage(btn.dataset.lang);
+                });
+            });
+        }
+
+        initLanguage();
+    </script>
+</body>
+</html>

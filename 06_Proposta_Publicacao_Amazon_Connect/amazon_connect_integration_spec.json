@@ -1,0 +1,76 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "productName": "VoiceVanguard Sentinel for Amazon Connect",
+  "vendor": {
+    "name": "TrustCo Technologies",
+    "website": "https://trustco.pro",
+    "contactEmail": "partnerships@trustco.pro",
+    "supportEmail": "contato@trustco.pro",
+    "country": "Brazil"
+  },
+  "awsPartnerNetwork": {
+    "partnerType": "ISV / Technology Partner",
+    "path": "Software Path",
+    "targetSpecialization": "Amazon Connect Ready (AWS Service Ready Program)",
+    "awsMarketplaceListing": {
+      "fulfillmentOption": "SaaS",
+      "pricingModel": "SaaS Contracts (Per User Per Month / PUPM)",
+      "currency": "USD",
+      "recommendedPricingTiers": [
+        {
+          "dimension": "AgentSeats_Tier1",
+          "name": "Starter CCP Monitoring",
+          "maxSeats": 250,
+          "pricePerSeatPerMonth": 6.50
+        },
+        {
+          "dimension": "AgentSeats_Tier2",
+          "name": "Enterprise CCP Observability",
+          "maxSeats": 1500,
+          "pricePerSeatPerMonth": 5.00
+        },
+        {
+          "dimension": "AgentSeats_Tier3",
+          "name": "Global BPO Sovereign",
+          "minSeats": 1501,
+          "pricePerSeatPerMonth": 4.00
+        }
+      ]
+    }
+  },
+  "technicalArchitecture": {
+    "softphoneInterface": "Amazon Connect Contact Control Panel (CCP) v2",
+    "supportedLibraries": [
+      "amazon-connect-streams",
+      "amazon-connect-chatjs",
+      "WebRTC Standard 1.0 (W3C)"
+    ],
+    "telemetryEngine": {
+      "metricStandard": "ITU-T G.107 (E-Model MOS Computation)",
+      "sampleIntervalMs": 1000,
+      "correlationKey": "AWS ContactId (arn:aws:connect:...)",
+      "networkClassification": [
+        "Ethernet / Wired",
+        "Wi-Fi 2.4GHz (Congestion Risk)",
+        "Wi-Fi 5GHz / 6GHz",
+        "Cellular / Hotspot"
+      ],
+      "remediationFeatures": [
+        "In-Call Lock Protection (Safe Post-Wrap-up Execution)",
+        "Chromium Cache & Local Storage Flush",
+        "Real-Time Supervisor Alert Notification"
+      ]
+    },
+    "securityAndCompliance": {
+      "audioPayloadCaptured": false,
+      "voiceRecordingStored": false,
+      "encryptionInTransit": "TLS 1.3 / WSS",
+      "complianceCertifications": [
+        "LGPD (Brazil)",
+        "GDPR (EU)",
+        "PCI-DSS (No cardholder data transit)"
+      ],
+      "tenancyModel": "Strict Logical Multi-Tenant Isolation"
+    }
+  }
+}

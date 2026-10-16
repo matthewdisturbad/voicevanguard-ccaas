@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>VoiceVanguard CCaaS — Amazon Connect Ready Technical Overview & Partner Pitch</title>
+  <style>
+    @page { size: A4; margin: 15mm 15mm 15mm 15mm; }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      color: #0f172a;
+      background: #ffffff;
+      line-height: 1.5;
+      font-size: 13px;
+      padding: 24px;
+    }
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 2px solid #FF9900; /* AWS Gold */
+      padding-bottom: 14px;
+      margin-bottom: 18px;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .logo-badge {
+      background: #232F3E; /* AWS Squid Ink */
+      color: #FF9900;
+      font-size: 20px;
+      width: 38px;
+      height: 38px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+    }
+    .title-box h1 {
+      font-size: 20px;
+      color: #0f172a;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+    }
+    .title-box span {
+      font-size: 11px;
+      color: #64748b;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .meta-box {
+      text-align: right;
+      font-size: 11px;
+      color: #475569;
+    }
+    .meta-box a { color: #0284c7; text-decoration: none; font-weight: 600; }
+    
+    .tagline-box {
+      background: #FFFBF5;
+      border-left: 3px solid #FF9900;
+      padding: 10px 14px;
+      margin-bottom: 18px;
+      font-size: 12.5px;
+      color: #334155;
+    }
+    
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-bottom: 18px;
+    }
+    .card {
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 14px;
+      background: #ffffff;
+    }
+    .card h3 {
+      font-size: 13px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: #232F3E;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .card ul {
+      padding-left: 16px;
+      color: #334155;
+      font-size: 12px;
+    }
+    .card li { margin-bottom: 5px; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 8px 0 16px 0;
+      font-size: 11.5px;
+    }
+    th, td {
+      border: 1px solid #e2e8f0;
+      padding: 6px 10px;
+      text-align: left;
+    }
+    th {
+      background: #f8fafc;
+      color: #0f172a;
+      font-weight: 700;
+    }
+    
+    .badge {
+      display: inline-block;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 10px;
+      font-weight: 700;
+    }
+    .badge-aws { background: #FFF4E5; color: #B26A00; border: 1px solid #FFE0B2; }
+    .badge-green { background: #dcfce7; color: #166534; }
+
+    .sec-title {
+      font-size: 13px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: #0f172a;
+      border-bottom: 1px solid #e2e8f0;
+      padding-bottom: 4px;
+      margin: 14px 0 8px 0;
+    }
+
+    .footer {
+      margin-top: 20px;
+      border-top: 1px solid #e2e8f0;
+      padding-top: 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 10.5px;
+      color: #64748b;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <div class="brand">
+      <div class="logo-badge">☁️</div>
+      <div class="title-box">
+        <h1>VoiceVanguard CCaaS for Amazon Connect</h1>
+        <span>WebRTC Observability & Agent Health Sentinel &bull; TrustCo Technologies</span>
+      </div>
+    </div>
+    <div class="meta-box">
+      <div><b>Corporate:</b> <a href="https://trustco.pro">trustco.pro</a></div>
+      <div><b>Solution:</b> <a href="https://voicevanguard.trustco.pro">voicevanguard.trustco.pro</a></div>
+      <div><b>Target:</b> AWS Marketplace &bull; Amazon Connect Ready</div>
+    </div>
+  </div>
+
+  <div class="tagline-box">
+    <strong>Executive Pitch:</strong> Real-time WebRTC audio telemetry, mathematical ITU-T G.107 MOS auditing, domestic Wi-Fi vs. Ethernet interface classification, and remote browser cache remediation built natively for Amazon Connect CCP (Contact Control Panel) operations.
+  </div>
+
+  <div class="grid-2">
+    <div class="card">
+      <h3>⚠️ 1. The Amazon Connect Last-Mile Challenge</h3>
+      <ul>
+        <li><strong>False AWS Cloud Tickets:</strong> Amazon Connect agents operating from home offices experience robotic audio or dropped calls and open severe tickets blaming AWS Cloud Media regions, when 85% of issues originate in residential 2.4GHz Wi-Fi congestion or bufferbloat.</li>
+        <li><strong>Opaque Endpoint Diagnostics:</strong> Amazon CloudWatch metrics provide post-call summaries, but supervisors lack real-time per-second visibility into the agent's live browser health.</li>
+        <li><strong>Corrupted Chromium Telephony Cache:</strong> High-volume agent shifts degrade browser process memory, causing silent CCP station de-registrations.</li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <h3>💡 2. The Solution: VoiceVanguard Sentinel</h3>
+      <ul>
+        <li><strong>Amazon Connect Streams Interceptor:</strong> Lightweight browser agent hooks directly into Amazon Connect CCP WebRTC sessions, correlating telemetry by <code>ContactId</code>.</li>
+        <li><strong>Real-Time ITU-T G.107 MOS Calculation:</strong> Continuously computes perceived voice quality from 1.00 to 4.50 once per second using RTP metrics.</li>
+        <li><strong>Safe In-Call Protection Remediation:</strong> Supervisors can remotely flush corrupted telephony cache with a guaranteed lock that executes strictly after call wrap-up.</li>
+        <li><strong>Privacy by Design:</strong> Zero audio capture or recording. 100% LGPD, GDPR, and PCI-DSS compliant.</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="sec-title">3. Amazon Connect Architecture & Technical Alignment</div>
+  <table>
+    <thead>
+      <tr>
+        <th>Technical Component</th>
+        <th>Amazon Connect Native Spec</th>
+        <th>VoiceVanguard Integration</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>Agent Softphone Interface</strong></td>
+        <td>Contact Control Panel (CCP) / Streams API</td>
+        <td><span class="badge badge-aws">Seamless Browser Extension Hook</span></td>
+      </tr>
+      <tr>
+        <td><strong>Call Correlation Key</strong></td>
+        <td>AWS <code>ContactId</code></td>
+        <td><span class="badge badge-green">Exact Match per Call Record</span></td>
+      </tr>
+      <tr>
+        <td><strong>Audio Stream Telemetry</strong></td>
+        <td>Opus / G.711 RTP via WebRTC</td>
+        <td><span class="badge badge-green">ITU-T G.107 E-Model (RTT, Jitter, Loss)</span></td>
+      </tr>
+      <tr>
+        <td><strong>Supervisor Experience</strong></td>
+        <td>Amazon Connect Console / Custom App</td>
+        <td><span class="badge badge-aws">Embedded Supervisor Widget / Standalone</span></td>
+      </tr>
+      <tr>
+        <td><strong>Deployment Method</strong></td>
+        <td>Enterprise Intune / AWS WorkSpaces GPO</td>
+        <td><span class="badge badge-green">Zero-Touch Silent Deployment</span></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="sec-title">4. AWS Marketplace Monetization & Co-Sell Alignment</div>
+  <table>
+    <thead>
+      <tr>
+        <th>Subscription Model</th>
+        <th>Target Environment</th>
+        <th>AWS Marketplace Contract</th>
+        <th>Billing Integration</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>Pilot POC (30 Days)</strong></td>
+        <td>Up to 50 CCP Agents</td>
+        <td>Free Trial / Private Offer</td>
+        <td>Direct on AWS Bill</td>
+      </tr>
+      <tr>
+        <td><strong>Enterprise Growth</strong></td>
+        <td>Up to 1,500 CCP Agents</td>
+        <td>SaaS Contract ($5.00/agent/mo)</td>
+        <td>Draws down Customer AWS EDP Commit</td>
+      </tr>
+      <tr>
+        <td><strong>Global BPO Sovereign</strong></td>
+        <td>1,500+ CCP Agents</td>
+        <td>Custom Multi-Year Private Offer</td>
+        <td>Private VPC Relay Option</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="sec-title">5. Vendor Identification & Partner Alliance Contact</div>
+  <p style="font-size: 11.5px; color: #334155;">
+    <strong>ISV Partner:</strong> TrustCo Technologies &bull; 
+    <strong>Headquarters:</strong> Brasília, DF — Brazil &bull; 
+    <strong>Corporate Domain:</strong> <a href="https://trustco.pro">https://trustco.pro</a> &bull; 
+    <strong>Product Portal:</strong> <a href="https://voicevanguard.trustco.pro">https://voicevanguard.trustco.pro</a> &bull; 
+    <strong>AWS Partnership Contact:</strong> David Paiva (Founder & Lead Architect) — <code>contato@trustco.pro</code> / <code>partnerships@trustco.pro</code>
+  </p>
+
+  <div class="footer">
+    <span>Confidential &bull; Prepared for AWS Partner Network (APN) & Amazon Connect Ready Team</span>
+    <span>TrustCo Technologies &bull; 2026</span>
+  </div>
+
+</body>
+</html>

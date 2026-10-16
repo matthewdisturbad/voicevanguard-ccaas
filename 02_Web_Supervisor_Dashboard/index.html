@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VoiceVanguard CCaaS &bull; Observabilidade & Sentinel</title>
+    
+    <!-- Favicon SVG Moderno com Escudo & Áudio -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%230284c7'%3E%3Cpath d='M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm-1 6h2v6h-2V7zm0 8h2v2h-2v-2z'/%3E%3C/svg%3E">
+
+    <style>
+        :root {
+            --primary: #0284c7;
+            --primary-dark: #0369a1;
+            --bg: #f8fafc;
+            --surface: #ffffff;
+            --border: #e2e8f0;
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+            --ok: #16a34a;
+            --warn: #eab308;
+            --danger: #dc2626;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+        body { background: var(--bg); color: var(--text-main); min-height: 100vh; display: flex; flex-direction: column; }
+
+        /* Top Bar */
+        header {
+            background: #0f172a;
+            color: white;
+            padding: 14px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 3px solid var(--primary);
+        }
+        .brand { display: flex; align-items: center; gap: 12px; }
+        .brand-logo { 
+            background: linear-gradient(135deg, #0284c7, #38bdf8); 
+            width: 36px; height: 36px; border-radius: 8px; 
+            display: flex; align-items: center; justify-content: center; 
+            font-size: 20px; box-shadow: 0 2px 8px rgba(2, 132, 199, 0.4); 
+        }
+        .brand-badge { background: #1e293b; border: 1px solid #334155; padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: 700; color: #38bdf8; text-transform: uppercase; }
+        .tenant-selector { display: flex; align-items: center; gap: 12px; }
+        select, input { padding: 8px 12px; border-radius: 6px; border: 1px solid #334155; background: #1e293b; color: white; font-size: 13px; }
+
+        /* Container & Tabs */
+        .container { max-width: 1400px; width: 100%; margin: 20px auto; padding: 0 20px; flex: 1; }
+        .tabs { display: flex; gap: 8px; border-bottom: 2px solid var(--border); margin-bottom: 20px; }
+        .tab-btn { padding: 12px 20px; border: none; background: none; font-size: 14px; font-weight: 600; color: var(--text-muted); cursor: pointer; border-bottom: 3px solid transparent; }
+        .tab-btn.active { color: var(--primary); border-bottom-color: var(--primary); }
+
+        /* Cards Grid */
+        .cards-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 14px; margin-bottom: 24px; }
+        .card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.04); }
+        .card-label { font-size: 12px; font-weight: 600; color: var(--text-muted); margin-bottom: 6px; }
+        .card-val { font-size: 24px; font-weight: 700; }
+
+        /* Table */
+        .table-box { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; box-shadow: 0 1px 4px rgba(0,0,0,0.04); }
+        table { width: 100%; border-collapse: collapse; text-align: left; font-size: 13px; }
+        th { background: #f1f5f9; padding: 12px 14px; font-weight: 600; color: #475569; border-bottom: 1px solid var(--border); }
+        td { padding: 12px 14px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+        tr:hover { background: #f8fafc; }
+
+        /* Badges & Actions */
+        .badge { padding: 4px 8px; border-radius: 12px; font-size: 11px; font-weight: 700; display: inline-block; }
+        .badge-ok { background: #dcfce7; color: #15803d; }
+        .badge-warn { background: #fef9c3; color: #a16207; }
+        .badge-danger { background: #fee2e2; color: #b91c1c; }
+        .badge-offline { background: #f1f5f9; color: #64748b; }
+
+        .btn-action { padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: 600; border: none; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; }
+        .btn-clear { background: #e0f2fe; color: #0369a1; }
+        .btn-clear:hover { background: #bae6fd; }
+        .live-dot { width: 8px; height: 8px; border-radius: 50%; background: #22c55e; display: inline-block; box-shadow: 0 0 8px #22c55e; }
+
+        /* Modal de Login / Pareamento de Tenant */
+        #authOverlay {
+            position: fixed; inset: 0; background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(8px);
+            display: flex; align-items: center; justify-content: center; z-index: 9999;
+        }
+        .auth-card {
+            background: white; width: 100%; max-width: 440px; border-radius: 12px;
+            box-shadow: 0 20px 25px -5px rgba(0,0,0,0.2), 0 10px 10px -5px rgba(0,0,0,0.1);
+            overflow: hidden; border: 1px solid #cbd5e1;
+        }
+        .auth-header {
+            background: #0f172a; color: white; padding: 24px; text-align: center;
+            border-bottom: 3px solid var(--primary);
+        }
+        .auth-body { padding: 28px; }
+        .auth-form-group { margin-bottom: 18px; }
+        .auth-form-group label { display: block; font-size: 12px; font-weight: 600; color: #475569; margin-bottom: 6px; }
+        .auth-form-group input { 
+            width: 100%; padding: 10px 14px; border-radius: 6px; 
+            border: 1px solid #cbd5e1; background: #f8fafc; color: #0f172a; font-size: 14px;
+        }
+        .auth-form-group input:focus { outline: none; border-color: var(--primary); background: white; }
+        .btn-login {
+            width: 100%; padding: 12px; background: var(--primary); color: white; border: none;
+            border-radius: 6px; font-size: 14px; font-weight: 700; cursor: pointer; transition: background 0.2s;
+        }
+        .btn-login:hover { background: var(--primary-dark); }
+        .demo-pill {
+            display: inline-block; background: #e0f2fe; color: #0284c7; padding: 4px 8px;
+            border-radius: 4px; font-size: 11px; font-weight: 600; cursor: pointer; margin-top: 6px;
+        }
+        .demo-pill:hover { background: #bae6fd; }
+    </style>
+</head>
+<body>
+
+<!-- Modal de Login / Identificação do Supervisor (Oculto se autenticado via Genesys SSO) -->
+<div id="authOverlay" style="display: none;">
+    <div class="auth-card">
+        <div class="auth-header">
+            <div style="font-size: 32px; margin-bottom: 8px;">🛡️</div>
+            <h2 style="font-size: 20px; font-weight: 700;">VoiceVanguard CCaaS</h2>
+            <p style="font-size: 12px; color: #94a3b8; margin-top: 4px;">Central de Comando & Observabilidade WebRTC</p>
+        </div>
+        <div class="auth-body">
+            <div class="auth-form-group">
+                <label>Chave da Organização / TenantKey:</label>
+                <input type="text" id="inputTenantKey" placeholder="Ex: DEMO-FREE-2026 ou Org ID da Genesys">
+                <div style="margin-top: 8px; font-size: 12px; color: #64748b;">
+                    Acesso rápido de demonstração:
+                    <div style="display:flex; gap:6px; flex-wrap:wrap; margin-top:4px;">
+                        <span class="demo-pill" onclick="fillDemo('DEMO-FREE-2026')">🏢 Demo Pública</span>
+                        <span class="demo-pill" onclick="fillDemo('BPO-APEX-GLOBAL')">Apex BPO</span>
+                        <span class="demo-pill" onclick="fillDemo('BPO-NEXUS-CORP')">Nexus Contact</span>
+                        <span class="demo-pill" onclick="fillDemo('BPO-STELLAR-CX')">Stellar CX</span>
+                    </div>
+                </div>
+            </div>
+            <div class="auth-form-group">
+                <label>Identificação do Supervisor:</label>
+                <input type="text" id="inputSupervisorName" value="Supervisor Principal" placeholder="Seu nome ou matrícula">
+            </div>
+            <button class="btn-login" onclick="authenticateSupervisor()">
+                Entrar na Central de Monitoramento &rarr;
+            </button>
+            <div style="margin-top: 14px; text-align: center; font-size: 11px; color: #94a3b8;">
+                Protegido por criptografia TLS 1.3 &bull; Powered by TrustCo Technologies
+            </div>
+        </div>
+    </div>
+</div>
+
+<header>
+    <div class="brand">
+        <div class="brand-logo">🛡️</div>
+        <div>
+            <h1 style="font-size: 17px; font-weight: 700; letter-spacing: -0.3px;">VoiceVanguard CCaaS</h1>
+            <div style="font-size: 11.5px; color: #94a3b8;">Observabilidade WebRTC Multi-Tenant &bull; Genesys Cloud CX</div>
+        </div>
+        <span class="brand-badge" id="tenantBadge">DEMO</span>
+    </div>
+
+    <div class="tenant-selector">
+        <span class="live-dot"></span>
+        <span style="font-size: 12px; color: #cbd5e1;" id="connStatus">Conectando...</span>
+        <select id="tenantSelect" onchange="changeTenant()">
+            <option value="DEMO-FREE-2026">🏢 Demonstração Pública</option>
+            <option value="BPO-APEX-GLOBAL">Apex BPO (500 PAs)</option>
+            <option value="BPO-NEXUS-CORP">Nexus Contact (1.000 PAs)</option>
+            <option value="BPO-STELLAR-CX">Stellar CX (750 PAs)</option>
+        </select>
+        <button style="padding: 6px 10px; background:#334155; color:white; border:none; border-radius:4px; font-size:12px; cursor:pointer;" onclick="showLoginModal()">
+            🔑 Trocar Org
+        </button>
+    </div>
+</header>
+
+<div class="container">
+    <!-- Tabs -->
+    <div class="tabs">
+        <button class="tab-btn active" id="tabLiveBtn" onclick="switchTab('live')">📡 Monitoramento ao Vivo (PAs)</button>
+        <button class="tab-btn" id="tabCallsBtn" onclick="switchTab('calls')">📞 Auditoria de Chamadas (Interações)</button>
+        <button class="tab-btn" id="tabBiBtn" onclick="switchTab('bi')">📊 BI & Causa Raiz</button>
+    </div>
+
+    <!-- Cards Superiores -->
+    <div class="cards-grid">
+        <div class="card">
+            <div class="card-label">PAs Conectadas</div>
+            <div class="card-val" id="cardTotalAgents" style="color:var(--primary);">0</div>
+        </div>
+        <div class="card">
+            <div class="card-label">Conformidade (OK)</div>
+            <div class="card-val" id="cardAgentsOk" style="color:var(--ok);">100%</div>
+        </div>
+        <div class="card">
+            <div class="card-label">MOS Médio (G.107)</div>
+            <div class="card-val" id="cardAvgMos" style="color:#059669;">4.40</div>
+        </div>
+        <div class="card">
+            <div class="card-label">Jitter Médio</div>
+            <div class="card-val" id="cardAvgJitter" style="color:#7c3aed;">0.0ms</div>
+        </div>
+        <div class="card">
+            <div class="card-label">Chamadas Auditadas</div>
+            <div class="card-val" id="cardTotalCalls" style="color:#0284c7;">0</div>
+        </div>
+        <div class="card">
+            <div class="card-label">Taxa de Êxito Voz</div>
+            <div class="card-val" id="cardSuccessCalls" style="color:var(--ok);">100%</div>
+        </div>
+    </div>
+
+    <!-- ABA 1: Live Monitor de PAs -->
+    <div id="tabContentLive">
+        <div class="table-box">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Status</th>
+                        <th>Plataforma</th>
+                        <th>Estação / PA</th>
+                        <th>Operador</th>
+                        <th>Interface de Rede</th>
+                        <th>Stress Máquina</th>
+                        <th>Qualidade Voz (MOS)</th>
+                        <th>Latência / Jitter</th>
+                        <th>Chamada Ativa</th>
+                        <th>Ações Remotas</th>
+                    </tr>
+                </thead>
+                <tbody id="agentsTableBody">
+                    <tr><td colspan="10" style="text-align:center; color:var(--text-muted); padding:30px;">Aguardando check-in de PAs na chave deste Tenant...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- ABA 2: Auditoria de Chamadas -->
+    <div id="tabContentCalls" style="display:none;">
+        <div class="table-box">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Classificação</th>
+                        <th>Plataforma</th>
+                        <th>ID da Interação (Call ID)</th>
+                        <th>Operador / PA</th>
+                        <th>Horário</th>
+                        <th>Duração</th>
+                        <th>MOS Médio / Mín</th>
+                        <th>Jitter Pico</th>
+                        <th>Perda %</th>
+                        <th>Protocolo</th>
+                    </tr>
+                </thead>
+                <tbody id="callsTableBody">
+                    <tr><td colspan="10" style="text-align:center; color:var(--text-muted); padding:30px;">Nenhuma chamada finalizada neste turno.</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- ABA 3: BI & Causa Raiz -->
+    <div id="tabContentBi" style="display:none;">
+        <div class="card" style="padding: 24px;">
+            <h3 style="margin-bottom: 12px; font-size: 16px;">Diagnóstico de Causa Raiz de Incidentes</h3>
+            <p style="color:var(--text-muted); font-size:14px; margin-bottom:20px;">
+                Identificação preditiva de fatores locais do atendente (concorrência de abas, Wi-Fi residencial e falhas de microfone) que impactam a qualidade de voz antes de virar chamado técnico.
+            </p>
+            <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:16px;">
+                <div style="background:#f8fafc; border:1px solid var(--border); padding:16px; border-radius:6px;">
+                    <div style="font-weight:600; color:var(--danger); margin-bottom:4px;">🚨 Quedas por Jitter Alto / Wi-Fi</div>
+                    <div style="font-size:20px; font-weight:700;" id="biWifiIssues">0 PAs</div>
+                </div>
+                <div style="background:#f8fafc; border:1px solid var(--border); padding:16px; border-radius:6px;">
+                    <div style="font-weight:600; color:var(--warn); margin-bottom:4px;">⚠️ Abas Duplicadas Genesys</div>
+                    <div style="font-size:20px; font-weight:700;" id="biTabIssues">0 PAs</div>
+                </div>
+                <div style="background:#f8fafc; border:1px solid var(--border); padding:16px; border-radius:6px;">
+                    <div style="font-weight:600; color:var(--primary); margin-bottom:4px;">🎧 Falha de Headset / Mute</div>
+                    <div style="font-size:20px; font-weight:700;" id="biAudioIssues">0 PAs</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Suporte para Iframe Genesys Cloud (ex: ?tenant=ORG-ID)
+    const urlParams = new URLSearchParams(window.location.search);
+    const hasUrlTenant = urlParams.has('tenant');
+    let savedTenant = localStorage.getItem('vv_tenant_key') || 'DEMO-FREE-2026';
+
+    if (hasUrlTenant) {
+        savedTenant = urlParams.get('tenant');
+        localStorage.setItem('vv_tenant_key', savedTenant);
+    }
+
+    // Se NÃO veio pela Genesys e não tem sessão salva, abre o modal de Login
+    if (!hasUrlTenant && !localStorage.getItem('vv_logged_in')) {
+        document.getElementById('authOverlay').style.display = 'flex';
+    }
+
+    function fillDemo(key) {
+        document.getElementById('inputTenantKey').value = key;
+    }
+
+    function showLoginModal() {
+        document.getElementById('inputTenantKey').value = currentTenant;
+        document.getElementById('authOverlay').style.display = 'flex';
+    }
+
+    function authenticateSupervisor() {
+        const key = document.getElementById('inputTenantKey').value.trim();
+        if (!key) {
+            alert("Por favor, informe a Chave do Tenant ou selecione um modo Demo.");
+            return;
+        }
+        localStorage.setItem('vv_tenant_key', key);
+        localStorage.setItem('vv_logged_in', 'true');
+        document.getElementById('authOverlay').style.display = 'none';
+
+        applyTenantSelection(key);
+        connectWs();
+    }
+
+    function applyTenantSelection(tenantKey) {
+        const sel = document.getElementById('tenantSelect');
+        let found = false;
+        for (let i = 0; i < sel.options.length; i++) {
+            if (sel.options[i].value === tenantKey) {
+                sel.selectedIndex = i;
+                found = true;
+                break;
+            }
+        }
+        if (!found) {
+            const opt = document.createElement('option');
+            opt.value = tenantKey;
+            opt.textContent = `🏢 Org: ${tenantKey}`;
+            sel.appendChild(opt);
+            sel.value = tenantKey;
+        }
+        currentTenant = tenantKey;
+    }
+
+    applyTenantSelection(savedTenant);
+
+    let currentTenant = document.getElementById('tenantSelect').value;
+    let ws = null;
+    let agentsMap = new Map();
+    let callsList = [];
+
+    function connectWs() {
+        if (ws) {
+            try { ws.close(); } catch(e){}
+        }
+
+        const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const wsUrl = `${protocol}//${location.host}?tenant=${currentTenant}&type=supervisor`;
+        
+        document.getElementById('connStatus').textContent = "Conectando...";
+        ws = new WebSocket(wsUrl);
+
+        ws.onopen = () => {
+            document.getElementById('connStatus').textContent = "🟢 Ao Vivo";
+            document.getElementById('tenantBadge').textContent = currentTenant.split('-')[0];
+        };
+
+        ws.onmessage = (event) => {
+            const msg = JSON.parse(event.data);
+
+            if (msg.type === 'INIT_STATE') {
+                agentsMap.clear();
+                msg.agents.forEach(a => agentsMap.set(a.agentId, a));
+                callsList = msg.callHistory || [];
+                renderAll();
+            } else if (msg.type === 'TELEMETRY_UPDATE') {
+                agentsMap.set(msg.payload.agentId, msg.payload);
+                renderAll();
+            } else if (msg.type === 'NEW_CALL_AUDIT') {
+                callsList.unshift(msg.payload);
+                if (callsList.length > 200) callsList.pop();
+                renderAll();
+            } else if (msg.type === 'AGENT_COMMAND_FEEDBACK') {
+                alert(`Feedback da PA (${msg.agentId}):\n${JSON.stringify(msg.result)}`);
+            }
+        };
+
+        ws.onclose = () => {
+            document.getElementById('connStatus').textContent = "⚪ Desconectado";
+            setTimeout(connectWs, 5000);
+        };
+    }
+
+    function changeTenant() {
+        currentTenant = document.getElementById('tenantSelect').value;
+        localStorage.setItem('vv_tenant_key', currentTenant);
+        agentsMap.clear();
+        callsList = [];
+        renderAll();
+        connectWs();
+    }
+
+    function switchTab(tab) {
+        document.getElementById('tabLiveBtn').classList.toggle('active', tab === 'live');
+        document.getElementById('tabCallsBtn').classList.toggle('active', tab === 'calls');
+        document.getElementById('tabBiBtn').classList.toggle('active', tab === 'bi');
+
+        document.getElementById('tabContentLive').style.display = tab === 'live' ? 'block' : 'none';
+        document.getElementById('tabContentCalls').style.display = tab === 'calls' ? 'block' : 'none';
+        document.getElementById('tabContentBi').style.display = tab === 'bi' ? 'block' : 'none';
+    }
+
+    function sendRemoteClearCache(agentId) {
+        if (!confirm(`Deseja disparar limpeza de cache segura para a estação ${agentId}?\nSe a PA estiver em atendimento, a limpeza aguardará o término da ligação.`)) return;
+
+        if (ws && ws.readyState === WebSocket.OPEN) {
+            ws.send(JSON.stringify({
+                type: 'SUPERVISOR_COMMAND',
+                targetAgentId: agentId,
+                command: 'SAFE_CACHE_CLEAR'
+            }));
+            alert(`Comando de limpeza enviado para a PA ${agentId}!`);
+        }
+    }
+
+    function renderAll() {
+        const agents = Array.from(agentsMap.values());
+        document.getElementById('cardTotalAgents').textContent = agents.length;
+
+        const okCount = agents.filter(a => a.status === 'OK').length;
+        document.getElementById('cardAgentsOk').textContent = agents.length > 0 ? `${Math.round((okCount / agents.length) * 100)}%` : "100%";
+
+        // Renderiza Tabela de PAs
+        const tbodyAgents = document.getElementById('agentsTableBody');
+        if (agents.length === 0) {
+            tbodyAgents.innerHTML = `<tr><td colspan="10" style="text-align:center; color:var(--text-muted); padding:30px;">Aguardando check-in de PAs na chave deste Tenant...</td></tr>`;
+        } else {
+            tbodyAgents.innerHTML = agents.map(a => {
+                const badgeClass = a.status === 'OK' ? 'badge-ok' : (a.status === 'OFFLINE' ? 'badge-offline' : 'badge-danger');
+                const callStatus = a.callActive ? `<span style="color:var(--ok); font-weight:700;">🟢 Em Chamada (${(a.currentCallId || '').slice(-6)})</span>` : `<span style="color:var(--text-muted);">Livre</span>`;
+                
+                // Badge de Wi-Fi vs Cabo
+                const isWifi = (a.networkType || '').includes('WI_FI');
+                const netBadge = isWifi 
+                    ? `<span style="background:#fef3c7; color:#b45309; padding:3px 7px; border-radius:10px; font-size:11px; font-weight:700;">📶 Wi-Fi Doméstico</span>`
+                    : `<span style="background:#e0f2fe; color:#0369a1; padding:3px 7px; border-radius:10px; font-size:11px; font-weight:700;">🔌 Cabo Ethernet</span>`;
+
+                // Badge de Stress de CPU
+                const isHighCpu = a.cpuStress === 'ALTO_CONSUMO_RAM';
+                const cpuBadge = isHighCpu
+                    ? `<span style="background:#fee2e2; color:#b91c1c; padding:3px 7px; border-radius:10px; font-size:11px; font-weight:700;">🔥 Alta Carga</span>`
+                    : `<span style="background:#f1f5f9; color:#475569; padding:3px 7px; border-radius:10px; font-size:11px; font-weight:600;">Normal</span>`;
+
+                // Alerta In-Call MOS Rescue
+                const isRescueNeeded = a.callActive && Number(a.mosScore) < 3.30;
+                const mosDisplay = isRescueNeeded
+                    ? `<b style="color:var(--danger); animation: blink 1s infinite;">⚠️ ${a.mosScore} (Risco Queda)</b>`
+                    : `<b>${a.mosScore}</b> / 4.50`;
+
+                return `
+                    <tr style="${isRescueNeeded ? 'background:#fef2f2;' : ''}">
+                        <td><span class="badge ${badgeClass}">${a.status}</span></td>
+                        <td><span style="font-weight:600; color:var(--primary); font-size:12px;">${a.platform || 'WebRTC'}</span></td>
+                        <td><b>${a.station}</b></td>
+                        <td>${a.operator}</td>
+                        <td>${netBadge}</td>
+                        <td>${cpuBadge}</td>
+                        <td>${mosDisplay}</td>
+                        <td>${a.rttMs}ms | ${a.jitterMs}ms</td>
+                        <td>${callStatus}</td>
+                        <td>
+                            <button class="btn-action btn-clear" onclick="sendRemoteClearCache('${a.agentId}')">
+                                🧹 Limpar Cache
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        // Renderiza Chamadas
+        document.getElementById('cardTotalCalls').textContent = callsList.length;
+        const goodCalls = callsList.filter(c => c.classificacao === 'EXCELENTE' || c.classificacao === 'BOA').length;
+        document.getElementById('cardSuccessCalls').textContent = callsList.length > 0 ? `${Math.round((goodCalls / callsList.length) * 100)}%` : "100%";
+
+        const tbodyCalls = document.getElementById('callsTableBody');
+        if (callsList.length === 0) {
+            tbodyCalls.innerHTML = `<tr><td colspan="10" style="text-align:center; color:var(--text-muted); padding:30px;">Nenhuma chamada finalizada neste turno.</td></tr>`;
+        } else {
+            tbodyCalls.innerHTML = callsList.slice(0, 30).map(c => {
+                const tagClass = c.classificacao === 'CRÍTICA' ? 'badge-danger' : (c.classificacao === 'DEGRADADA' ? 'badge-warn' : 'badge-ok');
+                const durMin = Math.floor(c.durationSeconds / 60);
+                const durSec = c.durationSeconds % 60;
+                return `
+                    <tr>
+                        <td><span class="badge ${tagClass}">${c.classificacao}</span></td>
+                        <td><span style="font-weight:600; color:var(--primary); font-size:11px;">${c.platform || 'WebRTC'}</span></td>
+                        <td><code>${c.interactionId}</code></td>
+                        <td>${c.operator} (${c.station})</td>
+                        <td>${c.startTime || '--:--'}</td>
+                        <td>${durMin}m ${durSec}s</td>
+                        <td><b>${c.mosMedio}</b> / ${c.mosMinimo}</td>
+                        <td>${c.jitterPicoMs}ms</td>
+                        <td>${c.perdaPacotesPct}%</td>
+                        <td>${c.protocolo}</td>
+                    </tr>
+                `;
+            }).join('');
+        }
+    }
+
+    if (hasUrlTenant || localStorage.getItem('vv_logged_in')) {
+        connectWs();
+    }
+</script>
+
+</body>
+</html>

@@ -1,0 +1,45 @@
+{
+  "name": "VoiceVanguard WebRTC Sentinel",
+  "description": "Monitoramento em tempo real de qualidade de voz (MOS ITU-T G.107), diagnóstico de rede de agentes e auditoria WebRTC para Genesys Cloud.",
+  "version": "1.0.0",
+  "author": {
+    "name": "TrustCo Technologies",
+    "email": "partnerships@trustco.pro",
+    "website": "https://trustco.pro"
+  },
+  "integrationType": "embedded-client-app",
+  "applicationType": "standalone",
+  "display": {
+    "name": "VoiceVanguard Sentinel",
+    "icon": {
+      "vector": "https://voicevanguard.trustco.pro/assets/icon.svg",
+      "24x24": "https://voicevanguard.trustco.pro/assets/icon-24.png",
+      "48x48": "https://voicevanguard.trustco.pro/assets/icon-48.png"
+    },
+    "category": "Workforce Engagement Management"
+  },
+  "url": "https://voicevanguard.trustco.pro/dashboard?tenant={{pcOrganization.id}}&lang={{pcLangTag}}&env={{pcEnvironment}}",
+  "sandbox": "allow-scripts allow-same-origin allow-forms allow-popups allow-downloads",
+  "permissions": [
+    "analytics:conversationDetail:view",
+    "telephony:plugin:all",
+    "user:profile:view"
+  ],
+  "monetization": {
+    "model": "PUPM",
+    "currency": "USD",
+    "pricePerUserPerMonth": 5.50,
+    "trialPeriodDays": 30,
+    "billingType": "genesys-invoice"
+  },
+  "clientAppConfiguration": {
+    "embeddedType": "standalone",
+    "groupFilter": [],
+    "userFilter": [],
+    "advanced": {
+      "enableInteractionWidget": true,
+      "interactionWidgetUrl": "https://voicevanguard.trustco.pro/widget?conversationId={{pcConversationId}}&agent={{pcAgentId}}",
+      "interactionWidgetTypes": ["voice", "callback"]
+    }
+  }
+}
