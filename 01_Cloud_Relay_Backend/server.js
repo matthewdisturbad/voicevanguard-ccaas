@@ -34,6 +34,10 @@ const COMMAND_WHITELIST = new Set(['SAFE_CACHE_CLEAR']);
 const AUDIO_ISSUES = new Set(['NONE', 'MIC_DESCONECTADO', 'MIC_MUDO_SISTEMA', 'SEM_AUDIO_RECEBIDO', 'SEM_AUDIO_ENVIADO']);
 const PRECHECK_STATUS = new Set(['PRONTA', 'ATENCAO', 'NAO_PRONTA']);
 const ITEM_STATUS = new Set(['ok', 'atencao', 'falha']);
+const MSG_WINDOW_MS = 1000;
+const MSG_MAX_AGENT = 40;
+const MSG_MAX_SUPERVISOR = 20;
+const AGENT_RECORD_FACTOR = 4;
 const PING_MAX_PER_WINDOW = 40;
 const PING_WINDOW_MS = 10000;
 const ID_PATTERN = /^[A-Za-z0-9_-]{1,32}$/;
@@ -62,10 +66,13 @@ function devTenants() {
 function loadTenants(env = process.env) {
     if (env.TENANTS_JSON) {
         let parsed;
-        try { parsed = JSON.parse(env.TENANTS_JSON); } catch (e) { throw new Error('TENANTS_JSON inválido: ' + e.message); }
+        try { parsed = JSON.parse(env.TENANTS_JSON); } catch (e) { throw new Error('TENANTS_JSON inválido (JSON malformado).'); }
+        if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) throw new Error('TENANTS_JSON deve ser um objeto JSON.');
         return parsed;
     }
-    if (env.NODE_ENV === 'production') {
+    // Falha fechada: tenants de dev (chaves públicas no repositório) não sobem em produção
+    // nem em plataforma gerenciada, mesmo que NODE_ENV tenha sido esquecido.
+    if (env.NODE_ENV === 'production' || env.RAILWAY_ENVIRONMENT || env.RAILWAY_PROJECT_ID) {
         throw new Error('TENANTS_JSON é obrigatório em produção.');
     }
     console.warn('[Config] TENANTS_JSON ausente: usando tenants fictícios de DESENVOLVIMENTO.');
@@ -141,7 +148,11 @@ const authFailures = new Map(); // ip -> [timestamps]
 function clientIp(req) {
     if (process.env.TRUST_PROXY === '1') {
         const fwd = req.headers['x-forwarded-for'];
-        if (fwd) return String(fwd).split(',')[0].trim();
+        // O proxy da plataforma acrescenta o IP real ao FINAL da lista; os itens anteriores são controlados pelo cliente.
+        if (fwd) {
+            const parts = String(fwd).split(',').map(x => x.trim()).filter(Boolean);
+            if (parts.length) return parts[parts.length - 1];
+        }
     }
     return req.socket.remoteAddress || 'unknown';
 }
@@ -369,7 +380,7 @@ function createRelay() {
     const akey = (tower, agentId) => `${tower || ''}|${agentId}`;
 
     function sendJson(res, status, body, extraHeaders = {}) {
-        res.writeHead(status, { 'Content-Type': 'application/json', ...extraHeaders });
+        res.writeHead(status, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store', ...extraHeaders });
         res.end(JSON.stringify(body));
     }
 
@@ -392,11 +403,8 @@ function createRelay() {
         if (url.pathname === '/api/health') {
             sendJson(res, 200, {
                 status: 'online',
-                version: '1.0.0',
-                service: 'VoiceVanguard CCaaS Multi-Tenant Cloud Relay',
-                activeTenants: tenantRooms.size,
+                service: 'VoiceVanguard CCaaS Cloud Relay',
                 registeredTenants: tenantMeta.size,
-                activeConnections: wss.clients.size,
                 timestamp: new Date().toISOString()
             });
             return;
@@ -464,6 +472,9 @@ function createRelay() {
     }
 
     wss.on('connection', (ws, req) => {
+        // Primeiro de tudo: sem listener, um frame acima de maxPayload em socket ainda não autenticado
+        // gera 'error' não tratado e derruba o processo inteiro.
+        ws.on('error', () => {});
         let url;
         try { url = new URL(req.url, 'http://localhost'); } catch (e) { ws.close(1008, 'Bad URL'); return; }
 
@@ -530,6 +541,14 @@ function createRelay() {
         }
 
         ws.on('message', (raw) => {
+            // Teto de mensagens por conexão: impede que um cliente com chave válida sature o relay e os supervisores.
+            const nowMs = Date.now();
+            if (!ws.msgWindowStart || nowMs - ws.msgWindowStart >= MSG_WINDOW_MS) { ws.msgWindowStart = nowMs; ws.msgCount = 0; }
+            ws.msgCount++;
+            if (ws.msgCount > (clientType === 'agent' ? MSG_MAX_AGENT : MSG_MAX_SUPERVISOR)) {
+                ws.close(1008, 'Rate Limited');
+                return;
+            }
             let data;
             try { data = JSON.parse(raw); } catch (e) { return; }
             if (!data || typeof data !== 'object') return;
@@ -560,6 +579,12 @@ function createRelay() {
                         currentCallId: str(data.currentCallId, 128, ''),
                         lastSeen: new Date().toISOString()
                     };
+                    // Teto de identidades por sala: libera um registro OFFLINE antigo ou ignora a telemetria excedente.
+                    if (!room.agents.has(akey(tower, agentId)) && room.agents.size >= meta.maxAgents * AGENT_RECORD_FACTOR) {
+                        let freed = false;
+                        for (const [id, ag] of room.agents) { if (ag.status === 'OFFLINE') { room.agents.delete(id); freed = true; break; } }
+                        if (!freed) return;
+                    }
                     room.agents.set(akey(tower, agentId), record);
                     broadcast(room, { type: 'TELEMETRY_UPDATE', payload: record }, tower);
                     if (!record.callActive) flushPending(room, ws);
@@ -745,6 +770,9 @@ if (require.main === module) {
         force.unref();
         relay.shutdown().then(() => process.exit(0));
     };
+    // Defesa em profundidade: loga e mantém o serviço de pé diante de erro inesperado em um socket.
+    process.on('uncaughtException', (err) => { console.error('[!] uncaughtException:', err && err.message); });
+    process.on('unhandledRejection', (err) => { console.error('[!] unhandledRejection:', err && err.message); });
     process.on('SIGTERM', stop);
     process.on('SIGINT', stop);
 }
