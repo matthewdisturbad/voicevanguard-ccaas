@@ -374,7 +374,8 @@
         }
 
         const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
-        const wsUrl = `${protocol}//${location.host}?tenant=${encodeURIComponent(activeTenantKey)}&type=supervisor`;
+        const supKey = sessionStorage.getItem('vv_supervisor_key');
+        const wsUrl = `${protocol}//${location.host}?tenant=${encodeURIComponent(activeTenantKey)}&type=supervisor` + (supKey ? `&key=${encodeURIComponent(supKey)}` : '');
         
         document.getElementById('connStatus').textContent = "Conectando...";
         ws = new WebSocket(wsUrl);
@@ -560,6 +561,8 @@
     (async function initAuthGuard() {
         const urlParams = new URLSearchParams(window.location.search);
         const queryTenant = urlParams.get('tenant');
+        const querySupKey = urlParams.get('key');
+        if (querySupKey) sessionStorage.setItem('vv_supervisor_key', querySupKey);
         const sessionTenant = sessionStorage.getItem('vv_tenant_key');
         const candidateKey = queryTenant || sessionTenant;
 

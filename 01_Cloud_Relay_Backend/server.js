@@ -8,6 +8,7 @@
 const http = require('http');
 const path = require('path');
 const fs = require('fs');
+const crypto = require('crypto');
 const { WebSocketServer, WebSocket } = require('ws');
 
 const PORT = process.env.PORT || 9090;
@@ -41,6 +42,53 @@ const TENANTS_DB = {
     }
 };
 
+// Configuração adicional de tenants via variável de ambiente (evita chaves no repositório).
+// Formato: { "TENANT-ID": { name, plan, maxAgents, active, towers: {...}, supervisors: {...} } }
+if (process.env.TENANTS_CONFIG_JSON) {
+    try {
+        Object.assign(TENANTS_DB, JSON.parse(process.env.TENANTS_CONFIG_JSON));
+    } catch (e) {
+        console.error('[Config] TENANTS_CONFIG_JSON inválido:', e.message);
+    }
+}
+
+// Torres (operações). A própria operação define quem vai para a sua torre:
+// cada torre tem uma agentKey instalada via GPO/Intune nas PAs daquela operação,
+// e supervisores recebem uma chave própria com a lista de torres que podem ver ('*' = todas).
+// Tenants sem `towers` mantêm o comportamento legado (tenant inteiro visível).
+function safeEqual(a, b) {
+    const ba = Buffer.from(String(a)), bb = Buffer.from(String(b));
+    return ba.length === bb.length && crypto.timingSafeEqual(ba, bb);
+}
+
+function resolveCredential(tenantMeta, clientType, key) {
+    if (!tenantMeta.towers) return { ok: true, tower: null, towers: '*' };
+    if (!key) return { ok: false };
+    if (clientType === 'supervisor') {
+        for (const [supKey, sup] of Object.entries(tenantMeta.supervisors || {})) {
+            if (safeEqual(supKey, key)) {
+                const towers = sup.towers === '*' ? '*' : (sup.towers || []).filter(t => tenantMeta.towers[t]);
+                return { ok: true, towers, supervisorName: sup.name || 'Supervisor' };
+            }
+        }
+        return { ok: false };
+    }
+    for (const [towerId, tower] of Object.entries(tenantMeta.towers)) {
+        if (tower.agentKey && safeEqual(tower.agentKey, key)) return { ok: true, tower: towerId, towers: [towerId] };
+    }
+    return { ok: false };
+}
+
+function canSee(ws, tower) {
+    return ws.towers === '*' || ws.towers.includes(tower);
+}
+
+function sendToSupervisors(room, tower, message) {
+    room.supervisors.forEach(sup => {
+        if (sup.readyState === WebSocket.OPEN && canSee(sup, tower)) sup.send(message);
+    });
+}
+
 // Armazenamento em memória por Tenant
 // tenantKey -> { supervisors: Set(ws), agents: Map(agentId, data), callHistory: Array(calls) }
 const tenantRooms = new Map();
@@ -69,6 +117,11 @@ function saveTenantHistory(tenantKey, history) {
     } catch (e) {
         console.error(`[DataStore] Erro ao salvar histórico de ${tenantKey}:`, e.message);
     }
+}
+
+// Chave interna do agente na sala: isola PAs de torres diferentes com o mesmo agentId
+function agentKeyOf(ws) {
+    return `${ws.tower || ''}|${ws.agentId}`;
 }
 
 function getOrCreateTenantRoom(tenantKey) {
@@ -213,8 +266,18 @@ wss.on('connection', (ws, req) => {
         return;
     }
 
+    const cred = resolveCredential(tenantMeta, clientType, url.searchParams.get('key'));
+    if (!cred.ok) {
+        ws.send(JSON.stringify({ type: 'AUTH_ERROR', message: 'Chave de operação inválida ou ausente.' }));
+        ws.close(4003, 'Invalid Operation Key');
+        console.warn(`[!] Conexão rejeitada com código 4003 (chave inválida | Tenant: ${tenantKey} | ${clientType})`);
+        return;
+    }
+
     const room = getOrCreateTenantRoom(tenantKey);
     ws.tenantKey = tenantKey;
+    ws.tower = cred.tower;       // torre do agente (null em tenants legados)
+    ws.towers = cred.towers;     // torres visíveis ao supervisor ('*' = todas)
     ws.clientType = clientType;
     ws.agentId = agentId;
 
@@ -226,8 +289,9 @@ wss.on('connection', (ws, req) => {
         ws.send(JSON.stringify({
             type: 'INIT_STATE',
             tenant: tenantMeta.name,
-            agents: Array.from(room.agents.values()),
-            callHistory: room.callHistory.slice(0, 50)
+            agents: Array.from(room.agents.values()).filter(a => canSee(ws, a.tower)),
+            callHistory: room.callHistory.filter(c => canSee(ws, c.tower)).slice(0, 50),
+            towers: ws.towers === '*' ? Object.keys(tenantMeta.towers || {}) : ws.towers
         }));
     } else {
         console.log(`[+] Agente PA conectado | ID: ${agentId} | Tenant: ${tenantKey}`);
@@ -257,16 +321,15 @@ wss.on('connection', (ws, req) => {
                     cpuStress: data.cpuStress || "NORMAL",
                     callActive: data.callActive || false,
                     currentCallId: data.currentCallId || "",
+                    tower: ws.tower,
                     lastSeen: new Date().toISOString()
                 };
 
-                room.agents.set(ws.agentId, telemetryRecord);
+                room.agents.set(agentKeyOf(ws), telemetryRecord);
 
                 // Broadcast imediato para todos os supervisores do mesmo Tenant
                 const broadcastMsg = JSON.stringify({ type: 'TELEMETRY_UPDATE', payload: telemetryRecord });
-                room.supervisors.forEach(sup => {
-                    if (sup.readyState === WebSocket.OPEN) sup.send(broadcastMsg);
-                });
+                sendToSupervisors(room, ws.tower, broadcastMsg);
             }
 
             // 2. Resumo de Chamada Finalizada (Auditoria com MOS ITU-T G.107)
@@ -288,6 +351,7 @@ wss.on('connection', (ws, req) => {
                     perdaPacotesPct: data.perdaPacotesPct || 0,
                     protocolo: data.protocolo || "UDP",
                     classificacao: data.classificacao || "EXCELENTE",
+                    tower: ws.tower,
                     receivedAt: new Date().toISOString()
                 };
 
@@ -296,9 +360,7 @@ wss.on('connection', (ws, req) => {
                 saveTenantHistory(tenantKey, room.callHistory);
 
                 const callMsg = JSON.stringify({ type: 'NEW_CALL_AUDIT', payload: callRecord });
-                room.supervisors.forEach(sup => {
-                    if (sup.readyState === WebSocket.OPEN) sup.send(callMsg);
-                });
+                sendToSupervisors(room, ws.tower, callMsg);
             }
 
             // 3. Comando Injetado pelo Supervisor (Ex: Limpeza Segura de Cache Remota)
@@ -308,7 +370,7 @@ wss.on('connection', (ws, req) => {
 
                 // Envia comando para a PA específica
                 for (const client of wss.clients) {
-                    if (client.tenantKey === tenantKey && client.clientType === 'agent' && client.agentId === targetAgentId) {
+                    if (client.tenantKey === tenantKey && client.clientType === 'agent' && client.agentId === targetAgentId && canSee(ws, client.tower)) {
                         if (client.readyState === WebSocket.OPEN) {
                             client.send(JSON.stringify({
                                 type: 'EXECUTE_COMMAND',
@@ -323,9 +385,7 @@ wss.on('connection', (ws, req) => {
             // 4. Feedback do Agente (Ex: Cache limpo com êxito ou bloqueado por chamada)
             if (data.type === 'COMMAND_RESULT') {
                 const resMsg = JSON.stringify({ type: 'AGENT_COMMAND_FEEDBACK', agentId: ws.agentId, result: data.result });
-                room.supervisors.forEach(sup => {
-                    if (sup.readyState === WebSocket.OPEN) sup.send(resMsg);
-                });
+                sendToSupervisors(room, ws.tower, resMsg);
             }
 
         } catch (err) {
@@ -339,14 +399,12 @@ wss.on('connection', (ws, req) => {
             console.log(`[-] Supervisor desconectado | Tenant: ${tenantKey}`);
         } else {
             // Marca o agente como OFFLINE após desconexão
-            const ag = room.agents.get(ws.agentId);
+            const ag = room.agents.get(agentKeyOf(ws));
             if (ag) {
                 ag.status = 'OFFLINE';
                 ag.lastSeen = new Date().toISOString();
                 const offlineMsg = JSON.stringify({ type: 'TELEMETRY_UPDATE', payload: ag });
-                room.supervisors.forEach(sup => {
-                    if (sup.readyState === WebSocket.OPEN) sup.send(offlineMsg);
-                });
+                sendToSupervisors(room, ws.tower, offlineMsg);
             }
             console.log(`[-] Agente PA desconectado | ID: ${ws.agentId}`);
         }

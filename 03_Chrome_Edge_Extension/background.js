@@ -8,6 +8,7 @@
 let RELAY_SERVER = "wss://voicevanguard.trustco.pro"; // Custom domain principal
 let FALLBACK_RELAY_SERVER = "wss://voicevanguard-cloud-production.up.railway.app"; // Railway fallback imediato
 let tenantKey = "DEMO-FREE-2026";
+let operationKey = null; // chave da torre (operação), distribuída por GPO/Intune; o agente não escolhe
 let agentStationId = null;
 let operatorName = "Operador";
 let ws = null;
@@ -16,8 +17,9 @@ let isCallActive = false;
 let pendingCacheClear = false;
 
 // Inicializa Identificadores
-chrome.storage.local.get(['tenantKey', 'agentStationId', 'operatorName'], (res) => {
+chrome.storage.local.get(['tenantKey', 'operationKey', 'agentStationId', 'operatorName'], (res) => {
     if (res.tenantKey) tenantKey = res.tenantKey;
+    if (res.operationKey) operationKey = res.operationKey;
     if (res.agentStationId) agentStationId = res.agentStationId;
     else {
         agentStationId = `PA-${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
@@ -29,9 +31,10 @@ chrome.storage.local.get(['tenantKey', 'agentStationId', 'operatorName'], (res) 
 
 // Suporte a GPO / Active Directory (Políticas Corporativas do Windows / Chrome Managed Storage)
 if (chrome.storage.managed) {
-    chrome.storage.managed.get(['tenantKey', 'relayServer'], (managedConfig) => {
+    chrome.storage.managed.get(['tenantKey', 'operationKey', 'relayServer'], (managedConfig) => {
         if (managedConfig && managedConfig.tenantKey) {
             tenantKey = managedConfig.tenantKey;
+            if (managedConfig.operationKey) { operationKey = managedConfig.operationKey; chrome.storage.local.set({ operationKey }); }
             chrome.storage.local.set({ tenantKey, isManaged: true });
             if (managedConfig.relayServer) RELAY_SERVER = managedConfig.relayServer;
             if (ws) ws.close();
@@ -42,7 +45,7 @@ if (chrome.storage.managed) {
 function connectToCloudRelay() {
     if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) return;
 
-    const url = `${RELAY_SERVER}?tenant=${encodeURIComponent(tenantKey)}&type=agent&agentId=${encodeURIComponent(agentStationId)}`;
+    const url = `${RELAY_SERVER}?tenant=${encodeURIComponent(tenantKey)}&type=agent&agentId=${encodeURIComponent(agentStationId)}` + (operationKey ? `&key=${encodeURIComponent(operationKey)}` : '');
     try {
         ws = new WebSocket(url);
 
