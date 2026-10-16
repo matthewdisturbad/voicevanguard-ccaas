@@ -20,3 +20,6 @@ Use a configuração de extensão do navegador (JSON com os mesmos campos) atrib
 Abra `chrome://policy` (ou `edge://policy`) na estação, confirme a política da extensão, e veja a estação aparecer no console do supervisor da torre.
 
 **Aviso:** o fluxo foi testado em ambiente de desenvolvimento com o schema carregando; a validação com GPO/Intune reais ainda precisa ser feita no primeiro cliente piloto.
+
+## Widget de interação (Genesys)
+O widget aparece no painel da chamada do **agente**, por isso nunca usa a chave de supervisor. Defina um `widgetKey` no tenant em `TENANTS_JSON` (chave própria, distinta das demais). Ao instalar a integração na organização Genesys do cliente, o administrador acrescenta ao final da URL do widget `#wk=<widgetKey>` (depois de `&env={{pcEnvironment}}`). O trecho depois de `#` não é enviado ao servidor e o widget o remove do endereço ao carregar. Com essa chave o widget só lê a telemetria e a auditoria da conversa aberta; não lista estações nem executa comandos.

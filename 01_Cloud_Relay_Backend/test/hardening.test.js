@@ -9,7 +9,7 @@ const WebSocket = require('ws');
 process.env.DATA_DIR = fs.mkdtempSync(path.join(os.tmpdir(), 'vv-hard-'));
 process.env.TRUST_PROXY = '1';
 process.env.TENANTS_JSON = JSON.stringify({
-    'T-H': { name: 'Tenant H', plan: 'Std', maxAgents: 5, agentKey: 'agent-key-H-123', supervisorKey: 'super-key-H-123' }
+    'T-H': { name: 'Tenant H', plan: 'Std', maxAgents: 5, agentKey: 'agent-key-H-123', supervisorKey: 'super-key-H-123', widgetKey: 'widget-key-H-123' }
 });
 const { createRelay, loadTenants } = require('../server');
 
@@ -166,4 +166,59 @@ test('API_LATENCY de múltiplos frames na mesma PA mescla hosts na janela ativa'
     assert.deepStrictEqual(hostNames, ['api.mypurecloud.com', 'apps.mypurecloud.com']);
     sup.close();
     ag.close();
+});
+
+// --- Widget: credencial própria, somente leitura e restrita a uma conversa ---
+const authed = (msg) => new Promise((resolve) => {
+    const ws = new WebSocket(`ws://localhost:${port}`);
+    const msgs = [];
+    const closed = new Promise(r => ws.on('close', code => r(code)));
+    ws.on('error', () => {});
+    ws.on('message', m => msgs.push(JSON.parse(m)));
+    ws.on('open', () => { ws.send(JSON.stringify(msg)); resolve({ ws, msgs, closed }); });
+});
+
+test('widget só recebe a conversa que abriu e não executa comandos', async () => {
+    const widget = await authed({ type: 'AUTH', key: 'widget-key-H-123', conversationId: 'conv-AAAA-1111' });
+    const agentA = await authed({ type: 'AUTH', key: 'agent-key-H-123', agentId: 'PA-WA' });
+    const agentB = await authed({ type: 'AUTH', key: 'agent-key-H-123', agentId: 'PA-WB' });
+    await wait(150);
+    agentA.ws.send(JSON.stringify({ type: 'AGENT_TELEMETRY', mosScore: '4.1', currentCallId: 'conv-AAAA-1111', callActive: true }));
+    agentB.ws.send(JSON.stringify({ type: 'AGENT_TELEMETRY', mosScore: '3.0', currentCallId: 'conv-BBBB-2222', callActive: true }));
+    await wait(250);
+    const updates = widget.msgs.filter(m => m.type === 'TELEMETRY_UPDATE');
+    assert.strictEqual(updates.length, 1);
+    assert.strictEqual(updates[0].payload.agentId, 'PA-WA');
+    // comando de supervisor enviado pelo widget é ignorado
+    widget.ws.send(JSON.stringify({ type: 'SUPERVISOR_COMMAND', targetAgentId: 'PA-WA', command: 'SAFE_CACHE_CLEAR' }));
+    await wait(200);
+    assert.strictEqual(agentA.msgs.filter(m => m.type === 'EXECUTE_COMMAND').length, 0);
+    [widget, agentA, agentB].forEach(c => c.ws.close());
+});
+
+test('widget sem conversationId válido é recusado com 4001', async () => {
+    const w = await authed({ type: 'AUTH', key: 'widget-key-H-123' });
+    assert.strictEqual(await w.closed, 4001);
+});
+
+test('chave de widget não vale como chave de supervisor no validate-tenant', async () => {
+    const r = await get('/api/validate-tenant', { 'X-Tenant-Key': 'widget-key-H-123' });
+    assert.strictEqual(r.status, 403);
+});
+
+test('em produção a chave na URL é recusada, a menos que ALLOW_URL_KEY=1', async () => {
+    const prev = process.env.NODE_ENV;
+    process.env.NODE_ENV = 'production';
+    try {
+        const c = await open('key=agent-key-H-123&agentId=PA-URL');
+        assert.strictEqual(await c.closed, 4001);
+        process.env.ALLOW_URL_KEY = '1';
+        const d = await open('key=agent-key-H-123&agentId=PA-URL2');
+        await wait(150);
+        assert.strictEqual(d.ws.readyState, WebSocket.OPEN);
+        d.ws.close();
+    } finally {
+        delete process.env.ALLOW_URL_KEY;
+        if (prev === undefined) delete process.env.NODE_ENV; else process.env.NODE_ENV = prev;
+    }
 });

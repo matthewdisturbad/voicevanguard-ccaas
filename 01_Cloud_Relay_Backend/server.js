@@ -125,6 +125,11 @@ function buildKeyIndex(tenants) {
             addKey(tenantId, t.supervisorKey, { role: 'supervisor', tower: null, towers: '*', supervisorName: 'Supervisor' });
         }
         for (const id of towerIds) addKey(tenantId, t.towers[id].agentKey, { role: 'agent', tower: id, towers: [id] });
+        // Chave do widget (somente leitura, restrita a uma conversa): é a única que pode aparecer na tela do agente
+        if (t.widgetKey !== undefined) {
+            if (!validKey(t.widgetKey)) throw new Error(`Tenant ${tenantId}: widgetKey deve ter ao menos 8 caracteres.`);
+            addKey(tenantId, t.widgetKey, { role: 'widget', tower: null, towers: '*' });
+        }
         for (const sup of sups) {
             if (!sup || !validKey(sup.key)) throw new Error(`Tenant ${tenantId}: chave de supervisor deve ter ao menos 8 caracteres.`);
             const towers = sup.towers === '*' ? '*' : (Array.isArray(sup.towers) ? sup.towers : []);
@@ -317,6 +322,12 @@ const MIME_TYPES = {
 
 const GENESYS_FRAME_ANCESTORS = "'self' https://*.pure.cloud https://*.mypurecloud.com https://*.mypurecloud.ie https://*.mypurecloud.de https://*.mypurecloud.jp https://*.mypurecloud.com.au https://*.niceincontact.com https://*.nice-incontact.com";
 
+// Chave na URL (?key=) vaza em logs de proxy; em produção só com ALLOW_URL_KEY=1 (extensões antigas). DISABLE_URL_KEY=1 desliga sempre.
+function urlKeyAllowed() {
+    if (process.env.DISABLE_URL_KEY === '1') return false;
+    return process.env.NODE_ENV !== 'production' || process.env.ALLOW_URL_KEY === '1';
+}
+
 function computeScriptSrcDirective(pubDir) {
     const hashes = new Set();
     try {
@@ -349,7 +360,7 @@ const SECURITY_HEADERS = {
         "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
         "font-src https://fonts.gstatic.com",
         "img-src 'self' data:",
-        "connect-src 'self' ws: wss:",
+        "connect-src 'self'",
         "frame-ancestors 'none'",
         "base-uri 'none'"
     ].join('; ')
@@ -367,6 +378,7 @@ function createRelay() {
         if (!tenantRooms.has(tenantId)) {
             tenantRooms.set(tenantId, {
                 supervisors: new Set(),
+                widgets: new Set(),
                 agents: new Map(),
                 stations: new Map(), // agentId -> { station, operator, precheck, api, lastSeen }
                 callHistory: loadTenantHistory(tenantId)
@@ -425,6 +437,16 @@ function createRelay() {
         const msg = JSON.stringify(obj);
         for (const sup of room.supervisors) {
             if (sup.readyState === WebSocket.OPEN && canSee(sup, tower)) sup.send(msg);
+        }
+        // Widgets recebem apenas telemetria e auditoria da conversa que abriram, nada mais
+        if (room.widgets.size && obj.payload) {
+            const convId = obj.type === 'TELEMETRY_UPDATE' ? obj.payload.currentCallId
+                : obj.type === 'NEW_CALL_AUDIT' ? obj.payload.interactionId : null;
+            if (convId) {
+                for (const w of room.widgets) {
+                    if (w.readyState === WebSocket.OPEN && w.conversationId === convId) w.send(msg);
+                }
+            }
         }
     }
 
@@ -539,7 +561,7 @@ function createRelay() {
 
         let authTimer = null;
 
-        function completeAuth(rawKey, rawAgentId, viaMessage = false) {
+        function completeAuth(rawKey, rawAgentId, viaMessage = false, rawConversationId = null) {
             if (authTimer) { clearTimeout(authTimer); authTimer = null; }
             // O papel vem da chave apresentada, nunca de parâmetro declarado pelo cliente.
             const found = lookupKey(rawKey);
@@ -553,6 +575,15 @@ function createRelay() {
             const { tenantId, role: clientType, tower, towers } = found;
             const meta = tenantMeta.get(tenantId);
             const room = getRoom(tenantId);
+
+            let conversationId = null;
+            if (clientType === 'widget') {
+                conversationId = typeof rawConversationId === 'string' && /^[A-Za-z0-9_-]{8,128}$/.test(rawConversationId) ? rawConversationId : null;
+                if (!conversationId) {
+                    reject(ws, 4001, 'Invalid Conversation', 'ID da conversa ausente ou inválido.');
+                    return false;
+                }
+            }
 
             let agentId = null;
             if (clientType === 'agent') {
@@ -584,8 +615,19 @@ function createRelay() {
             ws.towers = towers;
             ws.supervisorName = found.supervisorName;
             ws.agentId = agentId;
+            ws.conversationId = conversationId;
 
-            if (clientType === 'supervisor') {
+            if (clientType === 'widget') {
+                room.widgets.add(ws);
+                ws.send(JSON.stringify({
+                    type: 'INIT_STATE',
+                    tenant: meta.name,
+                    agents: Array.from(room.agents.values()).filter(a => a.currentCallId === conversationId),
+                    stations: [],
+                    callHistory: room.callHistory.filter(c => c.interactionId === conversationId).slice(0, 1),
+                    towers: []
+                }));
+            } else if (clientType === 'supervisor') {
                 room.supervisors.add(ws);
                 console.log(`[+] Supervisor conectado | Tenant: ${tenantId}`);
                 ws.send(JSON.stringify({
@@ -608,7 +650,7 @@ function createRelay() {
         }
 
         if (url.searchParams.has('key')) {
-            if (process.env.DISABLE_URL_KEY === '1') {
+            if (!urlKeyAllowed()) {
                 recordFailure(ip);
                 reject(ws, 4001, 'URL Key Disabled', 'Autenticação por URL desativada; envie mensagem AUTH.');
                 return;
@@ -655,7 +697,7 @@ function createRelay() {
                     reject(ws, 4001, 'Invalid Key', 'Chave inválida ou não autorizada.');
                     return;
                 }
-                completeAuth(data.key, data.agentId, true);
+                completeAuth(data.key, data.agentId, true, data.conversationId);
                 return;
             }
 
@@ -813,7 +855,9 @@ function createRelay() {
             if (!ws.authenticated) return;
             const { tenantId, clientType, tower, agentId } = ws;
             const room = getRoom(tenantId);
-            if (clientType === 'supervisor') {
+            if (clientType === 'widget') {
+                room.widgets.delete(ws);
+            } else if (clientType === 'supervisor') {
                 room.supervisors.delete(ws);
                 console.log(`[-] Supervisor desconectado | Tenant: ${tenantId}`);
             } else {

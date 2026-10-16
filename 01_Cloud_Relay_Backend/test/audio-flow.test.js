@@ -65,11 +65,21 @@ test('getSenders lançando erro não derruba a detecção', () => {
     assert.strictEqual(feed(pc, newState(), [[1, 1], [2, 2]]), 'NONE');
 });
 
-test('computeIntervalLoss detecta pico súbito de 50% de perda mesmo após 50.000 pacotes sem perda', () => {
+test('computeIntervalLoss detecta pico súbito de 50% mesmo após 50.000 pacotes sem perda e o suaviza em ~6 s', () => {
     const st = newState();
-    assert.strictEqual(computeIntervalLoss(st, 0, 50000), 0);
-    // Na janela seguinte: 50 pacotes perdidos e 50 recebidos (50% de perda no intervalo de 2 s)
+    assert.strictEqual(computeIntervalLoss(st, 0, 50000), 0); // linha de base
+    // Intervalo seguinte: 50 perdidos e 50 recebidos (50% no intervalo de 2 s)
     assert.strictEqual(computeIntervalLoss(st, 50, 50050), 50);
-    // Janela seguinte volta ao normal: 0 perdidos e 100 recebidos
-    assert.strictEqual(computeIntervalLoss(st, 50, 50150), 0);
+    // Volta ao normal: o pico decai pela janela de 3 amostras (50/200, depois 50/300), não some de repente
+    assert.strictEqual(computeIntervalLoss(st, 50, 50150), 25);
+    assert.strictEqual(computeIntervalLoss(st, 50, 50250), 16.7);
+    assert.strictEqual(computeIntervalLoss(st, 50, 50350), 0); // o pico saiu da janela
+});
+
+test('computeIntervalLoss: reinício de contadores não gera pico falso', () => {
+    const st = newState();
+    computeIntervalLoss(st, 0, 1000);
+    computeIntervalLoss(st, 0, 1100);
+    // contadores zerados (nova conexão): delta ignorado, sem perda inventada
+    assert.strictEqual(computeIntervalLoss(st, 0, 5), 0);
 });

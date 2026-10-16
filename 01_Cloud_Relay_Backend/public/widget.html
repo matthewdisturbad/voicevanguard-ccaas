@@ -207,11 +207,6 @@
 
         <div id="authSection">
             <div id="authError" class="err" hidden></div>
-            <div class="field">
-                <label id="lblKey" for="inputKey">Chave de supervisor do tenant</label>
-                <input type="password" id="inputKey" autocomplete="off" placeholder="Insira a chave de supervisor">
-            </div>
-            <button type="button" id="btnConnect" class="btn">Conectar telemetria</button>
         </div>
 
         <div id="telemetrySection" hidden>
@@ -241,9 +236,6 @@
             </div>
 
             <div id="diagBox" class="diag-box">Aguardando amostras da conversa...</div>
-
-            <button type="button" id="btnRemediate" class="btn" disabled>Limpeza segura de cache (pós-chamada)</button>
-            <div id="cmdStatus" class="foot" hidden></div>
         </div>
 
         <div class="foot">
@@ -257,16 +249,15 @@
             const params = new URLSearchParams(location.search);
             const rawConv = params.get('conversationId') || '';
             const convId = (rawConv && !rawConv.includes('{{')) ? rawConv.trim() : '';
-            const rawEnv = params.get('environment') || '';
+            const rawEnv = params.get('env') || params.get('environment') || '';
             const pcEnv = (rawEnv && !rawEnv.includes('{{')) ? rawEnv.trim() : '';
             const rawLang = (params.get('lang') || navigator.language || 'pt-BR').toLowerCase();
             const isEn = rawLang.startsWith('en');
 
             const I18N = isEn ? {
                 conv: 'Interaction:',
-                keyLabel: 'Tenant supervisor key',
-                keyPlaceholder: 'Enter supervisor key',
-                connect: 'Connect telemetry',
+                notConfigured: 'Widget not configured: ask your administrator to add the widget key to the integration URL.',
+                needConv: 'Open this widget from a conversation: the interaction ID is missing.',
                 station: 'Workstation:',
                 operator: 'Agent:',
                 net: 'Network:',
@@ -277,16 +268,12 @@
                 live: 'LIVE CALL',
                 audited: 'AUDITED CALL',
                 online: 'CONNECTED',
-                remediate: 'Safe post-call cache cleanup',
                 openConsole: 'Open full console →',
-                invalidKey: 'Invalid or unauthorized supervisor key.',
-                cmdQueued: 'Queued by In-Call Lock: will execute automatically after call ends.',
-                cmdDone: 'Safe cache cleanup executed on workstation.'
+                invalidKey: 'Invalid or unauthorized widget key.'
             } : {
                 conv: 'Interação:',
-                keyLabel: 'Chave de supervisor do tenant',
-                keyPlaceholder: 'Insira a chave de supervisor',
-                connect: 'Conectar telemetria',
+                notConfigured: 'Widget não configurado: peça ao administrador para incluir a chave do widget na URL da integração.',
+                needConv: 'Abra este widget a partir de uma conversa: o ID da interação não foi informado.',
                 station: 'PA:',
                 operator: 'Operador:',
                 net: 'Rede:',
@@ -297,26 +284,19 @@
                 live: 'EM CHAMADA',
                 audited: 'AUDITADA',
                 online: 'CONECTADO',
-                remediate: 'Limpeza segura de cache (pós-chamada)',
                 openConsole: 'Abrir console completo →',
-                invalidKey: 'Chave de supervisor inválida ou não autorizada.',
-                cmdQueued: 'Enfileirado pelo In-Call Lock: executará após o término da chamada.',
-                cmdDone: 'Limpeza segura de cache concluída na PA.'
+                invalidKey: 'Chave do widget inválida ou não autorizada.'
             };
 
             const $ = (id) => document.getElementById(id);
             document.documentElement.lang = isEn ? 'en' : 'pt-BR';
             $('lblConv').textContent = I18N.conv;
-            $('lblKey').textContent = I18N.keyLabel;
-            $('inputKey').placeholder = I18N.keyPlaceholder;
-            $('btnConnect').textContent = I18N.connect;
             $('lblStation').textContent = I18N.station;
             $('lblOperator').textContent = I18N.operator;
             $('lblNet').textContent = I18N.net;
             $('lblRtt').textContent = I18N.rtt;
             $('lblLoss').textContent = I18N.loss;
             $('diagBox').textContent = I18N.waiting;
-            $('btnRemediate').textContent = I18N.remediate;
             $('lnkConsole').textContent = I18N.openConsole;
 
             $('valConv').textContent = convId || (isEn ? 'All active' : ' Geral');
@@ -326,10 +306,12 @@
             }
 
             let ws = null;
-            let activeKey = sessionStorage.getItem('vv_tenant_key') || '';
+            // Chave só de leitura do widget, no fragmento da URL (#wk=...): o fragmento nunca vai ao servidor nem a logs de proxy.
+            const hashParams = new URLSearchParams(location.hash.replace(/^#/, ''));
+            const widgetKey = (hashParams.get('wk') || '').trim();
+            if (widgetKey && history.replaceState) { try { history.replaceState(null, '', location.pathname + location.search); } catch (_) {} }
             let agents = new Map();
             let calls = [];
-            let matchedAgentId = null;
 
             function mosClass(mos) {
                 const n = Number(mos);
@@ -354,8 +336,6 @@
                 }
 
                 if (liveAgent) {
-                    matchedAgentId = liveAgent.agentId;
-                    $('btnRemediate').disabled = false;
                     $('connBadge').textContent = I18N.live;
                     $('connBadge').className = 'badge ' + (liveAgent.status === 'ALERTA' ? 'crit' : 'ok');
                     $('valStation').textContent = liveAgent.station || liveAgent.agentId;
@@ -383,8 +363,6 @@
 
                 const audited = convId ? calls.find(c => c.interactionId === convId) : calls[0];
                 if (audited) {
-                    matchedAgentId = audited.agentId || null;
-                    $('btnRemediate').disabled = !matchedAgentId;
                     $('connBadge').textContent = I18N.audited;
                     $('connBadge').className = 'badge ' + (audited.classificacao === 'CRÍTICA' ? 'crit' : (audited.classificacao === 'DEGRADADA' ? 'warn' : 'ok'));
                     $('valStation').textContent = audited.station || audited.agentId || '--';
@@ -400,8 +378,6 @@
                     return;
                 }
 
-                matchedAgentId = null;
-                $('btnRemediate').disabled = true;
                 $('connBadge').textContent = I18N.online;
                 $('connBadge').className = 'badge ok';
                 $('diagBox').className = 'diag-box';
@@ -417,7 +393,7 @@
                 ws = sock;
 
                 sock.onopen = () => {
-                    sock.send(JSON.stringify({ type: 'AUTH', key }));
+                    sock.send(JSON.stringify({ type: 'AUTH', key, conversationId: convId }));
                 };
 
                 sock.onmessage = (ev) => {
@@ -431,7 +407,6 @@
                             return;
                         }
                         if (msg.type === 'INIT_STATE') {
-                            sessionStorage.setItem('vv_tenant_key', key);
                             $('authSection').hidden = true;
                             $('telemetrySection').hidden = false;
                             $('tenantLabel').textContent = msg.tenant || 'VoiceVanguard';
@@ -446,17 +421,12 @@
                         } else if (msg.type === 'NEW_CALL_AUDIT' && msg.payload) {
                             calls.unshift(msg.payload);
                             renderMatch();
-                        } else if (msg.type === 'AGENT_COMMAND_FEEDBACK' && msg.agentId === matchedAgentId) {
-                            const box = $('cmdStatus');
-                            box.hidden = false;
-                            box.textContent = (msg.result && msg.result.inCall) ? I18N.cmdQueued : I18N.cmdDone;
                         }
                     } catch (_) {}
                 };
 
                 sock.onclose = (ev) => {
                     if (ev.code === 4001) {
-                        sessionStorage.removeItem('vv_tenant_key');
                         $('authError').textContent = I18N.invalidKey;
                         $('authError').hidden = false;
                         $('authSection').hidden = false;
@@ -465,30 +435,15 @@
                 };
             }
 
-            $('btnConnect').addEventListener('click', () => {
-                const k = $('inputKey').value.trim();
-                if (k) connect(k);
-            });
-            $('inputKey').addEventListener('keydown', (e) => {
-                if (e.key === 'Enter') {
-                    const k = $('inputKey').value.trim();
-                    if (k) connect(k);
-                }
-            });
-            $('btnRemediate').addEventListener('click', () => {
-                if (ws && ws.readyState === WebSocket.OPEN && matchedAgentId) {
-                    ws.send(JSON.stringify({
-                        type: 'SUPERVISOR_COMMAND',
-                        targetAgentId: matchedAgentId,
-                        command: 'SAFE_CACHE_CLEAR'
-                    }));
-                }
-            });
-
-            if (activeKey) {
-                $('inputKey').value = activeKey;
-                connect(activeKey);
+            function showMessage(text) {
+                $('authError').textContent = text;
+                $('authError').hidden = false;
+                $('authSection').hidden = false;
+                $('telemetrySection').hidden = true;
             }
+            if (!convId) showMessage(I18N.needConv);
+            else if (!widgetKey) showMessage(I18N.notConfigured);
+            else connect(widgetKey);
         })();
     </script>
 </body>

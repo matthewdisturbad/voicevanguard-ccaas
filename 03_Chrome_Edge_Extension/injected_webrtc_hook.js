@@ -71,17 +71,25 @@
         return 'NONE';
     }
 
-    // Perda de pacotes por intervalo (delta entre amostras de 2 s), evitando que o acumulado
-    // de chamadas longas dilua picos súbitos de perda de pacotes.
+    // Perda de pacotes por intervalo: deltas das amostras de 2 s somados numa janela curta (3 amostras, ~6 s).
+    // Evita que o acumulado de chamadas longas dilua picos súbitos e que 1 pacote perdido numa amostra pequena vire um pico falso.
+    const LOSS_WINDOW_SAMPLES = 3;
     function computeIntervalLoss(st, totalLost, totalReceived) {
         const lost = Math.max(0, Number(totalLost) || 0);
         const recv = Math.max(0, Number(totalReceived) || 0);
-        const dLost = (st.prevLost !== undefined && st.prevLost !== null && lost >= st.prevLost) ? (lost - st.prevLost) : lost;
-        const dRecv = (st.prevRecv !== undefined && st.prevRecv !== null && recv >= st.prevRecv) ? (recv - st.prevRecv) : recv;
+        const first = st.prevLost === undefined || st.prevLost === null;
+        const dLost = (!first && lost >= st.prevLost) ? (lost - st.prevLost) : 0;
+        const dRecv = (!first && recv >= st.prevRecv) ? (recv - st.prevRecv) : 0;
         st.prevLost = lost;
         st.prevRecv = recv;
-        const dTotal = dLost + dRecv;
-        return dTotal > 0 ? Math.round((dLost / dTotal) * 1000) / 10 : 0;
+        if (first) return 0; // a primeira amostra só define a linha de base
+        const win = st.lossWindow || (st.lossWindow = []);
+        win.push([dLost, dRecv]);
+        if (win.length > LOSS_WINDOW_SAMPLES) win.shift();
+        let wl = 0, wr = 0;
+        for (const [l, r] of win) { wl += l; wr += r; }
+        const total = wl + wr;
+        return total > 0 ? Math.round((wl / total) * 1000) / 10 : 0;
     }
     // </audio-flow>
     let lastDetectedConversationId = null;
