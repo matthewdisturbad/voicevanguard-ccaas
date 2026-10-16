@@ -65,10 +65,10 @@
       "audioPayloadCaptured": false,
       "voiceRecordingStored": false,
       "encryptionInTransit": "TLS 1.3 / WSS",
-      "complianceCertifications": [
-        "LGPD (Brazil)",
-        "GDPR (EU)",
-        "PCI-DSS (No cardholder data transit)"
+      "dataProtectionPractices": [
+        "Follows LGPD (Brazil) guidelines - privacy by design, no certification claimed",
+        "Follows GDPR (EU) guidelines - privacy by design, no certification claimed",
+        "No cardholder data transits the telemetry channel"
       ],
       "tenancyModel": "Strict Logical Multi-Tenant Isolation"
     }

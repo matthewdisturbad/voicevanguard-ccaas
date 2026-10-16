@@ -1,11 +1,11 @@
-# VoiceDoctor CCaaS &bull; Proposta Oficial de Submissão e Parceria
+# VoiceVanguard CCaaS &bull; Proposta Oficial de Submissão e Parceria
 ## Genesys AppFoundry &bull; Technology Partner Program (ISV)
 
 ---
 
 ### 1. Resumo Executivo da Solução (Listing Profile)
 
-* **Nome Comercial do Produto:** VoiceDoctor CCaaS &bull; Universal WebRTC QoE & Agent Health Monitor
+* **Nome Comercial do Produto:** VoiceVanguard CCaaS &bull; Universal WebRTC QoE & Agent Health Monitor
 * **Categoria Principal no AppFoundry:** Voice & Media Observability / Agent Assist & Productivity / Workforce Optimization (WFO)
 * **Público-Alvo:** Contact Centers Enterprise, BPOs (Business Process Outsourcers), Operações em Home Office / Híbridas e Equipes de Sustentação N2/N3.
 * **Modelo de Integração:** Genesys Cloud Client App Integration (Iframe nativo no Supervisor) + Chromium Extension (Manifest V3 corporativo) + Cloud Multi-Tenant Hub.
@@ -45,7 +45,7 @@ O produto adota o modelo de cobrança recorrente faturado diretamente na conta G
 | **Enterprise / BPO** | Acima de 1.500 PAs | **$4,00 USD** (~R$ 22,00) / PA / mês | ~$20.000 USD / mês (5.000 PAs) |
 
 * **Período de Teste Gratuito (Free Trial):** 14 dias para até 25 PAs da organização.
-* **Divisão de Receita (Take-Rate):** Genesys retém entre 15% e 20%; ISV (VoiceDoctor) recebe entre 80% e 85% líquido.
+* **Divisão de Receita (Take-Rate):** Genesys retém entre 15% e 20%; ISV (VoiceVanguard) recebe entre 80% e 85% líquido.
 
 ---
 

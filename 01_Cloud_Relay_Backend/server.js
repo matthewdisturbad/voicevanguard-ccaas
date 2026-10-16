@@ -82,6 +82,24 @@ function getOrCreateTenantRoom(tenantKey) {
     return tenantRooms.get(tenantKey);
 }
 
+// Rate limit simples em memória: máx. 30 validações por IP por minuto (escritórios de BPO compartilham IP)
+const VALIDATE_LIMIT = 30;
+const VALIDATE_WINDOW_MS = 60 * 1000;
+const validateHits = new Map();
+function isRateLimited(ip) {
+    const now = Date.now();
+    const hits = (validateHits.get(ip) || []).filter(t => now - t < VALIDATE_WINDOW_MS);
+    hits.push(now);
+    validateHits.set(ip, hits);
+    return hits.length > VALIDATE_LIMIT;
+}
+setInterval(() => {
+    const now = Date.now();
+    for (const [ip, hits] of validateHits) {
+        if (!hits.some(t => now - t < VALIDATE_WINDOW_MS)) validateHits.delete(ip);
+    }
+}, VALIDATE_WINDOW_MS).unref();
+
 // Servidor HTTP (Serve Landing Page, Supervisor App e APIs REST)
 const server = http.createServer((req, res) => {
     // Configura CORS total para endpoints
@@ -111,8 +129,15 @@ const server = http.createServer((req, res) => {
         return;
     }
 
-    // Validação de Licença / Tenant
+    // Validação de Licença / Tenant (com limite de tentativas por IP)
     if (url.pathname === '/api/validate-tenant') {
+        // Último valor de X-Forwarded-For (anexado pelo proxy); o primeiro pode ser forjado pelo cliente
+        const ip = (req.headers['x-forwarded-for'] || req.socket.remoteAddress || '').split(',').pop().trim();
+        if (isRateLimited(ip)) {
+            res.writeHead(429, { 'Content-Type': 'application/json', 'Retry-After': '60' });
+            res.end(JSON.stringify({ valid: false, error: "Muitas tentativas. Aguarde 1 minuto." }));
+            return;
+        }
         const key = url.searchParams.get('key');
         const tenant = TENANTS_DB[key];
         if (tenant && tenant.active) {
@@ -129,8 +154,13 @@ const server = http.createServer((req, res) => {
     // '/' ou '/index.html' -> Landing Page (public/index.html)
     // '/app', '/app.html' ou '/login' -> Console Supervisor Enterprise (public/app.html)
     let targetFileName = 'index.html';
-    if (url.pathname === '/app' || url.pathname === '/app.html' || url.pathname === '/login') {
+    // '/dashboard' (Genesys Client App) -> Console; '/widget' -> Interaction Widget; '/privacy' -> Política de Privacidade
+    if (url.pathname === '/app' || url.pathname === '/app.html' || url.pathname === '/login' || url.pathname === '/dashboard') {
         targetFileName = 'app.html';
+    } else if (url.pathname === '/widget') {
+        targetFileName = 'widget.html';
+    } else if (url.pathname === '/privacy') {
+        targetFileName = 'privacy.html';
     } else if (url.pathname === '/' || url.pathname === '/index.html') {
         targetFileName = 'index.html';
     } else {
@@ -152,7 +182,11 @@ const server = http.createServer((req, res) => {
             '.svg': 'image/svg+xml',
             '.ico': 'image/x-icon'
         };
-        res.writeHead(200, { 'Content-Type': mimeTypes[ext] || 'text/plain' });
+        res.writeHead(200, {
+            'Content-Type': mimeTypes[ext] || 'text/plain',
+            // Permite embed apenas dentro do Genesys Cloud (Client App iframe)
+            'Content-Security-Policy': "frame-ancestors 'self' https://*.pure.cloud https://*.mypurecloud.com https://*.mypurecloud.ie https://*.mypurecloud.de https://*.mypurecloud.jp https://*.mypurecloud.com.au"
+        });
         fs.createReadStream(filePath).pipe(res);
         return;
     }

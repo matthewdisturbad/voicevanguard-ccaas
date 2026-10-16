@@ -80,7 +80,7 @@ VoiceDoctor-CCaaS/
 
 5. **Strict Enterprise Security & Compliance:**
    - **Zero Audio Capture:** Only network metadata is processed; no voice payloads are ever recorded or stored.
-   - **100% LGPD, GDPR, and PCI-DSS Compliant:** No cardholder or sensitive customer data traverses the telemetry channel.
+   - **Built to follow LGPD and GDPR guidelines (privacy by design; not a certification):** No cardholder or sensitive customer data traverses the telemetry channel.
    - **Encrypted Transport:** Exclusively TLS 1.3 / WSS on standard port 443.
    - **Multi-Tenant Logical Isolation:** Socket connections without valid tenant authorization are terminated immediately (Code `4001 Unauthorized`).
 

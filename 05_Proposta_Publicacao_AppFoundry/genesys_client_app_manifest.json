@@ -12,13 +12,11 @@
   "display": {
     "name": "VoiceVanguard Sentinel",
     "icon": {
-      "vector": "https://voicevanguard.trustco.pro/assets/icon.svg",
-      "24x24": "https://voicevanguard.trustco.pro/assets/icon-24.png",
-      "48x48": "https://voicevanguard.trustco.pro/assets/icon-48.png"
+      "vector": "https://voicevanguard.trustco.pro/assets/icon.svg"
     },
     "category": "Workforce Engagement Management"
   },
-  "url": "https://voicevanguard.trustco.pro/dashboard?tenant={{pcOrganization.id}}&lang={{pcLangTag}}&env={{pcEnvironment}}",
+  "url": "https://voicevanguard.trustco.pro/dashboard?tenant=TENANT_KEY_DO_CLIENTE&org={{pcOrganization.id}}&lang={{pcLangTag}}&env={{pcEnvironment}}",
   "sandbox": "allow-scripts allow-same-origin allow-forms allow-popups allow-downloads",
   "permissions": [
     "analytics:conversationDetail:view",
@@ -28,8 +26,8 @@
   "monetization": {
     "model": "PUPM",
     "currency": "USD",
-    "pricePerUserPerMonth": 5.50,
-    "trialPeriodDays": 30,
+    "pricePerUserPerMonth": 5.0,
+    "trialPeriodDays": 14,
     "billingType": "genesys-invoice"
   },
   "clientAppConfiguration": {
@@ -39,7 +37,10 @@
     "advanced": {
       "enableInteractionWidget": true,
       "interactionWidgetUrl": "https://voicevanguard.trustco.pro/widget?conversationId={{pcConversationId}}&agent={{pcAgentId}}",
-      "interactionWidgetTypes": ["voice", "callback"]
+      "interactionWidgetTypes": [
+        "voice",
+        "callback"
+      ]
     }
   }
 }
