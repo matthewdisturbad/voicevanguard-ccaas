@@ -31,11 +31,20 @@ Falso positivo descartado: path traversal em arquivos estáticos **não se repro
 4. Política de privacidade, DPA e DPIA (operador, estação, agentId e callId são dados pessoais). Só voltar a citar LGPD/GDPR/PCI-DSS após avaliação formal.
 5. Confirmar IDs do AWS Marketplace/APN e o status da candidatura Genesys; unificar as três tabelas de preço; citar fonte dos percentuais (75%/85%/80%) ou removê-los; refazer o comparativo com concorrentes reais.
 6. Remover caminho local e e-mails pessoais do guia AWS; unificar o nome antigo "VoiceDoctor".
-7. Publicar a extensão via GitHub Releases/Chrome Web Store (os `.zip` saíram do git). Os endpoints do manifesto Genesys (`/dashboard`, `/widget`) ainda não existem no servidor.
-8. Cálculo de MOS é uma **aproximação baseada em G.107** (usa RTT, perda cumulativa); documentar assim ou implementar o E-model completo por codec, com testes.
+7. Confirmar o horário de atendimento exibido na landing (08h–18h BRT) e os nomes dos planos (Piloto/Operação/Dedicado) com o comercial.
+8. Publicar a extensão via GitHub Releases/Chrome Web Store (os `.zip` saíram do git). Os endpoints do manifesto Genesys (`/dashboard`, `/widget`) ainda não existem no servidor.
+9. Cálculo de MOS é uma **aproximação baseada em G.107** (usa RTT, perda cumulativa); documentar assim ou implementar o E-model completo por codec, com testes.
 
 ## Pontos positivos
 
 - Escopo enxuto e legível (≈3 mil linhas), uma única dependência de runtime (`ws`).
 - Alegação de "zero áudio" coerente com o código: o hook usa apenas `getStats()`.
 - Paridade de tradução pt/en da landing correta (89 chaves) e agora verificada em CI.
+
+## Verificação end-to-end
+
+`e2e/run.js` (extensão + relay + console em Chromium real): 12/12 verificações — login do supervisor (chave de agente recusada), telemetria, In-Call Lock com limpeza executada no pós-chamada, auditoria ao fim da chamada, correlação do ID Genesys, persistência e popup sem expor a chave. O teste revelou um bug adicional corrigido: `pc.close()` não dispara `connectionstatechange`, então o resumo da chamada nunca era enviado.
+
+## Revisão de design
+
+Sistema visual com tokens (um acento + cores semânticas), tema claro/escuro, ícones SVG no lugar de emojis, tabelas densas, foco visível, sem animações piscantes. Copy da landing e do console reescrita sem alegações sem fonte (compliance, SLA, limites de plano, TLS 1.3). `popup.js` ainda injeta emojis e cores inline nos estados dinâmicos (limpeza futura).

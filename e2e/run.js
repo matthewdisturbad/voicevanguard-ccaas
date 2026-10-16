@@ -39,7 +39,7 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
     await sup.click('#btnSubmitLogin');
     await sup.waitForSelector('#authOverlay', { state: 'hidden', timeout: 8000 });
     check('console aceita chave de supervisor e conecta', true);
-    await sup.waitForFunction(() => /Ao Vivo/.test(document.getElementById('connStatus').textContent), null, { timeout: 8000 });
+    await sup.waitForFunction(() => /ao vivo/i.test(document.getElementById('connStatus').textContent), null, { timeout: 8000 });
 
     // Configura a extensão para o relay local
     await sw.evaluate(([key]) => { RELAY_SERVER = 'ws://localhost:9292'; tenantKey = key; chrome.storage.local.set({ tenantKey: key }); connectToCloudRelay(); }, ['e2e-agent-key-0001']);
@@ -73,12 +73,12 @@ window.endCall = () => { (window.__pcs||[]).forEach(p => p.close()); };
 
     // Telemetria aparece no console
     await sup.bringToFront();
-    await sup.waitForFunction(() => document.querySelectorAll('#agentsTableBody tr').length > 0 && !/Aguardando/.test(document.getElementById('agentsTableBody').textContent), null, { timeout: 20000 })
+    await sup.waitForFunction(() => document.querySelectorAll('#agentsTableBody [data-clear-agent]').length > 0, null, { timeout: 20000 })
       .then(() => check('telemetria da extensão chega ao console do supervisor', true), () => check('telemetria da extensão chega ao console do supervisor', false));
     await sup.screenshot({ path: path.join(OUT, 'console-em-chamada.png') });
     const rowText = await sup.locator('#agentsTableBody').innerText();
     check('plataforma Genesys detectada', /Genesys/.test(rowText), JSON.stringify(rowText.slice(0, 120)));
-    check('chamada ativa exibida', /Em Chamada/.test(rowText));
+    check('chamada ativa exibida', /em chamada/i.test(rowText));
 
     // In-Call Lock: comando durante a chamada deve ser adiado
     const feedback = new Promise(res => sup.on('dialog', d => { const m = d.message(); d.accept(); if (/Feedback/.test(m)) res(m); }));
