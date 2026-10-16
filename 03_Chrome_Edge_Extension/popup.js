@@ -5,7 +5,7 @@
 
 document.addEventListener('DOMContentLoaded', () => {
     chrome.storage.local.get(['lastMetric', 'callHistory', 'tenantKey', 'agentStationId', 'isCallActive', 'lastCacheCleared'], (res) => {
-        document.getElementById('lblTenant').textContent = (res.tenantKey || 'DEMO').split('-')[0];
+        document.getElementById('lblTenant').textContent = res.tenantKey ? 'Configurada' : 'Não configurada';
         document.getElementById('lblStation').textContent = res.agentStationId || 'PA-LIVE';
 
         const m = res.lastMetric;
@@ -36,19 +36,26 @@ document.addEventListener('DOMContentLoaded', () => {
         const history = res.callHistory || [];
         const histListEl = document.getElementById('historyList');
         if (history.length > 0) {
-            histListEl.innerHTML = history.slice(0, 10).map(c => {
-                const durMin = Math.floor(c.durationSeconds / 60);
-                const durSec = c.durationSeconds % 60;
-                return `
-                    <div style="display:flex; justify-content:space-between; padding:4px 0; border-bottom:1px solid #f1f5f9;">
-                        <div>
-                            <b>${(c.interactionId || 'CALL').slice(0, 8)}</b>
-                            <span style="color:#64748b;">(${durMin}m ${durSec}s)</span>
-                        </div>
-                        <div>MOS: <b>${c.mosMedio}</b></div>
-                    </div>
-                `;
-            }).join('');
+            histListEl.textContent = '';
+            history.slice(0, 10).forEach(c => {
+                const dur = Number(c.durationSeconds) || 0;
+                const row = document.createElement('div');
+                row.style.cssText = 'display:flex; justify-content:space-between; padding:4px 0; border-bottom:1px solid #f1f5f9;';
+                const left = document.createElement('div');
+                const id = document.createElement('b');
+                id.textContent = String(c.interactionId || 'CALL').slice(0, 8);
+                const span = document.createElement('span');
+                span.style.color = '#64748b';
+                span.textContent = ` (${Math.floor(dur / 60)}m ${dur % 60}s)`;
+                left.append(id, span);
+                const right = document.createElement('div');
+                right.append('MOS: ');
+                const mos = document.createElement('b');
+                mos.textContent = String(c.mosMedio ?? 'N/D');
+                right.append(mos);
+                row.append(left, right);
+                histListEl.append(row);
+            });
         }
 
         // Trava Operacional Anti-Queda de Chamada
@@ -71,11 +78,15 @@ document.addEventListener('DOMContentLoaded', () => {
             btnClear.textContent = "⏳ Limpando cache...";
 
             try {
-                if (chrome.browsingData && chrome.browsingData.removeCache) {
-                    await new Promise((resolve) => chrome.browsingData.removeCache({ since: 0 }, resolve));
-                    const now = new Date().toISOString();
-                    chrome.storage.local.set({ lastCacheCleared: now });
+                // A limpeza passa pelo background, que aplica o In-Call Lock
+                const result = await chrome.runtime.sendMessage({ action: 'EXECUTE_SAFE_CACHE_CLEAR' });
+                if (result && result.inCall) {
+                    btnClear.textContent = "🛑 Em chamada: agendada para o pós-chamada";
+                    feedbackEl.textContent = "Ação agendada para o fim da chamada.";
+                    feedbackEl.style.color = "#dc2626";
+                    return;
                 }
+                if (!result || !result.success) throw new Error('falha');
 
                 btnClear.textContent = "✅ Cache Limpo!";
                 btnClear.style.background = "#16a34a";

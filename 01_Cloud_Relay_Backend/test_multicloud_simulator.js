@@ -1,5 +1,6 @@
 const WebSocket = require('ws');
-const ws = new WebSocket('ws://localhost:9090?tenant=DEMO-FREE-2026&type=agent&agentId=PA-MULTI-CLOUD-01');
+const AGENT_KEY = process.env.AGENT_KEY || 'dev-agent-BPO-APEX-GLOBAL'; // chave de agente do tenant fictício de desenvolvimento
+const ws = new WebSocket(`ws://localhost:9090?key=${AGENT_KEY}&agentId=PA-MULTI-CLOUD-01`);
 
 ws.on('open', () => {
     console.log('[SIMULADOR UNIVERSAL] Conectado ao Cloud Relay!');
@@ -24,7 +25,7 @@ ws.on('open', () => {
     }));
 
     // 2. Simula Agente no Twilio Flex
-    const ws2 = new WebSocket('ws://localhost:9090?tenant=DEMO-FREE-2026&type=agent&agentId=PA-TWILIO-02');
+    const ws2 = new WebSocket(`ws://localhost:9090?key=${AGENT_KEY}&agentId=PA-TWILIO-02`);
     ws2.on('open', () => {
         ws2.send(JSON.stringify({
             type: 'AGENT_TELEMETRY',

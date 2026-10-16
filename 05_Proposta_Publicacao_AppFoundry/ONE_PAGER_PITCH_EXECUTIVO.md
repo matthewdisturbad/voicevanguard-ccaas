@@ -62,5 +62,5 @@ graph LR
 - **Desenvolvedora:** TrustCo Technologies
 - **Website:** `https://trustco.pro`
 - **Portal da Solução:** `https://voicevanguard.trustco.pro`
-- **Ambiente de Testes:** Chave de Tenant: `DEMO-FREE-2026`
+- **Ambiente de Testes:** chave de avaliação fornecida sob solicitação (`partnerships@trustco.pro`)
 - **Contato Comercial & Parcerias:** `partnerships@trustco.pro`

@@ -343,9 +343,9 @@
 
     function reportMetric(payload) {
         window.postMessage({
-            source: 'VOICEDOCTOR_WEBRTC_HOOK',
+            source: 'VOICEVANGUARD_WEBRTC_HOOK',
             payload: payload
-        }, '*');
+        }, window.location.origin);
     }
 
     console.log(`[VoiceDoctor] Universal WebRTC Hook ativo para: ${currentPlatform.name}`);

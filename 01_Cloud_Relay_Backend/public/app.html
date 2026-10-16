@@ -133,7 +133,7 @@
             <div id="authErrorBox" class="auth-error"></div>
             <div class="auth-form-group">
                 <label for="inputTenantKey">Chave de Licença do Tenant (Enterprise Tenant Key):</label>
-                <input type="text" id="inputTenantKey" placeholder="Ex: GENESYS-ALLIANCE-EVAL" autocomplete="off" autocorrect="off" autocapitalize="characters">
+                <input type="password" id="inputTenantKey" placeholder="Chave de supervisor do seu tenant" autocomplete="off" autocorrect="off">
             </div>
             <div class="auth-form-group">
                 <label for="inputSupervisorName">Identificação do Supervisor:</label>
@@ -307,7 +307,7 @@
 
     async function validateTenantKey(key) {
         try {
-            const resp = await fetch(`/api/validate-tenant?key=${encodeURIComponent(key)}`);
+            const resp = await fetch('/api/validate-tenant', { headers: { 'X-Tenant-Key': key } });
             const data = await resp.json();
             if (resp.ok && data.valid) {
                 return data;
@@ -363,7 +363,7 @@
     }
 
     function updateTenantDisplay(key, name) {
-        document.getElementById('tenantBadge').textContent = (key || 'UNKNOWN').split('-')[0];
+        document.getElementById('tenantBadge').textContent = (name || 'TENANT').split(/\s+/)[0].toUpperCase().slice(0, 12); // nunca exibir parte da chave
         document.getElementById('tenantOrgDisplay').textContent = name || key;
     }
 
@@ -374,7 +374,7 @@
         }
 
         const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
-        const wsUrl = `${protocol}//${location.host}?tenant=${encodeURIComponent(activeTenantKey)}&type=supervisor`;
+        const wsUrl = `${protocol}//${location.host}?key=${encodeURIComponent(activeTenantKey)}`;
         
         document.getElementById('connStatus').textContent = "Conectando...";
         ws = new WebSocket(wsUrl);
@@ -402,7 +402,8 @@
                     if (callsList.length > 200) callsList.pop();
                     renderAll();
                 } else if (msg.type === 'AGENT_COMMAND_FEEDBACK') {
-                    alert(`Feedback da PA (${msg.agentId}):\n${JSON.stringify(msg.result)}`);
+                    const r = msg.result || {};
+                    alert(`Feedback da PA (${String(msg.agentId)}):\n${r.success ? 'Cache limpo com sucesso.' : (r.message || 'Ação não executada.')}`);
                 }
             } catch (err) {
                 console.error("Erro ao decodificar frame WS:", err);
@@ -447,6 +448,16 @@
         }
     }
 
+    // Todo dado vindo de agente é não confiável: escapar antes de montar HTML.
+    function esc(v) {
+        return String(v ?? '').replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
+    }
+
+    document.getElementById('agentsTableBody').addEventListener('click', (e) => {
+        const btn = e.target.closest('[data-clear-agent]');
+        if (btn) sendRemoteClearCache(btn.dataset.clearAgent);
+    });
+
     function renderAll() {
         const agents = Array.from(agentsMap.values());
         document.getElementById('cardTotalAgents').textContent = agents.length;
@@ -484,7 +495,7 @@
         } else {
             tbodyAgents.innerHTML = agents.map(a => {
                 const badgeClass = a.status === 'OK' ? 'badge-ok' : (a.status === 'OFFLINE' ? 'badge-offline' : 'badge-danger');
-                const callStatus = a.callActive ? `<span style="color:var(--ok); font-weight:700;">🟢 Em Chamada (${(a.currentCallId || '').slice(-6)})</span>` : `<span style="color:var(--text-muted);">Livre</span>`;
+                const callStatus = a.callActive ? `<span style="color:var(--ok); font-weight:700;">🟢 Em Chamada (${esc((a.currentCallId || '').slice(-6))})</span>` : `<span style="color:var(--text-muted);">Livre</span>`;
                 
                 // Badge de Wi-Fi vs Cabo
                 const isWifi = (a.networkType || '').includes('WI_FI') || (a.protocol || '').includes('WIFI');
@@ -501,22 +512,22 @@
                 // Alerta In-Call MOS Rescue
                 const isRescueNeeded = a.callActive && Number(a.mosScore) < 3.30;
                 const mosDisplay = isRescueNeeded
-                    ? `<b style="color:var(--danger); animation: blink 1s infinite;">⚠️ ${a.mosScore} (Risco Queda)</b>`
-                    : `<b>${a.mosScore || '4.40'}</b> / 4.50`;
+                    ? `<b style="color:var(--danger); animation: blink 1s infinite;">⚠️ ${esc(a.mosScore)} (Risco Queda)</b>`
+                    : `<b>${esc(a.mosScore ?? 'N/D')}</b> / 4.50`;
 
                 return `
                     <tr style="${isRescueNeeded ? 'background:#fef2f2;' : ''}">
-                        <td><span class="badge ${badgeClass}">${a.status}</span></td>
-                        <td><span style="font-weight:600; color:var(--primary); font-size:12px;">${a.platform || 'WebRTC'}</span></td>
-                        <td><b>${a.station}</b></td>
-                        <td>${a.operator}</td>
+                        <td><span class="badge ${badgeClass}">${esc(a.status)}</span></td>
+                        <td><span style="font-weight:600; color:var(--primary); font-size:12px;">${esc(a.platform || 'WebRTC')}</span></td>
+                        <td><b>${esc(a.station)}</b></td>
+                        <td>${esc(a.operator)}</td>
                         <td>${netBadge}</td>
                         <td>${cpuBadge}</td>
                         <td>${mosDisplay}</td>
-                        <td>${a.rttMs || 0}ms | ${a.jitterMs || 0}ms</td>
+                        <td>${esc(a.rttMs || 0)}ms | ${esc(a.jitterMs || 0)}ms</td>
                         <td>${callStatus}</td>
                         <td>
-                            <button class="btn-action btn-clear" onclick="sendRemoteClearCache('${a.agentId}')">
+                            <button class="btn-action btn-clear" data-clear-agent="${esc(a.agentId)}">
                                 🧹 Limpar Cache
                             </button>
                         </td>
@@ -540,16 +551,16 @@
                 const durSec = (c.durationSeconds || 0) % 60;
                 return `
                     <tr>
-                        <td><span class="badge ${tagClass}">${c.classificacao}</span></td>
-                        <td><span style="font-weight:600; color:var(--primary); font-size:11px;">${c.platform || 'WebRTC'}</span></td>
-                        <td><code>${c.interactionId}</code></td>
-                        <td>${c.operator} (${c.station})</td>
-                        <td>${c.startTime || '--:--'}</td>
+                        <td><span class="badge ${tagClass}">${esc(c.classificacao)}</span></td>
+                        <td><span style="font-weight:600; color:var(--primary); font-size:11px;">${esc(c.platform || 'WebRTC')}</span></td>
+                        <td><code>${esc(c.interactionId)}</code></td>
+                        <td>${esc(c.operator)} (${esc(c.station)})</td>
+                        <td>${esc(c.startTime ? new Date(c.startTime).toLocaleTimeString('pt-BR') : '--:--')}</td>
                         <td>${durMin}m ${durSec}s</td>
-                        <td><b>${c.mosMedio}</b> / ${c.mosMinimo}</td>
-                        <td>${c.jitterPicoMs}ms</td>
-                        <td>${c.perdaPacotesPct}%</td>
-                        <td>${c.protocolo}</td>
+                        <td><b>${esc(c.mosMedio)}</b> / ${esc(c.mosMinimo)}</td>
+                        <td>${esc(c.jitterPicoMs)}ms</td>
+                        <td>${esc(c.perdaPacotesPct)}%</td>
+                        <td>${esc(c.protocolo)}</td>
                     </tr>
                 `;
             }).join('');
@@ -558,10 +569,8 @@
 
     // Inicialização e Route Guard Estrito
     (async function initAuthGuard() {
-        const urlParams = new URLSearchParams(window.location.search);
-        const queryTenant = urlParams.get('tenant');
         const sessionTenant = sessionStorage.getItem('vv_tenant_key');
-        const candidateKey = queryTenant || sessionTenant;
+        const candidateKey = sessionTenant; // chaves nunca são aceitas via URL (vazam em logs e histórico)
 
         if (candidateKey) {
             const check = await validateTenantKey(candidateKey);

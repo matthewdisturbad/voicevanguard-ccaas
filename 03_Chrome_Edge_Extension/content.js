@@ -17,11 +17,14 @@ injectHook();
 
 // 2. Escuta mensagens enviadas pelo hook injetado na página
 window.addEventListener('message', (event) => {
-    if (event.source !== window || !event.data || event.data.type !== 'GENESYS_WEBRTC_METRIC') {
+    // Aceita apenas mensagens do próprio frame, da mesma origem e do hook (protocolo único)
+    if (event.source !== window || event.origin !== window.location.origin ||
+        !event.data || event.data.source !== 'VOICEVANGUARD_WEBRTC_HOOK') {
         return;
     }
 
-    const data = event.data.data;
+    const data = event.data.payload;
+    if (!data || typeof data !== 'object') return;
     const action = data.evento === 'CHAMADA_FINALIZADA' ? 'REPORT_CALL_SUMMARY' : 'REPORT_TELEMETRY';
 
     chrome.runtime.sendMessage({

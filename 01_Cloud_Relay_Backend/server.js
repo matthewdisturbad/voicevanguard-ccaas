@@ -1,329 +1,583 @@
 /**
  * VoiceVanguard CCaaS - Multi-Tenant Cloud Relay & Telemetry Hub
  * Roteamento em tempo real de telemetria, qualidade WebRTC e auditoria de chamadas.
- * Arquitetura SaaS Agnóstica (White-Label) para Genesys Cloud CX.
  * Autor: David Paiva • TrustCo Technologies
+ *
+ * Configuração por variáveis de ambiente:
+ *   PORT          Porta HTTP/WS (padrão 9090)
+ *   TENANTS_JSON  Tenants e chaves (obrigatório em NODE_ENV=production). Formato:
+ *                 {"TENANT-ID":{"name":"..","plan":"..","maxAgents":100,"active":true,
+ *                               "agentKey":"<segredo>","supervisorKey":"<segredo>"}}
+ *   DATA_DIR      Diretório do histórico (padrão ./data_store; use um Volume em produção)
+ *   TRUST_PROXY   "1" para usar X-Forwarded-For no rate limit (atrás do proxy do Railway)
+ *   CORS_ORIGIN   Origem permitida para a API REST (padrão: nenhuma, same-origin)
  */
 
 const http = require('http');
 const path = require('path');
 const fs = require('fs');
+const crypto = require('crypto');
 const { WebSocketServer, WebSocket } = require('ws');
 
-const PORT = process.env.PORT || 9090;
+const PORT = process.env.PORT !== undefined ? Number(process.env.PORT) : 9090;
+const IS_PROD = process.env.NODE_ENV === 'production';
+const MAX_PAYLOAD_BYTES = 64 * 1024;
+const MAX_HISTORY = 500;
+const HEARTBEAT_MS = 30000;
+const OFFLINE_TTL_MS = 24 * 60 * 60 * 1000;
+const AUTH_WINDOW_MS = 60000;
+const AUTH_MAX_FAILURES = 20;
+const COMMAND_WHITELIST = new Set(['SAFE_CACHE_CLEAR']);
+const ID_PATTERN = /^[A-Za-z0-9_-]{1,32}$/;
+const TENANT_ID_PATTERN = /^[A-Za-z0-9_-]{1,64}$/;
 
-// Base de Dados de Tenants Enterprise
-// Chaves de licença e isolamento multi-empresa
-const TENANTS_DB = {
-    "GENESYS-ALLIANCE-EVAL": {
-        name: "Genesys AppFoundry Alliance Evaluation",
-        maxAgents: 250,
-        plan: "Enterprise Partner",
-        active: true
-    },
-    "BPO-APEX-GLOBAL": {
-        name: "Apex BPO Solutions",
-        maxAgents: 500,
-        plan: "Enterprise",
-        active: true
-    },
-    "BPO-NEXUS-CORP": {
-        name: "Nexus Contact Center",
-        maxAgents: 1000,
-        plan: "Enterprise",
-        active: true
-    },
-    "BPO-STELLAR-CX": {
-        name: "Stellar Customer Experience",
-        maxAgents: 750,
-        plan: "Enterprise",
-        active: true
+// ---------------------------------------------------------------------------
+// Tenants e chaves (agente e supervisor possuem credenciais distintas)
+// ---------------------------------------------------------------------------
+
+// Somente desenvolvimento local. Nomes fictícios; NUNCA usados em produção.
+function devTenants() {
+    const base = [
+        ['GENESYS-ALLIANCE-EVAL', 'Genesys AppFoundry Alliance Evaluation', 250, 'Enterprise Partner'],
+        ['BPO-APEX-GLOBAL', 'Apex BPO Solutions', 500, 'Enterprise'],
+        ['BPO-NEXUS-CORP', 'Nexus Contact Center', 1000, 'Enterprise'],
+        ['BPO-STELLAR-CX', 'Stellar Customer Experience', 750, 'Enterprise']
+    ];
+    const out = {};
+    for (const [id, name, maxAgents, plan] of base) {
+        out[id] = { name, maxAgents, plan, active: true, agentKey: `dev-agent-${id}`, supervisorKey: `dev-supervisor-${id}` };
     }
+    return out;
+}
+
+function loadTenants(env = process.env) {
+    if (env.TENANTS_JSON) {
+        let parsed;
+        try { parsed = JSON.parse(env.TENANTS_JSON); } catch (e) { throw new Error('TENANTS_JSON inválido: ' + e.message); }
+        return parsed;
+    }
+    if (env.NODE_ENV === 'production') {
+        throw new Error('TENANTS_JSON é obrigatório em produção.');
+    }
+    console.warn('[Config] TENANTS_JSON ausente: usando tenants fictícios de DESENVOLVIMENTO.');
+    return devTenants();
+}
+
+function sha256(s) {
+    return crypto.createHash('sha256').update(String(s)).digest('hex');
+}
+
+// hash(chave) -> { tenantId, role }. Lookup por hash em Map evita __proto__ e comparações diretas.
+function buildKeyIndex(tenants) {
+    const index = new Map();
+    const meta = new Map();
+    for (const [tenantId, t] of Object.entries(tenants)) {
+        if (!TENANT_ID_PATTERN.test(tenantId) || !t || t.active === false) continue;
+        if (typeof t.agentKey !== 'string' || typeof t.supervisorKey !== 'string' ||
+            t.agentKey.length < 8 || t.supervisorKey.length < 8 || t.agentKey === t.supervisorKey) {
+            throw new Error(`Tenant ${tenantId}: agentKey e supervisorKey devem ser distintas e ter ao menos 8 caracteres.`);
+        }
+        meta.set(tenantId, {
+            name: String(t.name || tenantId),
+            plan: String(t.plan || 'Standard'),
+            maxAgents: Number.isFinite(t.maxAgents) && t.maxAgents > 0 ? t.maxAgents : 100
+        });
+        index.set(sha256(t.agentKey), { tenantId, role: 'agent' });
+        index.set(sha256(t.supervisorKey), { tenantId, role: 'supervisor' });
+    }
+    return { index, meta };
+}
+
+// ---------------------------------------------------------------------------
+// Rate limit simples (falhas de autenticação por IP)
+// ---------------------------------------------------------------------------
+
+const authFailures = new Map(); // ip -> [timestamps]
+
+function clientIp(req) {
+    if (process.env.TRUST_PROXY === '1') {
+        const fwd = req.headers['x-forwarded-for'];
+        if (fwd) return String(fwd).split(',')[0].trim();
+    }
+    return req.socket.remoteAddress || 'unknown';
+}
+
+function isRateLimited(ip) {
+    const now = Date.now();
+    const list = (authFailures.get(ip) || []).filter(t => now - t < AUTH_WINDOW_MS);
+    authFailures.set(ip, list);
+    return list.length >= AUTH_MAX_FAILURES;
+}
+
+function recordFailure(ip) {
+    const list = authFailures.get(ip) || [];
+    list.push(Date.now());
+    authFailures.set(ip, list);
+}
+
+// ---------------------------------------------------------------------------
+// Sanitização de entrada (dados controlados por agente nunca são confiáveis)
+// ---------------------------------------------------------------------------
+
+function str(v, max, fallback = '') {
+    if (typeof v !== 'string' && typeof v !== 'number') return fallback;
+    return String(v).slice(0, max);
+}
+
+function num(v, min, max, fallback = null) {
+    const n = typeof v === 'string' ? parseFloat(v) : v;
+    if (typeof n !== 'number' || !Number.isFinite(n)) return fallback;
+    return Math.min(max, Math.max(min, n));
+}
+
+function isoOrNull(v) {
+    if (typeof v !== 'string' && typeof v !== 'number') return null;
+    const d = new Date(v);
+    return Number.isNaN(d.getTime()) ? null : d.toISOString();
+}
+
+// ---------------------------------------------------------------------------
+// Persistência (assíncrona, atômica e com debounce)
+// ---------------------------------------------------------------------------
+
+const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, 'data_store');
+try { fs.mkdirSync(DATA_DIR, { recursive: true }); } catch (e) { console.warn('[DataStore] Não foi possível criar', DATA_DIR, e.message); }
+
+const pendingSaves = new Map(); // tenantId -> timer
+const SAVE_DEBOUNCE_MS = 1000;
+
+function historyFile(tenantId) {
+    return path.join(DATA_DIR, `${tenantId}_history.json`);
+}
+
+function loadTenantHistory(tenantId) {
+    const filePath = historyFile(tenantId);
+    if (!fs.existsSync(filePath)) return [];
+    try {
+        const parsed = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+        if (Array.isArray(parsed)) return parsed;
+        throw new Error('formato inesperado');
+    } catch (e) {
+        // Preserva o arquivo suspeito em vez de sobrescrevê-lo na próxima gravação.
+        const backup = `${filePath}.corrupt-${Date.now()}`;
+        try { fs.renameSync(filePath, backup); } catch (_) {}
+        console.error(`[DataStore] Histórico de ${tenantId} ilegível (${e.message}); preservado em ${path.basename(backup)}`);
+        return [];
+    }
+}
+
+async function writeHistoryNow(tenantId, history) {
+    const filePath = historyFile(tenantId);
+    const tmp = `${filePath}.${process.pid}.tmp`;
+    try {
+        await fs.promises.writeFile(tmp, JSON.stringify(history.slice(0, MAX_HISTORY)), 'utf8');
+        await fs.promises.rename(tmp, filePath);
+    } catch (e) {
+        console.error(`[DataStore] Erro ao salvar histórico de ${tenantId}:`, e.message);
+    }
+}
+
+function saveTenantHistory(tenantId, history) {
+    if (pendingSaves.has(tenantId)) return;
+    const timer = setTimeout(() => {
+        pendingSaves.delete(tenantId);
+        writeHistoryNow(tenantId, history);
+    }, SAVE_DEBOUNCE_MS);
+    timer.unref();
+    pendingSaves.set(tenantId, timer);
+}
+
+async function flushAllSaves(rooms) {
+    for (const [tenantId, timer] of pendingSaves) {
+        clearTimeout(timer);
+        pendingSaves.delete(tenantId);
+        const room = rooms.get(tenantId);
+        if (room) await writeHistoryNow(tenantId, room.callHistory);
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Servidor
+// ---------------------------------------------------------------------------
+
+const MIME_TYPES = {
+    '.html': 'text/html; charset=utf-8',
+    '.js': 'application/javascript; charset=utf-8',
+    '.css': 'text/css; charset=utf-8',
+    '.json': 'application/json',
+    '.png': 'image/png',
+    '.jpg': 'image/jpeg',
+    '.svg': 'image/svg+xml',
+    '.ico': 'image/x-icon'
 };
 
-// Armazenamento em memória por Tenant
-// tenantKey -> { supervisors: Set(ws), agents: Map(agentId, data), callHistory: Array(calls) }
-const tenantRooms = new Map();
-const DATA_DIR = path.join(__dirname, 'data_store');
-if (!fs.existsSync(DATA_DIR)) {
-    try { fs.mkdirSync(DATA_DIR, { recursive: true }); } catch (e) {}
-}
+const SECURITY_HEADERS = {
+    'X-Content-Type-Options': 'nosniff',
+    'X-Frame-Options': 'DENY',
+    'Referrer-Policy': 'no-referrer',
+    'Strict-Transport-Security': 'max-age=31536000; includeSubDomains',
+    'Content-Security-Policy': [
+        "default-src 'self'",
+        "script-src 'self' 'unsafe-inline'",
+        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+        "font-src https://fonts.gstatic.com",
+        "img-src 'self' data:",
+        "connect-src 'self' ws: wss:",
+        "frame-ancestors 'none'",
+        "base-uri 'none'"
+    ].join('; ')
+};
 
-function loadTenantHistory(tenantKey) {
-    try {
-        const filePath = path.join(DATA_DIR, `${tenantKey}_history.json`);
-        if (fs.existsSync(filePath)) {
-            const raw = fs.readFileSync(filePath, 'utf8');
-            return JSON.parse(raw);
+function createRelay() {
+    const tenants = loadTenants();
+    const { index: keyIndex, meta: tenantMeta } = buildKeyIndex(tenants);
+    if (keyIndex.size === 0) throw new Error('Nenhum tenant ativo configurado.');
+
+    // tenantId -> { supervisors: Set(ws), agents: Map(agentId, data), callHistory: [] }
+    const tenantRooms = new Map();
+
+    function getRoom(tenantId) {
+        if (!tenantRooms.has(tenantId)) {
+            tenantRooms.set(tenantId, {
+                supervisors: new Set(),
+                agents: new Map(),
+                callHistory: loadTenantHistory(tenantId)
+            });
         }
-    } catch (e) {
-        console.warn(`[DataStore] Erro ao carregar histórico de ${tenantKey}:`, e.message);
+        return tenantRooms.get(tenantId);
     }
-    return [];
-}
 
-function saveTenantHistory(tenantKey, history) {
-    try {
-        const filePath = path.join(DATA_DIR, `${tenantKey}_history.json`);
-        fs.writeFileSync(filePath, JSON.stringify(history.slice(0, 500), null, 2), 'utf8');
-    } catch (e) {
-        console.error(`[DataStore] Erro ao salvar histórico de ${tenantKey}:`, e.message);
+    function lookupKey(key) {
+        if (typeof key !== 'string' || key.length === 0 || key.length > 256) return null;
+        return keyIndex.get(sha256(key)) || null;
     }
-}
 
-function getOrCreateTenantRoom(tenantKey) {
-    if (!tenantRooms.has(tenantKey)) {
-        tenantRooms.set(tenantKey, {
-            supervisors: new Set(),
-            agents: new Map(),
-            callHistory: loadTenantHistory(tenantKey)
+    function broadcast(room, obj) {
+        const msg = JSON.stringify(obj);
+        for (const sup of room.supervisors) {
+            if (sup.readyState === WebSocket.OPEN) sup.send(msg);
+        }
+    }
+
+    function sendJson(res, status, body, extraHeaders = {}) {
+        res.writeHead(status, { 'Content-Type': 'application/json', ...extraHeaders });
+        res.end(JSON.stringify(body));
+    }
+
+    const publicDir = path.join(__dirname, 'public');
+
+    const server = http.createServer((req, res) => {
+        for (const [k, v] of Object.entries(SECURITY_HEADERS)) res.setHeader(k, v);
+        if (process.env.CORS_ORIGIN) {
+            res.setHeader('Access-Control-Allow-Origin', process.env.CORS_ORIGIN);
+            res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+            res.setHeader('Access-Control-Allow-Headers', 'Content-Type, X-Tenant-Key');
+        }
+
+        if (req.method === 'OPTIONS') { res.writeHead(204); res.end(); return; }
+        if (req.method !== 'GET' && req.method !== 'HEAD') { res.writeHead(405); res.end(); return; }
+
+        let url;
+        try { url = new URL(req.url, 'http://localhost'); } catch (e) { res.writeHead(400); res.end(); return; }
+
+        if (url.pathname === '/api/health') {
+            sendJson(res, 200, {
+                status: 'online',
+                version: '1.0.0',
+                service: 'VoiceVanguard CCaaS Multi-Tenant Cloud Relay',
+                activeTenants: tenantRooms.size,
+                registeredTenants: tenantMeta.size,
+                activeConnections: wss.clients.size,
+                timestamp: new Date().toISOString()
+            });
+            return;
+        }
+
+        // Validação da chave de supervisor (usada pelo console antes de abrir o WebSocket)
+        if (url.pathname === '/api/validate-tenant') {
+            const ip = clientIp(req);
+            if (isRateLimited(ip)) {
+                sendJson(res, 429, { valid: false, error: 'Muitas tentativas. Aguarde um minuto.' }, { 'Retry-After': '60' });
+                return;
+            }
+            const key = req.headers['x-tenant-key'] || url.searchParams.get('key');
+            const found = lookupKey(key);
+            if (found && found.role === 'supervisor') {
+                const meta = tenantMeta.get(found.tenantId);
+                sendJson(res, 200, { valid: true, tenant: meta.name, plan: meta.plan });
+            } else {
+                recordFailure(ip);
+                sendJson(res, 403, { valid: false, error: 'Chave inválida ou não autorizada.' });
+            }
+            return;
+        }
+
+        // Roteamento estático: '/' -> landing; '/app', '/login' -> console (o acesso aos dados é validado no WebSocket)
+        let target;
+        if (url.pathname === '/app' || url.pathname === '/app.html' || url.pathname === '/login') target = 'app.html';
+        else if (url.pathname === '/' || url.pathname === '/index.html') target = 'index.html';
+        else target = url.pathname.replace(/^\/+/, '');
+
+        const filePath = path.resolve(publicDir, target);
+        if (filePath !== publicDir && !filePath.startsWith(publicDir + path.sep)) {
+            res.writeHead(404, { 'Content-Type': 'text/plain' });
+            res.end('VoiceVanguard CCaaS Relay: Resource not found');
+            return;
+        }
+
+        fs.stat(filePath, (err, st) => {
+            if (err || !st.isFile()) {
+                res.writeHead(404, { 'Content-Type': 'text/plain' });
+                res.end('VoiceVanguard CCaaS Relay: Resource not found');
+                return;
+            }
+            res.writeHead(200, { 'Content-Type': MIME_TYPES[path.extname(filePath)] || 'application/octet-stream' });
+            if (req.method === 'HEAD') { res.end(); return; }
+            const stream = fs.createReadStream(filePath);
+            stream.on('error', () => res.destroy());
+            stream.pipe(res);
         });
-    }
-    return tenantRooms.get(tenantKey);
-}
+    });
 
-// Servidor HTTP (Serve Landing Page, Supervisor App e APIs REST)
-const server = http.createServer((req, res) => {
-    // Configura CORS total para endpoints
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Tenant-Key');
+    const wss = new WebSocketServer({ server, maxPayload: MAX_PAYLOAD_BYTES });
 
-    if (req.method === 'OPTIONS') {
-        res.writeHead(204);
-        res.end();
-        return;
+    function reject(ws, code, reason, message) {
+        try { ws.send(JSON.stringify({ type: 'AUTH_ERROR', message })); } catch (_) {}
+        ws.close(code, reason);
     }
 
-    const url = new URL(req.url, `http://${req.headers.host}`);
+    wss.on('connection', (ws, req) => {
+        let url;
+        try { url = new URL(req.url, 'http://localhost'); } catch (e) { ws.close(1008, 'Bad URL'); return; }
 
-    // Endpoint de Status / Health Check
-    if (url.pathname === '/api/health') {
-        res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({
-            status: "online",
-            version: "1.0.0",
-            service: "VoiceVanguard CCaaS Multi-Tenant Cloud Relay",
-            activeTenants: tenantRooms.size,
-            registeredTenants: Object.keys(TENANTS_DB).length,
-            timestamp: new Date().toISOString()
-        }));
-        return;
-    }
+        const ip = clientIp(req);
+        if (isRateLimited(ip)) { reject(ws, 4029, 'Rate Limited', 'Muitas tentativas.'); return; }
 
-    // Validação de Licença / Tenant
-    if (url.pathname === '/api/validate-tenant') {
-        const key = url.searchParams.get('key');
-        const tenant = TENANTS_DB[key];
-        if (tenant && tenant.active) {
-            res.writeHead(200, { 'Content-Type': 'application/json' });
-            res.end(JSON.stringify({ valid: true, tenant: tenant.name, plan: tenant.plan }));
-        } else {
-            res.writeHead(403, { 'Content-Type': 'application/json' });
-            res.end(JSON.stringify({ valid: false, error: "Chave de Tenant inválida ou não autorizada." }));
+        // O papel vem da chave apresentada, nunca de parâmetro declarado pelo cliente.
+        const found = lookupKey(url.searchParams.get('key'));
+        if (!found) {
+            recordFailure(ip);
+            reject(ws, 4001, 'Invalid Key', 'Chave inválida ou não autorizada.');
+            console.warn('[!] Conexão rejeitada (4001): chave inválida ou ausente');
+            return;
         }
-        return;
-    }
 
-    // Roteamento HTTP:
-    // '/' ou '/index.html' -> Landing Page (public/index.html)
-    // '/app', '/app.html' ou '/login' -> Console Supervisor Enterprise (public/app.html)
-    let targetFileName = 'index.html';
-    if (url.pathname === '/app' || url.pathname === '/app.html' || url.pathname === '/login') {
-        targetFileName = 'app.html';
-    } else if (url.pathname === '/' || url.pathname === '/index.html') {
-        targetFileName = 'index.html';
-    } else {
-        targetFileName = url.pathname.replace(/^\/+/, '');
-    }
+        const { tenantId, role: clientType } = found;
+        const meta = tenantMeta.get(tenantId);
+        const room = getRoom(tenantId);
 
-    const dashboardDir = path.join(__dirname, 'public');
-    const filePath = path.join(dashboardDir, targetFileName);
+        let agentId = null;
+        if (clientType === 'agent') {
+            const requested = url.searchParams.get('agentId');
+            agentId = requested && ID_PATTERN.test(requested)
+                ? requested
+                : `PA-${crypto.randomBytes(4).toString('hex').toUpperCase()}`;
 
-    if (fs.existsSync(filePath) && fs.statSync(filePath).isFile()) {
-        const ext = path.extname(filePath);
-        const mimeTypes = {
-            '.html': 'text/html; charset=utf-8',
-            '.js': 'application/javascript; charset=utf-8',
-            '.css': 'text/css; charset=utf-8',
-            '.json': 'application/json',
-            '.png': 'image/png',
-            '.jpg': 'image/jpeg',
-            '.svg': 'image/svg+xml',
-            '.ico': 'image/x-icon'
-        };
-        res.writeHead(200, { 'Content-Type': mimeTypes[ext] || 'text/plain' });
-        fs.createReadStream(filePath).pipe(res);
-        return;
-    }
-
-    res.writeHead(404, { 'Content-Type': 'text/plain' });
-    res.end('VoiceVanguard CCaaS Relay: Resource not found');
-});
-
-// Servidor WebSocket (WSS / WS)
-const wss = new WebSocketServer({ server });
-
-wss.on('connection', (ws, req) => {
-    const url = new URL(req.url, `http://${req.headers.host}`);
-    const tenantKey = url.searchParams.get('tenant');
-    const clientType = url.searchParams.get('type') || 'agent'; // 'agent' ou 'supervisor'
-    const agentId = url.searchParams.get('agentId') || `PA-${Math.random().toString(36).substring(2, 7).toUpperCase()}`;
-
-    // Validação Estrita de Licença: Chaves inválidas ou ausentes são rejeitadas com 4001
-    const tenantMeta = tenantKey ? TENANTS_DB[tenantKey] : null;
-    if (!tenantMeta || !tenantMeta.active) {
-        ws.send(JSON.stringify({ type: 'AUTH_ERROR', message: 'Licença inválida ou não autorizada.' }));
-        ws.close(4001, 'Invalid Tenant');
-        console.warn(`[!] Conexão rejeitada com código 4001 (Tenant inválido ou ausente: ${tenantKey})`);
-        return;
-    }
-
-    const room = getOrCreateTenantRoom(tenantKey);
-    ws.tenantKey = tenantKey;
-    ws.clientType = clientType;
-    ws.agentId = agentId;
-
-    if (clientType === 'supervisor') {
-        room.supervisors.add(ws);
-        console.log(`[+] Supervisor conectado | Tenant: ${tenantKey} (${tenantMeta.name})`);
-
-        // Envia estado atual de todas as PAs e histórico de chamadas ao supervisor recém-conectado
-        ws.send(JSON.stringify({
-            type: 'INIT_STATE',
-            tenant: tenantMeta.name,
-            agents: Array.from(room.agents.values()),
-            callHistory: room.callHistory.slice(0, 50)
-        }));
-    } else {
-        console.log(`[+] Agente PA conectado | ID: ${agentId} | Tenant: ${tenantKey}`);
-    }
-
-    ws.on('message', (raw) => {
-        try {
-            const data = JSON.parse(raw);
-
-            // 1. Telemetria Contínua da PA (WebRTC, Navegador, Máquina)
-            if (data.type === 'AGENT_TELEMETRY') {
-                const telemetryRecord = {
-                    agentId: ws.agentId,
-                    platform: data.platform || "VoIP WebRTC",
-                    platformCode: data.platformCode || "WEBRTC",
-                    operator: data.operator || "Operador",
-                    station: data.station || ws.agentId,
-                    genesysOrg: data.genesysOrg || "Global",
-                    region: data.region || "auto",
-                    status: data.status || "OK",
-                    mosScore: data.mosScore || "4.40",
-                    rttMs: data.rttMs || 0,
-                    jitterMs: data.jitterMs || 0,
-                    lossPct: data.lossPct || 0,
-                    protocol: data.protocol || "UDP",
-                    networkType: data.networkType || "ETHERNET",
-                    cpuStress: data.cpuStress || "NORMAL",
-                    callActive: data.callActive || false,
-                    currentCallId: data.currentCallId || "",
-                    lastSeen: new Date().toISOString()
-                };
-
-                room.agents.set(ws.agentId, telemetryRecord);
-
-                // Broadcast imediato para todos os supervisores do mesmo Tenant
-                const broadcastMsg = JSON.stringify({ type: 'TELEMETRY_UPDATE', payload: telemetryRecord });
-                room.supervisors.forEach(sup => {
-                    if (sup.readyState === WebSocket.OPEN) sup.send(broadcastMsg);
-                });
-            }
-
-            // 2. Resumo de Chamada Finalizada (Auditoria com MOS ITU-T G.107)
-            if (data.type === 'CALL_AUDIT_SUMMARY') {
-                const callRecord = {
-                    interactionId: data.interactionId || "CALL-UUID",
-                    platform: data.platform || "VoIP WebRTC",
-                    platformCode: data.platformCode || "WEBRTC",
-                    agentId: ws.agentId,
-                    operator: data.operator || "Operador",
-                    station: data.station || ws.agentId,
-                    startTime: data.startTime,
-                    endTime: data.endTime,
-                    durationSeconds: data.durationSeconds || 0,
-                    mosMedio: data.mosMedio || 4.4,
-                    mosMinimo: data.mosMinimo || 4.4,
-                    jitterPicoMs: data.jitterPicoMs || 0,
-                    rttMedioMs: data.rttMedioMs || 0,
-                    perdaPacotesPct: data.perdaPacotesPct || 0,
-                    protocolo: data.protocolo || "UDP",
-                    classificacao: data.classificacao || "EXCELENTE",
-                    receivedAt: new Date().toISOString()
-                };
-
-                room.callHistory.unshift(callRecord);
-                if (room.callHistory.length > 500) room.callHistory.pop();
-                saveTenantHistory(tenantKey, room.callHistory);
-
-                const callMsg = JSON.stringify({ type: 'NEW_CALL_AUDIT', payload: callRecord });
-                room.supervisors.forEach(sup => {
-                    if (sup.readyState === WebSocket.OPEN) sup.send(callMsg);
-                });
-            }
-
-            // 3. Comando Injetado pelo Supervisor (Ex: Limpeza Segura de Cache Remota)
-            if (data.type === 'SUPERVISOR_COMMAND' && clientType === 'supervisor') {
-                const targetAgentId = data.targetAgentId;
-                const commandType = data.command; // 'SAFE_CACHE_CLEAR'
-
-                // Envia comando para a PA específica
-                for (const client of wss.clients) {
-                    if (client.tenantKey === tenantKey && client.clientType === 'agent' && client.agentId === targetAgentId) {
-                        if (client.readyState === WebSocket.OPEN) {
-                            client.send(JSON.stringify({
-                                type: 'EXECUTE_COMMAND',
-                                command: commandType,
-                                origin: 'supervisor_remote'
-                            }));
-                        }
-                    }
+            for (const c of wss.clients) {
+                if (c !== ws && c.readyState === WebSocket.OPEN && c.tenantId === tenantId && c.clientType === 'agent' && c.agentId === agentId) {
+                    reject(ws, 4009, 'Duplicate Agent', 'agentId já conectado neste tenant.');
+                    return;
                 }
             }
-
-            // 4. Feedback do Agente (Ex: Cache limpo com êxito ou bloqueado por chamada)
-            if (data.type === 'COMMAND_RESULT') {
-                const resMsg = JSON.stringify({ type: 'AGENT_COMMAND_FEEDBACK', agentId: ws.agentId, result: data.result });
-                room.supervisors.forEach(sup => {
-                    if (sup.readyState === WebSocket.OPEN) sup.send(resMsg);
-                });
+            let connectedAgents = 0;
+            for (const c of wss.clients) {
+                if (c.readyState === WebSocket.OPEN && c.tenantId === tenantId && c.clientType === 'agent') connectedAgents++;
             }
-
-        } catch (err) {
-            console.error("Erro ao processar mensagem WebSocket:", err);
+            if (connectedAgents >= meta.maxAgents) {
+                reject(ws, 4003, 'Agent Limit', 'Limite de agentes do plano atingido.');
+                return;
+            }
         }
-    });
 
-    ws.on('close', () => {
+        ws.tenantId = tenantId;
+        ws.clientType = clientType;
+        ws.agentId = agentId;
+        ws.isAlive = true;
+        ws.on('pong', () => { ws.isAlive = true; });
+
         if (clientType === 'supervisor') {
-            room.supervisors.delete(ws);
-            console.log(`[-] Supervisor desconectado | Tenant: ${tenantKey}`);
+            room.supervisors.add(ws);
+            console.log(`[+] Supervisor conectado | Tenant: ${tenantId}`);
+            ws.send(JSON.stringify({
+                type: 'INIT_STATE',
+                tenant: meta.name,
+                agents: Array.from(room.agents.values()),
+                callHistory: room.callHistory.slice(0, 50)
+            }));
         } else {
-            // Marca o agente como OFFLINE após desconexão
-            const ag = room.agents.get(ws.agentId);
-            if (ag) {
-                ag.status = 'OFFLINE';
-                ag.lastSeen = new Date().toISOString();
-                const offlineMsg = JSON.stringify({ type: 'TELEMETRY_UPDATE', payload: ag });
-                room.supervisors.forEach(sup => {
-                    if (sup.readyState === WebSocket.OPEN) sup.send(offlineMsg);
-                });
-            }
-            console.log(`[-] Agente PA desconectado | ID: ${ws.agentId}`);
+            console.log(`[+] Agente conectado | ID: ${agentId} | Tenant: ${tenantId}`);
         }
-    });
-});
 
-server.listen(PORT, () => {
-    console.log("===============================================================");
-    console.log(`🚀 VoiceVanguard CCaaS Cloud Relay ativo na porta ${PORT}`);
-    console.log(`🌐 Landing Page: http://localhost:${PORT}`);
-    console.log(`🔒 Supervisor Console: http://localhost:${PORT}/app`);
-    console.log(`📡 WebSocket URL: ws://localhost:${PORT}?tenant=GENESYS-ALLIANCE-EVAL`);
-    console.log("===============================================================");
-});
+        ws.on('message', (raw) => {
+            let data;
+            try { data = JSON.parse(raw); } catch (e) { return; }
+            if (!data || typeof data !== 'object') return;
+
+            try {
+                if (clientType === 'agent' && data.type === 'AGENT_TELEMETRY') {
+                    const mos = num(data.mosScore, 1, 4.5);
+                    if (mos === null) return; // sem MOS válido não há telemetria a registrar
+                    const record = {
+                        agentId,
+                        platform: str(data.platform, 64, 'VoIP WebRTC'),
+                        platformCode: str(data.platformCode, 32, 'WEBRTC'),
+                        operator: str(data.operator, 64, 'Operador'),
+                        station: str(data.station, 64, agentId),
+                        genesysOrg: str(data.genesysOrg, 128, 'Global'),
+                        region: str(data.region, 128, 'auto'),
+                        status: data.status === 'ALERTA' ? 'ALERTA' : 'OK',
+                        mosScore: mos.toFixed(2),
+                        rttMs: num(data.rttMs, 0, 60000, 0),
+                        jitterMs: num(data.jitterMs, 0, 60000, 0),
+                        lossPct: num(data.lossPct, 0, 100, 0),
+                        protocol: str(data.protocol, 16, 'UDP'),
+                        networkType: str(data.networkType, 32, 'ETHERNET'),
+                        cpuStress: str(data.cpuStress, 32, 'NORMAL'),
+                        callActive: data.callActive === true,
+                        currentCallId: str(data.currentCallId, 128, ''),
+                        lastSeen: new Date().toISOString()
+                    };
+                    room.agents.set(agentId, record);
+                    broadcast(room, { type: 'TELEMETRY_UPDATE', payload: record });
+                    return;
+                }
+
+                if (clientType === 'agent' && data.type === 'CALL_AUDIT_SUMMARY') {
+                    const mosMedio = num(data.mosMedio, 1, 4.5);
+                    if (mosMedio === null) return;
+                    const record = {
+                        interactionId: str(data.interactionId, 128, 'CALL-UUID'),
+                        platform: str(data.platform, 64, 'VoIP WebRTC'),
+                        platformCode: str(data.platformCode, 32, 'WEBRTC'),
+                        agentId,
+                        operator: str(data.operator, 64, 'Operador'),
+                        station: str(data.station, 64, agentId),
+                        startTime: isoOrNull(data.startTime),
+                        endTime: isoOrNull(data.endTime),
+                        durationSeconds: num(data.durationSeconds, 0, 86400, 0),
+                        mosMedio,
+                        mosMinimo: num(data.mosMinimo, 1, 4.5, mosMedio),
+                        jitterPicoMs: num(data.jitterPicoMs, 0, 60000, 0),
+                        rttMedioMs: num(data.rttMedioMs, 0, 60000, 0),
+                        perdaPacotesPct: num(data.perdaPacotesPct, 0, 100, 0),
+                        protocolo: str(data.protocolo, 16, 'UDP'),
+                        classificacao: str(data.classificacao, 32, 'N/D'),
+                        networkType: str(data.networkType, 32, 'ETHERNET'),
+                        cpuStress: str(data.cpuStress, 32, 'NORMAL'),
+                        causaRaiz: str(data.causaRaiz, 64, 'N/D'),
+                        receivedAt: new Date().toISOString()
+                    };
+                    room.callHistory.unshift(record);
+                    if (room.callHistory.length > MAX_HISTORY) room.callHistory.pop();
+                    saveTenantHistory(tenantId, room.callHistory);
+                    broadcast(room, { type: 'NEW_CALL_AUDIT', payload: record });
+                    return;
+                }
+
+                if (clientType === 'supervisor' && data.type === 'SUPERVISOR_COMMAND') {
+                    const target = data.targetAgentId;
+                    if (typeof target !== 'string' || !ID_PATTERN.test(target)) return;
+                    if (!COMMAND_WHITELIST.has(data.command)) return;
+                    for (const client of wss.clients) {
+                        if (client.tenantId === tenantId && client.clientType === 'agent' &&
+                            client.agentId === target && client.readyState === WebSocket.OPEN) {
+                            client.send(JSON.stringify({ type: 'EXECUTE_COMMAND', command: data.command, origin: 'supervisor_remote' }));
+                        }
+                    }
+                    console.log(`[AUDIT] Tenant ${tenantId} comando ${data.command} -> ${target}`);
+                    return;
+                }
+
+                if (clientType === 'agent' && data.type === 'COMMAND_RESULT') {
+                    const r = data.result && typeof data.result === 'object' ? data.result : {};
+                    broadcast(room, {
+                        type: 'AGENT_COMMAND_FEEDBACK',
+                        agentId,
+                        result: {
+                            success: r.success === true,
+                            inCall: r.inCall === true,
+                            message: str(r.message, 200, ''),
+                            timestamp: isoOrNull(r.timestamp),
+                            origin: str(r.origin, 32, '')
+                        }
+                    });
+                }
+            } catch (err) {
+                console.error('Erro ao processar mensagem WebSocket:', err.message);
+            }
+        });
+
+        ws.on('close', () => {
+            if (clientType === 'supervisor') {
+                room.supervisors.delete(ws);
+                console.log(`[-] Supervisor desconectado | Tenant: ${tenantId}`);
+            } else {
+                const ag = room.agents.get(agentId);
+                // Só marca OFFLINE se não houver outra conexão viva com o mesmo agentId
+                const stillConnected = Array.from(wss.clients).some(c => c !== ws && c.tenantId === tenantId && c.agentId === agentId && c.readyState === WebSocket.OPEN);
+                if (ag && !stillConnected) {
+                    ag.status = 'OFFLINE';
+                    ag.callActive = false;
+                    ag.lastSeen = new Date().toISOString();
+                    broadcast(room, { type: 'TELEMETRY_UPDATE', payload: ag });
+                }
+                console.log(`[-] Agente desconectado | ID: ${agentId}`);
+            }
+        });
+
+        ws.on('error', () => {});
+    });
+
+    // Heartbeat: encerra conexões mortas; limpa agentes offline antigos e contadores de rate limit
+    const heartbeat = setInterval(() => {
+        for (const ws of wss.clients) {
+            if (!ws.isAlive) { ws.terminate(); continue; }
+            ws.isAlive = false;
+            try { ws.ping(); } catch (_) {}
+        }
+        const now = Date.now();
+        for (const room of tenantRooms.values()) {
+            for (const [id, ag] of room.agents) {
+                if (ag.status === 'OFFLINE' && now - new Date(ag.lastSeen).getTime() > OFFLINE_TTL_MS) room.agents.delete(id);
+            }
+        }
+        for (const [ip, list] of authFailures) {
+            const fresh = list.filter(t => now - t < AUTH_WINDOW_MS);
+            if (fresh.length) authFailures.set(ip, fresh); else authFailures.delete(ip);
+        }
+    }, HEARTBEAT_MS);
+    heartbeat.unref();
+
+    async function shutdown() {
+        clearInterval(heartbeat);
+        for (const ws of wss.clients) ws.close(1001, 'Server shutting down');
+        await flushAllSaves(tenantRooms);
+        await new Promise(resolve => server.close(resolve));
+    }
+
+    return { server, wss, tenantRooms, shutdown };
+}
+
+if (require.main === module) {
+    const relay = createRelay();
+    relay.server.listen(PORT, () => {
+        console.log('===============================================================');
+        console.log(`VoiceVanguard CCaaS Cloud Relay ativo na porta ${PORT}`);
+        console.log(`Landing Page: http://localhost:${PORT}`);
+        console.log(`Supervisor Console: http://localhost:${PORT}/app`);
+        console.log('===============================================================');
+    });
+    let stopping = false;
+    const stop = () => {
+        if (stopping) return;
+        stopping = true;
+        console.log('Encerrando (SIGTERM/SIGINT)...');
+        const force = setTimeout(() => process.exit(1), 10000);
+        force.unref();
+        relay.shutdown().then(() => process.exit(0));
+    };
+    process.on('SIGTERM', stop);
+    process.on('SIGINT', stop);
+}
+
+module.exports = { createRelay, loadTenants, buildKeyIndex };

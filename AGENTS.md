@@ -10,4 +10,5 @@ Este repositório contém o código-fonte, arquitetura e propostas de publicaç�
 4. **Segurança de Rotas:**
    - `/` deve sempre servir a landing page comercial.
    - `/app` deve sempre exigir validação de `tenantKey` via `/api/validate-tenant`.
-5. **Encoding no Windows:** Sempre garanta codificação UTF-8 sem BOM em arquivos de texto editados no ambiente Windows.
+5. **Papéis e chaves:** nunca derive o papel (agente/supervisor) de parâmetro enviado pelo cliente; nunca coloque chaves em código, README ou URL. Escape toda saída de dados de agente no console.
+6. **Encoding no Windows:** Sempre garanta codificação UTF-8 sem BOM em arquivos de texto editados no ambiente Windows.
