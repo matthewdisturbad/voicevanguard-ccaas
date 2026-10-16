@@ -82,8 +82,8 @@ function getOrCreateTenantRoom(tenantKey) {
     return tenantRooms.get(tenantKey);
 }
 
-// Rate limit simples em memória: máx. 10 validações por IP por minuto
-const VALIDATE_LIMIT = 10;
+// Rate limit simples em memória: máx. 30 validações por IP por minuto (escritórios de BPO compartilham IP)
+const VALIDATE_LIMIT = 30;
 const VALIDATE_WINDOW_MS = 60 * 1000;
 const validateHits = new Map();
 function isRateLimited(ip) {
@@ -131,7 +131,8 @@ const server = http.createServer((req, res) => {
 
     // Validação de Licença / Tenant (com limite de tentativas por IP)
     if (url.pathname === '/api/validate-tenant') {
-        const ip = (req.headers['x-forwarded-for'] || req.socket.remoteAddress || '').split(',')[0].trim();
+        // Último valor de X-Forwarded-For (anexado pelo proxy); o primeiro pode ser forjado pelo cliente
+        const ip = (req.headers['x-forwarded-for'] || req.socket.remoteAddress || '').split(',').pop().trim();
         if (isRateLimited(ip)) {
             res.writeHead(429, { 'Content-Type': 'application/json', 'Retry-After': '60' });
             res.end(JSON.stringify({ valid: false, error: "Muitas tentativas. Aguarde 1 minuto." }));
