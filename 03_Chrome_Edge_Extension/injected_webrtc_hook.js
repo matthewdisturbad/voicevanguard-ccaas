@@ -36,6 +36,41 @@
     }
 
     const currentPlatform = detectPlatform();
+
+    // Troca/remoção de dispositivos de áudio (apenas contador; nomes de dispositivo nunca são lidos)
+    let deviceChangeCount = 0;
+    try {
+        if (navigator.mediaDevices && navigator.mediaDevices.addEventListener) {
+            navigator.mediaDevices.addEventListener('devicechange', () => { deviceChangeCount++; });
+        }
+    } catch (e) { }
+
+    // <audio-flow> (trecho extraído e testado em 01_Cloud_Relay_Backend/test/audio-flow.test.js)
+    // Diagnóstico de fluxo de áudio. Mute intencional do operador (track.enabled=false) NÃO é incidente.
+    // Retorna: NONE | MIC_DESCONECTADO | MIC_MUDO_SISTEMA | SEM_AUDIO_RECEBIDO | SEM_AUDIO_ENVIADO
+    const AUDIO_STALL_SAMPLES = 3; // 3 amostras de 2 s sem variação de pacotes
+    function detectAudioIssue(pc, st, inPackets, outPackets, hasIn, hasOut) {
+        if (hasIn) {
+            st.zeroIn = (st.prevIn !== null && inPackets === st.prevIn) ? st.zeroIn + 1 : 0;
+            st.prevIn = inPackets;
+        }
+        if (hasOut) {
+            st.zeroOut = (st.prevOut !== null && outPackets === st.prevOut) ? st.zeroOut + 1 : 0;
+            st.prevOut = outPackets;
+        }
+        let track = null;
+        try {
+            const sender = pc.getSenders().find(s => s.track && s.track.kind === 'audio');
+            track = sender ? sender.track : null;
+        } catch (e) { }
+
+        if (track && track.readyState === 'ended') return 'MIC_DESCONECTADO';
+        if (track && track.muted) return 'MIC_MUDO_SISTEMA';
+        if (st.zeroIn >= AUDIO_STALL_SAMPLES) return 'SEM_AUDIO_RECEBIDO';
+        if (track && track.enabled && st.zeroOut >= AUDIO_STALL_SAMPLES) return 'SEM_AUDIO_ENVIADO';
+        return 'NONE';
+    }
+    // </audio-flow>
     let lastDetectedConversationId = null;
 
     // Diagnóstico de Rede (Wi-Fi vs Ethernet) e Estresse do Navegador
@@ -163,6 +198,7 @@
     function setupMonitoring(pc) {
         let statsInterval = null;
         let activeCall = null;
+        const audioState = { prevIn: null, prevOut: null, zeroIn: 0, zeroOut: 0 };
 
         function startCallSession() {
             if (activeCall) return;
@@ -183,7 +219,9 @@
                 mosSum: 0,
                 minMos: 4.5,
                 protocol: 'udp',
-                packetsLostTotal: 0
+                packetsLostTotal: 0,
+                audioIncidents: {},
+                deviceChangesAtStart: deviceChangeCount
             };
         }
 
@@ -211,6 +249,12 @@
                     classification = "BOA";
                 }
 
+                const audioIncidents = Object.keys(activeCall.audioIncidents);
+                if (audioIncidents.length > 0) {
+                    classification = "CRÍTICA";
+                    rootCause = "FALHA_AUDIO_ESTACAO";
+                }
+
                 const summary = {
                     evento: 'CHAMADA_FINALIZADA',
                     callId: activeCall.callId,
@@ -232,6 +276,8 @@
                     networkType: activeCall.netType || "ETHERNET",
                     cpuStress: activeCall.cpuStress || "NORMAL",
                     causaRaiz: rootCause,
+                    incidentesAudio: audioIncidents,
+                    trocasDispositivo: deviceChangeCount - activeCall.deviceChangesAtStart,
                     timestamp: now.toISOString()
                 };
 
@@ -283,6 +329,9 @@
                 let lossPct = 0;
                 let protocol = 'udp';
                 let hasInboundAudio = false;
+                let hasOutboundAudio = false;
+                let inPackets = 0;
+                let outPackets = 0;
 
                 stats.forEach(report => {
                     if (report.type === 'candidate-pair' && (report.state === 'succeeded' || report.nominated)) {
@@ -292,6 +341,7 @@
 
                     if (report.type === 'inbound-rtp' && (report.kind === 'audio' || report.mediaType === 'audio')) {
                         hasInboundAudio = true;
+                        inPackets = report.packetsReceived || 0;
                         if (report.jitter !== undefined) jitter = Math.round(report.jitter * 10000) / 10;
                         const lost = report.packetsLost || 0;
                         const received = report.packetsReceived || 0;
@@ -304,11 +354,23 @@
                         }
                     }
 
+                    if (report.type === 'outbound-rtp' && (report.kind === 'audio' || report.mediaType === 'audio')) {
+                        hasOutboundAudio = true;
+                        outPackets = report.packetsSent || 0;
+                    }
+
                     if (report.type === 'local-candidate') {
                         if (report.protocol && report.protocol.toLowerCase() === 'tcp') protocol = 'tcp';
                     }
                 });
 
+                if (!hasInboundAudio && !hasOutboundAudio) return;
+
+                const audioIssue = detectAudioIssue(pc, audioState, inPackets, outPackets, hasInboundAudio, hasOutboundAudio);
+                if (audioIssue !== 'NONE' && activeCall) {
+                    activeCall.audioIncidents[audioIssue] = (activeCall.audioIncidents[audioIssue] || 0) + 1;
+                }
+                // Sem inbound-rtp não há amostra de MOS válida (evita "MOS ótimo" falso); o incidente já foi contabilizado acima
                 if (!hasInboundAudio) return;
 
                 const netInfo = getNetworkEnvironment();
@@ -338,6 +400,7 @@
                     jitterMs: jitter,
                     perdaPct: lossPct,
                     mosScore: mos,
+                    audioIssue: audioIssue,
                     protocolo: protocol,
                     networkType: netInfo.type,
                     downlinkMbps: netInfo.downlink,
@@ -356,5 +419,66 @@
         }, window.location.origin);
     }
 
-    console.log(`[VoiceDoctor] Universal WebRTC Hook ativo para: ${currentPlatform.name}`);
+    // 5. Latência e erros das APIs do agent desktop (Resource Timing)
+    // Agregado por janela e por HOSTNAME. URL, caminho, query string e IDs nunca são lidos nem enviados.
+    const API_WINDOW_MS = 30000;
+    const API_HOST_PATTERN = /(^|\.)(pure\.cloud|mypurecloud\.[a-z.]+|connect\.aws|awsapps\.com)$/i;
+    const MAX_SAMPLES_PER_HOST = 500;
+    let apiWindow = new Map(); // host -> { durations: number[], errors: number }
+
+    function isCcaasApiHost(host) {
+        return host === window.location.hostname || API_HOST_PATTERN.test(host);
+    }
+
+    function percentile95(sorted) {
+        return sorted[Math.min(sorted.length - 1, Math.ceil(sorted.length * 0.95) - 1)];
+    }
+
+    function flushApiWindow() {
+        if (apiWindow.size === 0) return;
+        const hosts = [];
+        apiWindow.forEach((rec, host) => {
+            const d = rec.durations.slice().sort((a, b) => a - b);
+            if (d.length === 0) return;
+            hosts.push({
+                host: host.slice(0, 100),
+                count: d.length,
+                avgMs: Math.round(d.reduce((x, y) => x + y, 0) / d.length),
+                p95Ms: Math.round(percentile95(d)),
+                maxMs: Math.round(d[d.length - 1]),
+                errors: rec.errors
+            });
+        });
+        apiWindow = new Map();
+        if (hosts.length === 0) return;
+        hosts.sort((a, b) => b.count - a.count);
+        reportMetric({
+            evento: 'LATENCIA_API',
+            janelaSeg: API_WINDOW_MS / 1000,
+            hosts: hosts.slice(0, 5),
+            timestamp: new Date().toISOString()
+        });
+    }
+
+    try {
+        if (window.PerformanceObserver) {
+            const observer = new PerformanceObserver((list) => {
+                for (const entry of list.getEntries()) {
+                    if (entry.initiatorType !== 'fetch' && entry.initiatorType !== 'xmlhttprequest') continue;
+                    let host;
+                    try { host = new URL(entry.name).hostname; } catch (e) { continue; }
+                    if (!isCcaasApiHost(host)) continue;
+                    let rec = apiWindow.get(host);
+                    if (!rec) { rec = { durations: [], errors: 0 }; apiWindow.set(host, rec); }
+                    if (rec.durations.length < MAX_SAMPLES_PER_HOST) rec.durations.push(entry.duration);
+                    // responseStatus só é exposto para mesma origem ou com Timing-Allow-Origin
+                    if (entry.responseStatus >= 400) rec.errors++;
+                }
+            });
+            observer.observe({ type: 'resource', buffered: false });
+            setInterval(flushApiWindow, API_WINDOW_MS);
+        }
+    } catch (e) { }
+
+    console.log(`[VoiceVanguard] Universal WebRTC Hook ativo para: ${currentPlatform.name}`);
 })();

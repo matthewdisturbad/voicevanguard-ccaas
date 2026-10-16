@@ -28,6 +28,11 @@ const OFFLINE_TTL_MS = 24 * 60 * 60 * 1000;
 const AUTH_WINDOW_MS = 60000;
 const AUTH_MAX_FAILURES = 20;
 const COMMAND_WHITELIST = new Set(['SAFE_CACHE_CLEAR']);
+const AUDIO_ISSUES = new Set(['NONE', 'MIC_DESCONECTADO', 'MIC_MUDO_SISTEMA', 'SEM_AUDIO_RECEBIDO', 'SEM_AUDIO_ENVIADO']);
+const PRECHECK_STATUS = new Set(['PRONTA', 'ATENCAO', 'NAO_PRONTA']);
+const ITEM_STATUS = new Set(['ok', 'atencao', 'falha']);
+const PING_MAX_PER_WINDOW = 40;
+const PING_WINDOW_MS = 10000;
 const ID_PATTERN = /^[A-Za-z0-9_-]{1,32}$/;
 const TENANT_ID_PATTERN = /^[A-Za-z0-9_-]{1,64}$/;
 
@@ -128,6 +133,40 @@ function num(v, min, max, fallback = null) {
     const n = typeof v === 'string' ? parseFloat(v) : v;
     if (typeof n !== 'number' || !Number.isFinite(n)) return fallback;
     return Math.min(max, Math.max(min, n));
+}
+
+function oneOf(v, allowed, fallback) {
+    return typeof v === 'string' && allowed.has(v) ? v : fallback;
+}
+
+function sanitizePrecheck(data) {
+    const itens = Array.isArray(data.itens) ? data.itens.slice(0, 12).map(i => ({
+        id: str(i && i.id, 32),
+        status: oneOf(i && i.status, ITEM_STATUS, 'atencao'),
+        valor: str(i && i.valor, 40),
+        orientacao: str(i && i.orientacao, 200)
+    })) : [];
+    return {
+        status: oneOf(data.status, PRECHECK_STATUS, 'ATENCAO'),
+        itens,
+        rttMs: num(data.rttMs, 0, 60000),
+        jitterMs: num(data.jitterMs, 0, 60000),
+        lossPct: num(data.lossPct, 0, 100),
+        checkedAt: new Date().toISOString()
+    };
+}
+
+// Latência de API por hostname (nunca URL/caminho/IDs). Limita hosts e valores.
+function sanitizeApiLatency(data) {
+    const hosts = Array.isArray(data.hosts) ? data.hosts.slice(0, 5).map(h => ({
+        host: str(h && h.host, 100).replace(/[^A-Za-z0-9.-]/g, ''),
+        count: num(h && h.count, 0, 1e6, 0),
+        avgMs: num(h && h.avgMs, 0, 600000, 0),
+        p95Ms: num(h && h.p95Ms, 0, 600000, 0),
+        maxMs: num(h && h.maxMs, 0, 600000, 0),
+        errors: num(h && h.errors, 0, 1e6, 0)
+    })).filter(h => h.host) : [];
+    return { hosts, janelaSeg: num(data.janelaSeg, 1, 3600, 30), updatedAt: new Date().toISOString() };
 }
 
 function isoOrNull(v) {
@@ -241,10 +280,25 @@ function createRelay() {
             tenantRooms.set(tenantId, {
                 supervisors: new Set(),
                 agents: new Map(),
+                stations: new Map(), // agentId -> { station, operator, precheck, api, lastSeen }
                 callHistory: loadTenantHistory(tenantId)
             });
         }
         return tenantRooms.get(tenantId);
+    }
+
+    // Registro de saúde da estação (pré-check e latência de API), separado da telemetria de voz
+    function updateStation(room, agentId, base, patch) {
+        const prev = room.stations.get(agentId) || { agentId, precheck: null, api: null };
+        const rec = {
+            ...prev,
+            station: str(base.station, 64, agentId),
+            operator: str(base.operator, 64, 'Operador'),
+            ...patch,
+            lastSeen: new Date().toISOString()
+        };
+        room.stations.set(agentId, rec);
+        return rec;
     }
 
     function lookupKey(key) {
@@ -402,6 +456,7 @@ function createRelay() {
                 type: 'INIT_STATE',
                 tenant: meta.name,
                 agents: Array.from(room.agents.values()),
+                stations: Array.from(room.stations.values()),
                 callHistory: room.callHistory.slice(0, 50)
             }));
         } else {
@@ -425,7 +480,8 @@ function createRelay() {
                         station: str(data.station, 64, agentId),
                         genesysOrg: str(data.genesysOrg, 128, 'Global'),
                         region: str(data.region, 128, 'auto'),
-                        status: data.status === 'ALERTA' ? 'ALERTA' : 'OK',
+                        audioIssue: oneOf(data.audioIssue, AUDIO_ISSUES, 'NONE'),
+                        status: (data.status === 'ALERTA' || (typeof data.audioIssue === 'string' && AUDIO_ISSUES.has(data.audioIssue) && data.audioIssue !== 'NONE')) ? 'ALERTA' : 'OK',
                         mosScore: mos.toFixed(2),
                         rttMs: num(data.rttMs, 0, 60000, 0),
                         jitterMs: num(data.jitterMs, 0, 60000, 0),
@@ -465,12 +521,38 @@ function createRelay() {
                         networkType: str(data.networkType, 32, 'ETHERNET'),
                         cpuStress: str(data.cpuStress, 32, 'NORMAL'),
                         causaRaiz: str(data.causaRaiz, 64, 'N/D'),
+                        incidentesAudio: Array.isArray(data.incidentesAudio)
+                            ? data.incidentesAudio.filter(c => typeof c === 'string' && AUDIO_ISSUES.has(c) && c !== 'NONE').slice(0, 4)
+                            : [],
+                        trocasDispositivo: num(data.trocasDispositivo, 0, 1000, 0),
                         receivedAt: new Date().toISOString()
                     };
                     room.callHistory.unshift(record);
                     if (room.callHistory.length > MAX_HISTORY) room.callHistory.pop();
                     saveTenantHistory(tenantId, room.callHistory);
                     broadcast(room, { type: 'NEW_CALL_AUDIT', payload: record });
+                    return;
+                }
+
+                if (clientType === 'agent' && data.type === 'PING') {
+                    // Sonda de rede do pré-check, com limite por conexão
+                    const now = Date.now();
+                    ws.pingTimes = (ws.pingTimes || []).filter(t => now - t < PING_WINDOW_MS);
+                    if (ws.pingTimes.length >= PING_MAX_PER_WINDOW) return;
+                    ws.pingTimes.push(now);
+                    ws.send(JSON.stringify({ type: 'PONG', n: num(data.n, 0, 1e9, 0) }));
+                    return;
+                }
+
+                if (clientType === 'agent' && data.type === 'SHIFT_PRECHECK') {
+                    const rec = updateStation(room, agentId, data, { precheck: sanitizePrecheck(data) });
+                    broadcast(room, { type: 'STATION_HEALTH_UPDATE', payload: rec });
+                    return;
+                }
+
+                if (clientType === 'agent' && data.type === 'API_LATENCY') {
+                    const rec = updateStation(room, agentId, data, { api: sanitizeApiLatency(data) });
+                    broadcast(room, { type: 'STATION_HEALTH_UPDATE', payload: rec });
                     return;
                 }
 
@@ -539,6 +621,11 @@ function createRelay() {
         for (const room of tenantRooms.values()) {
             for (const [id, ag] of room.agents) {
                 if (ag.status === 'OFFLINE' && now - new Date(ag.lastSeen).getTime() > OFFLINE_TTL_MS) room.agents.delete(id);
+            }
+        }
+        for (const room of tenantRooms.values()) {
+            for (const [id, st] of room.stations) {
+                if (now - new Date(st.lastSeen).getTime() > OFFLINE_TTL_MS) room.stations.delete(id);
             }
         }
         for (const [ip, list] of authFailures) {

@@ -71,11 +71,16 @@ VoiceDoctor-CCaaS/
    - Detects agent physical network interface (Ethernet, 5GHz Wi-Fi, 2.4GHz congested Wi-Fi, 4G/5G mobile hotspot).
    - Proves whether call degradation originates from residential interference or true corporate cloud infrastructure.
 
-4. **Safe In-Call Protection Lock (Remediation):**
+4. **Station health (see `docs/PRECHECK.md`):**
+   - One-way / muted audio detection (no inbound or outbound packets, microphone ended or system-muted); intentional operator mute is not an incident.
+   - Shift pre-check from the extension popup: network probe to the relay, microphone/output presence, connection type and hardware, with a PRONTA / ATENCAO / NAO_PRONTA verdict.
+   - Latency and error rate of the agent desktop's API calls, aggregated per hostname (no URLs, paths or IDs are collected).
+
+5. **Safe In-Call Protection Lock (Remediation):**
    - Supervisors can remotely trigger browser telephony cache cleanup.
    - Client agent enforces a strict guard: if `isCallActive === true`, the action is blocked and enqueued for post-call wrap-up, preventing live call drops.
 
-5. **Strict Enterprise Security & Compliance:**
+6. **Security & privacy by design:**
    - **Zero Audio Capture:** Only network metadata is processed; no voice payloads are ever recorded or stored.
    - **Privacy by design:** only network statistics and station identifiers (operator, station, agent ID, call ID) are processed; no cardholder data is collected by design. This is a design goal, **not a certification** — formal LGPD/GDPR/PCI-DSS assessments, DPA and privacy policy are pending (see the Compliance roadmap below).
    - **Encrypted transport:** WSS/HTTPS is provided by the hosting proxy (TLS termination at Railway).
@@ -100,6 +105,8 @@ Tenants and keys come from the `TENANTS_JSON` environment variable (**required**
 > ⚠️ Keys that were previously published in this repository's history must be considered compromised and rotated in production.
 
 ## 🗺️ Compliance & Product Roadmap (pending, owner action)
+
+Planned (not implemented) integrations and features: see `docs/ROADMAP.md`.
 
 - Publish privacy policy and DPA; run a DPIA (operator/station/agent/call identifiers are personal data under LGPD/GDPR).
 - Verify marketplace identifiers and submission status before citing them publicly.

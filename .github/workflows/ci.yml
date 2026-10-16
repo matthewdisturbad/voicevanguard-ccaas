@@ -22,4 +22,5 @@ jobs:
         working-directory: 03_Chrome_Edge_Extension
         run: for f in *.js; do node --check "$f"; done
       - name: Paridade de idiomas da landing (pt/en)
+        working-directory: .
         run: node scripts/check-i18n.js

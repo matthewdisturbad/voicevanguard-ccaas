@@ -56,6 +56,14 @@
         .btn-clear:hover:not(:disabled) { background: var(--accent-hover); }
         .btn:disabled { color: #0f172a; cursor: not-allowed; }
         .feedback { font-size: var(--fs-xs); text-align: center; color: var(--text-3); min-height: 14px; }
+        .btn-secondary { background: transparent; color: var(--text); border-color: var(--border-strong); margin-bottom: var(--s2); }
+        .btn-secondary:hover:not(:disabled) { background: var(--idle-tint); }
+        .precheck-box { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: var(--s3); margin-bottom: var(--s3); font-size: var(--fs-sm); }
+        .precheck-box .history-title { margin-bottom: var(--s2); }
+        .pc-item { display: flex; justify-content: space-between; gap: var(--s3); padding: 4px 0; border-bottom: 1px solid var(--border); }
+        .pc-item:last-child { border-bottom: none; }
+        .pc-tip { font-size: var(--fs-xs); color: var(--text-3); padding: 0 0 4px; }
+        .pc-ok { color: var(--ok); } .pc-atencao { color: var(--warn); } .pc-falha { color: var(--crit); }
         .tenant-box { font-size: var(--fs-xs); color: var(--text-3); display: flex; justify-content: space-between; align-items: center; margin-top: var(--s3); padding-top: var(--s3); border-top: 1px solid var(--border); }
         .tenant-box b { color: var(--text-2); font-weight: 600; }
     </style>
@@ -102,6 +110,12 @@
     <div id="historyList" style="text-align:center; padding:6px 0;">Nenhuma chamada finalizada neste turno.</div>
 </div>
 
+<div class="precheck-box">
+    <div class="history-title">Pré-check de turno</div>
+    <button class="btn btn-secondary" id="btnPrecheck">Verificar estação antes do turno</button>
+    <div id="precheckResult" class="feedback" aria-live="polite">Testa rede, microfone e equipamento (cerca de 5 s).</div>
+</div>
+
 <div>
     <button class="btn btn-clear" id="btnClearCache">
         Limpeza segura de cache (preserva login)
@@ -114,6 +128,7 @@
     <span id="lblStation">PA-0000</span>
 </div>
 
+<script src="precheck.js"></script>
 <script src="popup.js"></script>
 </body>
 </html>

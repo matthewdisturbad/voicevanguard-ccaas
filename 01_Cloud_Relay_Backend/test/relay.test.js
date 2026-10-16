@@ -116,3 +116,87 @@ test('servidor estático não escapa de public/ e envia headers de segurança', 
     assert.strictEqual(root.headers['x-content-type-options'], 'nosniff');
     assert.ok(root.headers['content-security-policy']);
 });
+
+test('PING do agente recebe PONG e é limitado por janela', async () => {
+    const ag = await connect('key=agent-key-B-123&agentId=PA-PING');
+    ag.ws.send(JSON.stringify({ type: 'PING', n: 7 }));
+    await wait(100);
+    assert.ok(ag.msgs.some(m => m.type === 'PONG' && m.n === 7));
+    for (let i = 0; i < 60; i++) ag.ws.send(JSON.stringify({ type: 'PING', n: 100 + i }));
+    await wait(300);
+    const pongs = ag.msgs.filter(m => m.type === 'PONG').length;
+    assert.ok(pongs <= 40, `pongs=${pongs}`);
+    ag.ws.close();
+});
+
+test('supervisor não consegue usar PING/PRECHECK (somente agentes)', async () => {
+    const sup = await connect('key=super-key-B-123');
+    sup.ws.send(JSON.stringify({ type: 'PING', n: 1 }));
+    sup.ws.send(JSON.stringify({ type: 'SHIFT_PRECHECK', status: 'PRONTA', itens: [] }));
+    await wait(150);
+    assert.ok(!sup.msgs.some(m => m.type === 'PONG' || m.type === 'STATION_HEALTH_UPDATE'));
+    sup.ws.close();
+});
+
+test('pré-check é sanitizado e chega só ao supervisor do mesmo tenant', async () => {
+    const supB = await connect('key=super-key-B-123');
+    const supA = await connect('key=super-key-A-123');
+    const ag = await connect('key=agent-key-B-123&agentId=PA-PRE');
+    ag.ws.send(JSON.stringify({
+        type: 'SHIFT_PRECHECK', station: 'PA-PRE', operator: '<b>x</b>', status: 'HACK',
+        itens: [{ id: 'rede', status: 'ok', valor: 'x'.repeat(500), orientacao: '' }, { id: 'y', status: 'evil', valor: '1' }],
+        rttMs: 999999999, jitterMs: 'abc', lossPct: -5
+    }));
+    await wait(200);
+    const upd = supB.msgs.find(m => m.type === 'STATION_HEALTH_UPDATE');
+    assert.ok(upd, 'supervisor B deve receber');
+    assert.strictEqual(upd.payload.precheck.status, 'ATENCAO'); // status inválido cai no padrão
+    assert.strictEqual(upd.payload.precheck.itens[0].valor.length, 40);
+    assert.strictEqual(upd.payload.precheck.itens[1].status, 'atencao');
+    assert.strictEqual(upd.payload.precheck.rttMs, 60000);
+    assert.strictEqual(upd.payload.precheck.jitterMs, null);
+    assert.strictEqual(upd.payload.precheck.lossPct, 0);
+    assert.ok(!supA.msgs.some(m => m.type === 'STATION_HEALTH_UPDATE'));
+    [supA, supB, ag].forEach(c => c.ws.close());
+});
+
+test('latência de API guarda só hostname e valores limitados', async () => {
+    const sup = await connect('key=super-key-B-123');
+    const ag = await connect('key=agent-key-B-123&agentId=PA-API');
+    ag.ws.send(JSON.stringify({
+        type: 'API_LATENCY', janelaSeg: 30,
+        hosts: [{ host: 'api.mypurecloud.com/v2/users?token=SECRET', count: 3, avgMs: 120, p95Ms: 300, maxMs: 400, errors: 1 }]
+    }));
+    await wait(200);
+    const upd = sup.msgs.find(m => m.type === 'STATION_HEALTH_UPDATE');
+    assert.ok(upd);
+    const h = upd.payload.api.hosts[0];
+    assert.ok(!/[/?=]/.test(h.host), h.host);
+    assert.strictEqual(h.p95Ms, 300);
+    sup.ws.close(); ag.ws.close();
+});
+
+test('audioIssue só aceita códigos conhecidos e força ALERTA', async () => {
+    const sup = await connect('key=super-key-B-123');
+    const ag = await connect('key=agent-key-B-123&agentId=PA-AUD');
+    ag.ws.send(JSON.stringify({ type: 'AGENT_TELEMETRY', mosScore: '4.2', audioIssue: 'SEM_AUDIO_RECEBIDO', status: 'OK' }));
+    ag.ws.send(JSON.stringify({ type: 'AGENT_TELEMETRY', mosScore: '4.2', audioIssue: '<script>', status: 'OK' }));
+    await wait(200);
+    const ups = sup.msgs.filter(m => m.type === 'TELEMETRY_UPDATE');
+    assert.strictEqual(ups[0].payload.audioIssue, 'SEM_AUDIO_RECEBIDO');
+    assert.strictEqual(ups[0].payload.status, 'ALERTA');
+    assert.strictEqual(ups[1].payload.audioIssue, 'NONE');
+    assert.strictEqual(ups[1].payload.status, 'OK');
+    sup.ws.close(); ag.ws.close();
+});
+
+test('resumo de chamada aceita incidentes de áudio conhecidos', async () => {
+    const sup = await connect('key=super-key-B-123');
+    const ag = await connect('key=agent-key-B-123&agentId=PA-SUM');
+    ag.ws.send(JSON.stringify({ type: 'CALL_AUDIT_SUMMARY', mosMedio: 3.9, incidentesAudio: ['SEM_AUDIO_ENVIADO', 'x', 'NONE'], trocasDispositivo: 2 }));
+    await wait(200);
+    const a = sup.msgs.find(m => m.type === 'NEW_CALL_AUDIT');
+    assert.deepStrictEqual(a.payload.incidentesAudio, ['SEM_AUDIO_ENVIADO']);
+    assert.strictEqual(a.payload.trocasDispositivo, 2);
+    sup.ws.close(); ag.ws.close();
+});

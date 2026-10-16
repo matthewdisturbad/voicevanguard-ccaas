@@ -7,6 +7,7 @@
 function injectHook() {
     const script = document.createElement('script');
     script.src = chrome.runtime.getURL('injected_webrtc_hook.js');
+    script.charset = 'utf-8'; // o hook tem acentos; não depender do charset da página hospedeira
     script.onload = function() {
         this.remove();
     };
@@ -25,7 +26,15 @@ window.addEventListener('message', (event) => {
 
     const data = event.data.payload;
     if (!data || typeof data !== 'object') return;
-    const action = data.evento === 'CHAMADA_FINALIZADA' ? 'REPORT_CALL_SUMMARY' : 'REPORT_TELEMETRY';
+    // Cada tipo de evento tem seu destino; eventos desconhecidos são descartados
+    // (ex.: latência de API não pode marcar "chamada ativa" no background)
+    const ACTIONS = {
+        AMOSTRA_VOZ_WEBRTC: 'REPORT_TELEMETRY',
+        CHAMADA_FINALIZADA: 'REPORT_CALL_SUMMARY',
+        LATENCIA_API: 'REPORT_API_LATENCY'
+    };
+    const action = ACTIONS[data.evento];
+    if (!action) return;
 
     chrome.runtime.sendMessage({
         action: action,
