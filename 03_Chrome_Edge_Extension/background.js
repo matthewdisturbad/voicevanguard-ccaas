@@ -70,12 +70,13 @@ function connectToCloudRelay() {
     if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) return;
     if (!tenantKey) return; // sem chave configurada não há o que conectar
 
-    const url = `${RELAY_SERVER}?key=${encodeURIComponent(tenantKey)}&agentId=${encodeURIComponent(agentStationId)}`;
+    const url = RELAY_SERVER;
     try {
         ws = new WebSocket(url);
 
         ws.onopen = () => {
             reconnectAttempts = 0;
+            ws.send(JSON.stringify({ type: 'AUTH', key: tenantKey, agentId: agentStationId }));
             console.log(`[VoiceVanguard] Conectado ao Cloud Relay | ID: ${agentStationId}`);
             chrome.storage.local.set({ relayConnected: true });
         };
@@ -223,8 +224,11 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         });
 
     } else if (message.action === 'REPORT_CALL_SUMMARY' && message.payload) {
-        isCallActive = false;
-        chrome.storage.local.set({ isCallActive: false });
+        const stillInCall = message.payload.stillInCall === true;
+        if (!stillInCall) {
+            isCallActive = false;
+            chrome.storage.local.set({ isCallActive: false });
+        }
 
         // Salva histórico local
         chrome.storage.local.get(['callHistory'], (res) => {
@@ -256,11 +260,12 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             cpuStress: message.payload.cpuStress || "NORMAL",
             causaRaiz: message.payload.causaRaiz || "REDE_HOMOLOGADA",
             incidentesAudio: Array.isArray(message.payload.incidentesAudio) ? message.payload.incidentesAudio : [],
-            trocasDispositivo: message.payload.trocasDispositivo || 0
+            trocasDispositivo: message.payload.trocasDispositivo || 0,
+            stillInCall
         });
 
         // Se havia limpeza de cache bloqueada durante a conversa, executa agora
-        if (pendingCacheClear) {
+        if (!stillInCall && pendingCacheClear) {
             setTimeout(() => executeSafeCacheClear('post_call'), 1500);
         }
 

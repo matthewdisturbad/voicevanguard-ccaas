@@ -146,6 +146,8 @@ function canSee(ws, tower) {
 // ---------------------------------------------------------------------------
 
 const authFailures = new Map(); // ip -> [timestamps]
+const AUTH_MAX_IPS = 5000;
+const AUTH_TIMEOUT_MS = 5000;
 
 function clientIp(req) {
     if (process.env.TRUST_PROXY === '1') {
@@ -160,15 +162,26 @@ function clientIp(req) {
 }
 
 function isRateLimited(ip) {
+    const prev = authFailures.get(ip);
+    if (!prev) return false;
     const now = Date.now();
-    const list = (authFailures.get(ip) || []).filter(t => now - t < AUTH_WINDOW_MS);
+    const list = prev.filter(t => now - t < AUTH_WINDOW_MS);
+    if (list.length === 0) {
+        authFailures.delete(ip);
+        return false;
+    }
     authFailures.set(ip, list);
     return list.length >= AUTH_MAX_FAILURES;
 }
 
 function recordFailure(ip) {
-    const list = authFailures.get(ip) || [];
-    list.push(Date.now());
+    const now = Date.now();
+    const list = (authFailures.get(ip) || []).filter(t => now - t < AUTH_WINDOW_MS);
+    if (!authFailures.has(ip) && authFailures.size >= AUTH_MAX_IPS) {
+        const oldestIp = authFailures.keys().next().value;
+        if (oldestIp !== undefined) authFailures.delete(oldestIp);
+    }
+    list.push(now);
     authFailures.set(ip, list);
 }
 
@@ -302,7 +315,28 @@ const MIME_TYPES = {
     '.ico': 'image/x-icon'
 };
 
-const GENESYS_FRAME_ANCESTORS = "'self' https://*.pure.cloud https://*.mypurecloud.com https://*.mypurecloud.ie https://*.mypurecloud.de https://*.mypurecloud.jp https://*.mypurecloud.com.au";
+const GENESYS_FRAME_ANCESTORS = "'self' https://*.pure.cloud https://*.mypurecloud.com https://*.mypurecloud.ie https://*.mypurecloud.de https://*.mypurecloud.jp https://*.mypurecloud.com.au https://*.niceincontact.com https://*.nice-incontact.com";
+
+function computeScriptSrcDirective(pubDir) {
+    const hashes = new Set();
+    try {
+        const files = fs.readdirSync(pubDir).filter(f => f.endsWith('.html'));
+        for (const f of files) {
+            const html = fs.readFileSync(path.join(pubDir, f), 'utf8');
+            const re = /<script>([\s\S]*?)<\/script>/gi;
+            let m;
+            while ((m = re.exec(html)) !== null) {
+                const raw = m[1];
+                const lf = raw.replace(/\r\n/g, '\n');
+                hashes.add(`'sha256-${crypto.createHash('sha256').update(lf, 'utf8').digest('base64')}'`);
+                hashes.add(`'sha256-${crypto.createHash('sha256').update(raw, 'utf8').digest('base64')}'`);
+            }
+        }
+    } catch (_) {}
+    return hashes.size > 0 ? `script-src 'self' ${Array.from(hashes).join(' ')}` : "script-src 'self'";
+}
+
+const SCRIPT_SRC_DIRECTIVE = computeScriptSrcDirective(path.join(__dirname, 'public'));
 
 const SECURITY_HEADERS = {
     'X-Content-Type-Options': 'nosniff',
@@ -311,7 +345,7 @@ const SECURITY_HEADERS = {
     'Strict-Transport-Security': 'max-age=31536000; includeSubDomains',
     'Content-Security-Policy': [
         "default-src 'self'",
-        "script-src 'self' 'unsafe-inline'",
+        SCRIPT_SRC_DIRECTIVE,
         "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
         "font-src https://fonts.gstatic.com",
         "img-src 'self' data:",
@@ -342,17 +376,33 @@ function createRelay() {
     }
 
     // Registro de saúde da estação (pré-check e latência de API), separado da telemetria de voz
-    function updateStation(room, tower, agentId, base, patch) {
-        const prev = room.stations.get(akey(tower, agentId)) || { agentId, precheck: null, api: null };
+    function updateStation(room, meta, tower, agentId, base, patch) {
+        const key = akey(tower, agentId);
+        if (!room.stations.has(key) && room.stations.size >= meta.maxAgents * AGENT_RECORD_FACTOR) {
+            const oldestKey = room.stations.keys().next().value;
+            if (oldestKey !== undefined) room.stations.delete(oldestKey);
+        }
+        const prev = room.stations.get(key) || { agentId, precheck: null, api: null };
+        let mergedPatch = { ...patch };
+        if (patch.api && prev.api && Array.isArray(prev.api.hosts) && prev.api.updatedAt &&
+            (Date.now() - new Date(prev.api.updatedAt).getTime() < 60000)) {
+            const byHost = new Map();
+            for (const h of prev.api.hosts) if (h && h.host) byHost.set(h.host, h);
+            for (const h of patch.api.hosts) if (h && h.host) byHost.set(h.host, h);
+            mergedPatch.api = {
+                ...patch.api,
+                hosts: Array.from(byHost.values()).slice(0, 5)
+            };
+        }
         const rec = {
             ...prev,
             tower,
-            station: str(base.station, 64, agentId),
-            operator: str(base.operator, 64, 'Operador'),
-            ...patch,
+            station: str(base.station, 64, prev.station || agentId),
+            operator: str(base.operator, 64, prev.operator || 'Operador'),
+            ...mergedPatch,
             lastSeen: new Date().toISOString()
         };
-        room.stations.set(akey(tower, agentId), rec);
+        room.stations.set(key, rec);
         return rec;
     }
 
@@ -439,7 +489,7 @@ function createRelay() {
         else if (url.pathname === '/' || url.pathname === '/index.html') target = 'index.html';
         else target = url.pathname.replace(/^\/+/, '');
 
-        // Páginas embutidas no Genesys Cloud (Client App/Interaction Widget) podem ser enquadradas apenas por domínios Genesys
+        // Páginas embutidas no Genesys Cloud / NICE CXone podem ser enquadradas apenas por domínios autorizados
         if (url.pathname === '/dashboard' || url.pathname === '/widget') {
             res.removeHeader('X-Frame-Options');
             res.setHeader('Content-Security-Policy', SECURITY_HEADERS['Content-Security-Policy'].replace("frame-ancestors 'none'", `frame-ancestors ${GENESYS_FRAME_ANCESTORS}`));
@@ -483,66 +533,98 @@ function createRelay() {
         const ip = clientIp(req);
         if (isRateLimited(ip)) { reject(ws, 4029, 'Rate Limited', 'Muitas tentativas.'); return; }
 
-        // O papel vem da chave apresentada, nunca de parâmetro declarado pelo cliente.
-        const found = lookupKey(url.searchParams.get('key'));
-        if (!found) {
-            recordFailure(ip);
-            reject(ws, 4001, 'Invalid Key', 'Chave inválida ou não autorizada.');
-            console.warn('[!] Conexão rejeitada (4001): chave inválida ou ausente');
-            return;
-        }
-
-        const { tenantId, role: clientType, tower, towers } = found;
-        const meta = tenantMeta.get(tenantId);
-        const room = getRoom(tenantId);
-
-        let agentId = null;
-        if (clientType === 'agent') {
-            const requested = url.searchParams.get('agentId');
-            agentId = requested && ID_PATTERN.test(requested)
-                ? requested
-                : `PA-${crypto.randomBytes(4).toString('hex').toUpperCase()}`;
-
-            for (const c of wss.clients) {
-                if (c !== ws && c.readyState === WebSocket.OPEN && c.tenantId === tenantId && c.clientType === 'agent' && c.tower === tower && c.agentId === agentId) {
-                    reject(ws, 4009, 'Duplicate Agent', 'agentId já conectado neste tenant.');
-                    return;
-                }
-            }
-            let connectedAgents = 0;
-            for (const c of wss.clients) {
-                if (c.readyState === WebSocket.OPEN && c.tenantId === tenantId && c.clientType === 'agent') connectedAgents++;
-            }
-            if (connectedAgents >= meta.maxAgents) {
-                reject(ws, 4003, 'Agent Limit', 'Limite de agentes do plano atingido.');
-                return;
-            }
-        }
-
-        ws.tenantId = tenantId;
-        ws.clientType = clientType;
-        ws.tower = tower;
-        ws.towers = towers;
-        ws.supervisorName = found.supervisorName;
-        ws.agentId = agentId;
         ws.isAlive = true;
         ws.on('pong', () => { ws.isAlive = true; });
+        ws.authenticated = false;
 
-        if (clientType === 'supervisor') {
-            room.supervisors.add(ws);
-            console.log(`[+] Supervisor conectado | Tenant: ${tenantId}`);
-            ws.send(JSON.stringify({
-                type: 'INIT_STATE',
-                tenant: meta.name,
-                agents: Array.from(room.agents.values()).filter(a => canSee(ws, a.tower)),
-                stations: Array.from(room.stations.values()).filter(a => canSee(ws, a.tower)),
-                callHistory: room.callHistory.filter(c => canSee(ws, c.tower)).slice(0, 50),
-                towers: towers === '*' ? meta.towers : towers
-            }));
+        let authTimer = null;
+
+        function completeAuth(rawKey, rawAgentId, viaMessage = false) {
+            if (authTimer) { clearTimeout(authTimer); authTimer = null; }
+            // O papel vem da chave apresentada, nunca de parâmetro declarado pelo cliente.
+            const found = lookupKey(rawKey);
+            if (!found) {
+                recordFailure(ip);
+                reject(ws, 4001, 'Invalid Key', 'Chave inválida ou não autorizada.');
+                console.warn('[!] Conexão rejeitada (4001): chave inválida ou ausente');
+                return false;
+            }
+
+            const { tenantId, role: clientType, tower, towers } = found;
+            const meta = tenantMeta.get(tenantId);
+            const room = getRoom(tenantId);
+
+            let agentId = null;
+            if (clientType === 'agent') {
+                const requested = typeof rawAgentId === 'string' ? rawAgentId : url.searchParams.get('agentId');
+                agentId = requested && ID_PATTERN.test(requested)
+                    ? requested
+                    : `PA-${crypto.randomBytes(4).toString('hex').toUpperCase()}`;
+
+                for (const c of wss.clients) {
+                    if (c !== ws && c.readyState === WebSocket.OPEN && c.authenticated && c.tenantId === tenantId && c.clientType === 'agent' && c.tower === tower && c.agentId === agentId) {
+                        reject(ws, 4009, 'Duplicate Agent', 'agentId já conectado neste tenant.');
+                        return false;
+                    }
+                }
+                let connectedAgents = 0;
+                for (const c of wss.clients) {
+                    if (c !== ws && c.readyState === WebSocket.OPEN && c.authenticated && c.tenantId === tenantId && c.clientType === 'agent') connectedAgents++;
+                }
+                if (connectedAgents >= meta.maxAgents) {
+                    reject(ws, 4003, 'Agent Limit', 'Limite de agentes do plano atingido.');
+                    return false;
+                }
+            }
+
+            ws.authenticated = true;
+            ws.tenantId = tenantId;
+            ws.clientType = clientType;
+            ws.tower = tower;
+            ws.towers = towers;
+            ws.supervisorName = found.supervisorName;
+            ws.agentId = agentId;
+
+            if (clientType === 'supervisor') {
+                room.supervisors.add(ws);
+                console.log(`[+] Supervisor conectado | Tenant: ${tenantId}`);
+                ws.send(JSON.stringify({
+                    type: 'INIT_STATE',
+                    tenant: meta.name,
+                    agents: Array.from(room.agents.values()).filter(a => canSee(ws, a.tower)),
+                    stations: Array.from(room.stations.values()).filter(a => canSee(ws, a.tower)),
+                    callHistory: room.callHistory.filter(c => canSee(ws, c.tower)).slice(0, 50),
+                    towers: towers === '*' ? meta.towers : towers
+                }));
+            } else {
+                const prev = room.agents.get(akey(tower, agentId));
+                if (prev) prev.reconnectedAt = Date.now(); // até a próxima telemetria, o estado de chamada é desconhecido
+                console.log(`[+] Agente conectado | ID: ${agentId} | Tenant: ${tenantId}`);
+                if (viaMessage) {
+                    ws.send(JSON.stringify({ type: 'AUTH_OK', agentId }));
+                }
+            }
+            return true;
+        }
+
+        if (url.searchParams.has('key')) {
+            if (process.env.DISABLE_URL_KEY === '1') {
+                recordFailure(ip);
+                reject(ws, 4001, 'URL Key Disabled', 'Autenticação por URL desativada; envie mensagem AUTH.');
+                return;
+            }
+            if (!completeAuth(url.searchParams.get('key'), url.searchParams.get('agentId'), false)) {
+                return;
+            }
         } else {
-            const prev = room.agents.get(akey(tower, agentId));
-            if (prev) prev.reconnectedAt = Date.now(); // até a próxima telemetria, o estado de chamada é desconhecido
-            console.log(`[+] Agente conectado | ID: ${agentId} | Tenant: ${tenantId}`);
+            authTimer = setTimeout(() => {
+                authTimer = null;
+                if (!ws.authenticated) {
+                    recordFailure(ip);
+                    reject(ws, 4001, 'Auth Timeout', 'Chave inválida ou não autorizada.');
+                }
+            }, AUTH_TIMEOUT_MS);
+            authTimer.unref();
         }
 
         ws.on('message', (raw) => {
@@ -550,13 +632,36 @@ function createRelay() {
             const nowMs = Date.now();
             if (!ws.msgWindowStart || nowMs - ws.msgWindowStart >= MSG_WINDOW_MS) { ws.msgWindowStart = nowMs; ws.msgCount = 0; }
             ws.msgCount++;
-            if (ws.msgCount > (clientType === 'agent' ? MSG_MAX_AGENT : MSG_MAX_SUPERVISOR)) {
+            const maxMsg = ws.authenticated ? (ws.clientType === 'agent' ? MSG_MAX_AGENT : MSG_MAX_SUPERVISOR) : 5;
+            if (ws.msgCount > maxMsg) {
                 ws.close(1008, 'Rate Limited');
                 return;
             }
             let data;
-            try { data = JSON.parse(raw); } catch (e) { return; }
+            try { data = JSON.parse(raw); } catch (e) {
+                if (!ws.authenticated) {
+                    if (authTimer) { clearTimeout(authTimer); authTimer = null; }
+                    recordFailure(ip);
+                    reject(ws, 4001, 'Invalid Key', 'Chave inválida ou não autorizada.');
+                }
+                return;
+            }
             if (!data || typeof data !== 'object') return;
+
+            if (!ws.authenticated) {
+                if (data.type !== 'AUTH') {
+                    if (authTimer) { clearTimeout(authTimer); authTimer = null; }
+                    recordFailure(ip);
+                    reject(ws, 4001, 'Invalid Key', 'Chave inválida ou não autorizada.');
+                    return;
+                }
+                completeAuth(data.key, data.agentId, true);
+                return;
+            }
+
+            const { tenantId, clientType, tower, agentId } = ws;
+            const meta = tenantMeta.get(tenantId);
+            const room = getRoom(tenantId);
 
             try {
                 if (clientType === 'agent' && data.type === 'AGENT_TELEMETRY') {
@@ -631,8 +736,8 @@ function createRelay() {
                     saveTenantHistory(tenantId, room.callHistory);
                     broadcast(room, { type: 'NEW_CALL_AUDIT', payload: record }, tower);
                     const cur = room.agents.get(akey(tower, agentId));
-                    if (cur) cur.callActive = false;
-                    flushPending(room, ws);
+                    if (cur && data.stillInCall !== true) cur.callActive = false;
+                    if (data.stillInCall !== true) flushPending(room, ws);
                     return;
                 }
 
@@ -647,13 +752,13 @@ function createRelay() {
                 }
 
                 if (clientType === 'agent' && data.type === 'SHIFT_PRECHECK') {
-                    const rec = updateStation(room, tower, agentId, data, { precheck: sanitizePrecheck(data) });
+                    const rec = updateStation(room, meta, tower, agentId, data, { precheck: sanitizePrecheck(data) });
                     broadcast(room, { type: 'STATION_HEALTH_UPDATE', payload: rec }, tower);
                     return;
                 }
 
                 if (clientType === 'agent' && data.type === 'API_LATENCY') {
-                    const rec = updateStation(room, tower, agentId, data, { api: sanitizeApiLatency(data) });
+                    const rec = updateStation(room, meta, tower, agentId, data, { api: sanitizeApiLatency(data) });
                     broadcast(room, { type: 'STATION_HEALTH_UPDATE', payload: rec }, tower);
                     return;
                 }
@@ -663,7 +768,7 @@ function createRelay() {
                     if (typeof target !== 'string' || !ID_PATTERN.test(target)) return;
                     if (!COMMAND_WHITELIST.has(data.command)) return;
                     for (const client of wss.clients) {
-                        if (client.tenantId === tenantId && client.clientType === 'agent' && canSee(ws, client.tower) &&
+                        if (client.authenticated && client.tenantId === tenantId && client.clientType === 'agent' && canSee(ws, client.tower) &&
                             client.agentId === target && client.readyState === WebSocket.OPEN) {
                             const state = room.agents.get(akey(client.tower, target));
                             // Sem estado fresco (agente sem telemetria ou reconectado há pouco) tratamos como possível chamada em curso.
@@ -704,13 +809,17 @@ function createRelay() {
         });
 
         ws.on('close', () => {
+            if (authTimer) { clearTimeout(authTimer); authTimer = null; }
+            if (!ws.authenticated) return;
+            const { tenantId, clientType, tower, agentId } = ws;
+            const room = getRoom(tenantId);
             if (clientType === 'supervisor') {
                 room.supervisors.delete(ws);
                 console.log(`[-] Supervisor desconectado | Tenant: ${tenantId}`);
             } else {
                 const ag = room.agents.get(akey(tower, agentId));
                 // Só marca OFFLINE se não houver outra conexão viva com o mesmo agentId na mesma torre
-                const stillConnected = Array.from(wss.clients).some(c => c !== ws && c.tenantId === tenantId && c.tower === tower && c.agentId === agentId && c.readyState === WebSocket.OPEN);
+                const stillConnected = Array.from(wss.clients).some(c => c !== ws && c.authenticated && c.tenantId === tenantId && c.tower === tower && c.agentId === agentId && c.readyState === WebSocket.OPEN);
                 if (ag && !stillConnected) {
                     ag.status = 'OFFLINE';
                     ag.callActive = false;

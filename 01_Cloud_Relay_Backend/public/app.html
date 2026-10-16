@@ -634,15 +634,14 @@
         if (ws) { const old = ws; ws = null; try { old.close(); } catch (e) {} }
 
         const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
-        const wsUrl = `${protocol}//${location.host}?key=${encodeURIComponent(activeTenantKey)}`;
+        const wsUrl = `${protocol}//${location.host}`;
         setConn('connecting', attempt ? `Reconectando (tentativa ${attempt})...` : 'Conectando...');
         const sock = new WebSocket(wsUrl);
         ws = sock;
 
         sock.onopen = () => {
             if (sock !== ws) return;
-            attempt = 0;
-            setConn('live', 'Ao vivo');
+            sock.send(JSON.stringify({ type: 'AUTH', key: activeTenantKey }));
         };
 
         sock.onmessage = (event) => {
@@ -650,6 +649,8 @@
             try {
                 const msg = JSON.parse(event.data);
                 if (msg.type === 'INIT_STATE') {
+                    attempt = 0;
+                    setConn('live', 'Ao vivo');
                     agentsMap.clear(); stationsMap.clear();
                     if (Array.isArray(msg.agents)) msg.agents.forEach(a => agentsMap.set(akey(a), a));
                     callsList = Array.isArray(msg.callHistory) ? msg.callHistory : [];

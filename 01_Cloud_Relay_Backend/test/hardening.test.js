@@ -100,3 +100,70 @@ test('TENANTS_JSON malformado ou não-objeto falha sem vazar conteúdo', () => {
     assert.throws(() => loadTenants({ TENANTS_JSON: '{"a": "segredo-xyz' }), (e) => !/segredo-xyz/.test(e.message));
     assert.throws(() => loadTenants({ TENANTS_JSON: 'null' }), /objeto/);
 });
+
+test('autenticação WebSocket por primeira mensagem (AUTH) funciona sem chave na URL', async () => {
+    const supMsgs = [];
+    const sup = new WebSocket(`ws://localhost:${port}`, { headers: { 'X-Forwarded-For': '203.0.113.10' } });
+    sup.on('message', m => supMsgs.push(JSON.parse(m)));
+    await new Promise(r => sup.on('open', r));
+    sup.send(JSON.stringify({ type: 'AUTH', key: 'super-key-H-123' }));
+    await wait(150);
+    assert.ok(supMsgs.some(m => m.type === 'INIT_STATE'), 'supervisor autenticado via mensagem AUTH deve receber INIT_STATE');
+
+    const agMsgs = [];
+    const ag = new WebSocket(`ws://localhost:${port}`, { headers: { 'X-Forwarded-For': '203.0.113.11' } });
+    ag.on('message', m => agMsgs.push(JSON.parse(m)));
+    await new Promise(r => ag.on('open', r));
+    ag.send(JSON.stringify({ type: 'AUTH', key: 'agent-key-H-123', agentId: 'PA-FIRST-MSG' }));
+    ag.send(JSON.stringify({ type: 'AGENT_TELEMETRY', mosScore: '4.35', callActive: true }));
+    await wait(200);
+    assert.ok(agMsgs.some(m => m.type === 'AUTH_OK' && m.agentId === 'PA-FIRST-MSG'));
+    assert.ok(supMsgs.some(m => m.type === 'TELEMETRY_UPDATE' && m.payload.agentId === 'PA-FIRST-MSG'));
+
+    // Mensagem sem AUTH em socket não autenticado é recusada com 4001
+    const bad = new WebSocket(`ws://localhost:${port}`, { headers: { 'X-Forwarded-For': '203.0.113.12' } });
+    const badClosed = new Promise(r => bad.on('close', c => r(c)));
+    await new Promise(r => bad.on('open', r));
+    bad.send(JSON.stringify({ type: 'AGENT_TELEMETRY', mosScore: '4.4' }));
+    assert.strictEqual(await badClosed, 4001);
+
+    sup.close();
+    ag.close();
+});
+
+test('CSP usa hashes SHA-256 em script-src sem unsafe-inline', async () => {
+    const r = await get('/');
+    const csp = r.headers['content-security-policy'] || '';
+    const scriptDirective = csp.split(';').map(s => s.trim()).find(s => s.startsWith('script-src'));
+    assert.ok(scriptDirective, 'deve conter diretiva script-src');
+    assert.ok(!scriptDirective.includes("'unsafe-inline'"), `script-src não deve conter unsafe-inline: ${scriptDirective}`);
+    assert.ok(scriptDirective.includes("'sha256-"), `script-src deve conter hashes sha256: ${scriptDirective}`);
+});
+
+test('API_LATENCY de múltiplos frames na mesma PA mescla hosts na janela ativa', async () => {
+    const supMsgs = [];
+    const sup = new WebSocket(`ws://localhost:${port}`, { headers: { 'X-Forwarded-For': '203.0.113.20' } });
+    sup.on('message', m => supMsgs.push(JSON.parse(m)));
+    await new Promise(r => sup.on('open', r));
+    sup.send(JSON.stringify({ type: 'AUTH', key: 'super-key-H-123' }));
+
+    const ag = new WebSocket(`ws://localhost:${port}`, { headers: { 'X-Forwarded-For': '203.0.113.21' } });
+    await new Promise(r => ag.on('open', r));
+    ag.send(JSON.stringify({ type: 'AUTH', key: 'agent-key-H-123', agentId: 'PA-MULTIFRAME' }));
+    ag.send(JSON.stringify({
+        type: 'API_LATENCY', janelaSeg: 30,
+        hosts: [{ host: 'api.mypurecloud.com', count: 5, avgMs: 90, p95Ms: 140, maxMs: 180, errors: 0 }]
+    }));
+    ag.send(JSON.stringify({
+        type: 'API_LATENCY', janelaSeg: 30,
+        hosts: [{ host: 'apps.mypurecloud.com', count: 3, avgMs: 60, p95Ms: 110, maxMs: 120, errors: 0 }]
+    }));
+    await wait(200);
+    const updates = supMsgs.filter(m => m.type === 'STATION_HEALTH_UPDATE' && m.payload.agentId === 'PA-MULTIFRAME');
+    const last = updates[updates.length - 1];
+    assert.ok(last);
+    const hostNames = last.payload.api.hosts.map(h => h.host).sort();
+    assert.deepStrictEqual(hostNames, ['api.mypurecloud.com', 'apps.mypurecloud.com']);
+    sup.close();
+    ag.close();
+});

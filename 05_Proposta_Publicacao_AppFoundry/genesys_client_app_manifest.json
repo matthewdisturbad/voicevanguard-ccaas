@@ -12,11 +12,13 @@
   "display": {
     "name": "VoiceVanguard CCaaS",
     "icon": {
-      "vector": "https://voicevanguard.trustco.pro/assets/icon.svg"
+      "vector": "https://voicevanguard.trustco.pro/assets/icon.svg",
+      "128x128": "https://voicevanguard.trustco.pro/assets/icon-128.png",
+      "512x512": "https://voicevanguard.trustco.pro/assets/icon-512.png"
     },
     "category": "Workforce Engagement Management"
   },
-  "url": "https://voicevanguard.trustco.pro/dashboard?org={{pcOrganization.id}}&lang={{pcLangTag}}&env={{pcEnvironment}}",
+  "url": "https://voicevanguard.trustco.pro/dashboard?lang={{pcLangTag}}&env={{pcEnvironment}}",
   "sandbox": "allow-scripts allow-same-origin allow-forms",
   "permissions": [],
   "monetization": {
@@ -32,7 +34,7 @@
     "userFilter": [],
     "advanced": {
       "enableInteractionWidget": true,
-      "interactionWidgetUrl": "https://voicevanguard.trustco.pro/widget?conversationId={{pcConversationId}}&agent={{pcAgentId}}",
+      "interactionWidgetUrl": "https://voicevanguard.trustco.pro/widget?conversationId={{pcConversationId}}&lang={{pcLangTag}}&env={{pcEnvironment}}",
       "interactionWidgetTypes": [
         "voice",
         "callback"

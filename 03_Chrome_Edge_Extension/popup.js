@@ -11,8 +11,13 @@ document.addEventListener('DOMContentLoaded', () => {
         const m = res.lastMetric;
         const badgeState = document.getElementById('badgeState');
         const card = document.getElementById('callCard');
+        const freshMetric = !!(m && m.timestamp && (Date.now() - new Date(m.timestamp).getTime()) < 15000);
+        const callActiveNow = !!(res.isCallActive && freshMetric);
+        if (res.isCallActive && !freshMetric) {
+            chrome.storage.local.set({ isCallActive: false });
+        }
 
-        if (m && (new Date() - new Date(m.timestamp)) < 15000) {
+        if (freshMetric) {
             badgeState.textContent = "Chamada Ativa";
             badgeState.className = "status-badge badge-ok";
 
@@ -23,12 +28,12 @@ document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('valLoss').textContent = `${m.perdaPct || 0} %`;
             document.getElementById('valProto').textContent = m.protocolo ? m.protocolo.toUpperCase() : "UDP";
 
-            if (m.perdaPct > 2 || m.jitterMs > 30) {
+            if (m.perdaPct > 2 || m.jitterMs > 30 || (m.audioIssue && m.audioIssue !== 'NONE')) {
                 badgeState.textContent = "Áudio Degradado";
                 badgeState.className = "status-badge badge-warn";
-                card.style.borderLeftColor = "#eab308";
+                card.style.borderLeftColor = "var(--warn)";
             } else {
-                card.style.borderLeftColor = "#16a34a";
+                card.style.borderLeftColor = "var(--ok)";
             }
         }
 
@@ -40,12 +45,12 @@ document.addEventListener('DOMContentLoaded', () => {
             history.slice(0, 10).forEach(c => {
                 const dur = Number(c.durationSeconds) || 0;
                 const row = document.createElement('div');
-                row.style.cssText = 'display:flex; justify-content:space-between; padding:4px 0; border-bottom:1px solid #f1f5f9;';
+                row.style.cssText = 'display:flex; justify-content:space-between; padding:4px 0; border-bottom:1px solid var(--border);';
                 const left = document.createElement('div');
                 const id = document.createElement('b');
-                id.textContent = String(c.interactionId || 'CALL').slice(0, 8);
+                id.textContent = String(c.callId || c.interactionId || 'CALL').slice(0, 8);
                 const span = document.createElement('span');
-                span.style.color = '#64748b';
+                span.style.color = 'var(--text-3)';
                 span.textContent = ` (${Math.floor(dur / 60)}m ${dur % 60}s)`;
                 left.append(id, span);
                 const right = document.createElement('div');
@@ -61,7 +66,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // Pré-check de turno
         const btnPre = document.getElementById('btnPrecheck');
         const preEl = document.getElementById('precheckResult');
-        if (res.isCallActive) {
+        if (callActiveNow) {
             btnPre.disabled = true;
             preEl.textContent = 'Indisponível durante chamada ativa.';
         }
@@ -93,7 +98,7 @@ document.addEventListener('DOMContentLoaded', () => {
             } catch (e) {
                 preEl.textContent = 'Não foi possível concluir o pré-check.';
             } finally {
-                btnPre.disabled = !!res.isCallActive;
+                btnPre.disabled = callActiveNow;
             }
         });
 
@@ -101,12 +106,10 @@ document.addEventListener('DOMContentLoaded', () => {
         const btnClear = document.getElementById('btnClearCache');
         const feedbackEl = document.getElementById('cacheFeedback');
 
-        if (res.isCallActive) {
+        if (callActiveNow) {
             btnClear.disabled = true;
-            btnClear.style.background = "#94a3b8";
-            btnClear.style.cursor = "not-allowed";
-            feedbackEl.textContent = "🛑 Indisponível durante chamada ativa.";
-            feedbackEl.style.color = "#dc2626";
+            feedbackEl.textContent = "Indisponível durante chamada ativa.";
+            feedbackEl.style.color = "var(--crit)";
         } else if (res.lastCacheCleared) {
             const dt = new Date(res.lastCacheCleared).toLocaleTimeString('pt-BR');
             feedbackEl.textContent = `Última limpeza segura: hoje às ${dt}`;
@@ -114,33 +117,33 @@ document.addEventListener('DOMContentLoaded', () => {
 
         btnClear.addEventListener('click', async () => {
             btnClear.disabled = true;
-            btnClear.textContent = "⏳ Limpando cache...";
+            btnClear.textContent = "Limpando cache...";
 
             try {
                 // A limpeza passa pelo background, que aplica o In-Call Lock
                 const result = await chrome.runtime.sendMessage({ action: 'EXECUTE_SAFE_CACHE_CLEAR' });
                 if (result && result.inCall) {
-                    btnClear.textContent = "🛑 Em chamada: agendada para o pós-chamada";
+                    btnClear.textContent = "Em chamada: agendada para o pós-chamada";
                     feedbackEl.textContent = "Ação agendada para o fim da chamada.";
-                    feedbackEl.style.color = "#dc2626";
+                    feedbackEl.style.color = "var(--crit)";
                     return;
                 }
                 if (!result || !result.success) throw new Error('falha');
 
-                btnClear.textContent = "✅ Cache Limpo!";
-                btnClear.style.background = "#16a34a";
-                feedbackEl.textContent = "Cache estático limpo com sucesso! Sessão preservada.";
-                feedbackEl.style.color = "#16a34a";
+                btnClear.textContent = "Cache limpo com sucesso";
+                btnClear.style.background = "var(--ok)";
+                feedbackEl.textContent = "Cache estático limpo com sucesso. Sessão preservada.";
+                feedbackEl.style.color = "var(--ok)";
 
                 setTimeout(() => {
                     btnClear.disabled = false;
-                    btnClear.textContent = "🧹 Limpeza Segura de Cache (Preserva Login)";
-                    btnClear.style.background = "#0284c7";
+                    btnClear.textContent = "Limpeza segura de cache (preserva login)";
+                    btnClear.style.background = "";
                 }, 3000);
             } catch (err) {
                 btnClear.disabled = false;
                 feedbackEl.textContent = "Falha ao limpar cache.";
-                feedbackEl.style.color = "#dc2626";
+                feedbackEl.style.color = "var(--crit)";
             }
         });
     });

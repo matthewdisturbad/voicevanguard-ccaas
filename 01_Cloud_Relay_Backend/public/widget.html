@@ -1,13 +1,495 @@
 <!DOCTYPE html>
-<html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>VoiceVanguard Interaction Widget</title>
-<style>body{font-family:system-ui,sans-serif;margin:0;padding:12px;background:#0b1b3a;color:#e8eefc}small{opacity:.7}</style></head>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VoiceVanguard CCaaS • Interaction Widget</title>
+    <style>
+        :root {
+            color-scheme: light dark;
+            --bg: #f8fafc;
+            --surface: #ffffff;
+            --bg-alt: #f1f5f9;
+            --text: #0f172a;
+            --text-2: #334155;
+            --text-3: #64748b;
+            --border: #e2e8f0;
+            --border-strong: #cbd5e1;
+            --accent: #0057b8;
+            --accent-tint: #eff6ff;
+            --ok: #15803d;
+            --ok-tint: #dcfce7;
+            --warn: #b45309;
+            --warn-tint: #fef3c7;
+            --crit: #b91c1c;
+            --crit-tint: #fee2e2;
+            --font-sans: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+            --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        }
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --bg: #0b0f17;
+                --surface: #111827;
+                --bg-alt: #1e293b;
+                --text: #f8fafc;
+                --text-2: #cbd5e1;
+                --text-3: #94a3b8;
+                --border: #1e293b;
+                --border-strong: #334155;
+                --accent: #38bdf8;
+                --accent-tint: #0c2d48;
+                --ok: #4ade80;
+                --ok-tint: #052e16;
+                --warn: #fbbf24;
+                --warn-tint: #3b2506;
+                --crit: #f87171;
+                --crit-tint: #3b1219;
+            }
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: var(--font-sans);
+            font-size: 13px;
+            line-height: 1.5;
+            background: var(--bg);
+            color: var(--text);
+            padding: 12px;
+        }
+        .card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 14px;
+            margin-bottom: 10px;
+        }
+        .head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            margin-bottom: 10px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid var(--border);
+        }
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-weight: 600;
+            font-size: 13px;
+        }
+        .brand svg { color: var(--accent); flex-shrink: 0; }
+        .badge {
+            font-size: 11px;
+            font-weight: 600;
+            padding: 2px 8px;
+            border-radius: 999px;
+            background: var(--bg-alt);
+            color: var(--text-2);
+            border: 1px solid var(--border-strong);
+            font-variant-numeric: tabular-nums;
+        }
+        .badge.ok { background: var(--ok-tint); color: var(--ok); border-color: transparent; }
+        .badge.warn { background: var(--warn-tint); color: var(--warn); border-color: transparent; }
+        .badge.crit { background: var(--crit-tint); color: var(--crit); border-color: transparent; }
+        .meta-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px 12px;
+            font-size: 12px;
+            color: var(--text-2);
+            margin-bottom: 10px;
+        }
+        .meta-row code {
+            font-family: var(--font-mono);
+            font-size: 11px;
+            background: var(--bg-alt);
+            padding: 1px 5px;
+            border-radius: 4px;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+            margin-bottom: 10px;
+        }
+        .metric {
+            background: var(--bg-alt);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 8px 10px;
+        }
+        .metric-label {
+            font-size: 11px;
+            color: var(--text-3);
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+        .metric-val {
+            font-family: var(--font-mono);
+            font-size: 16px;
+            font-weight: 700;
+            font-variant-numeric: tabular-nums;
+            margin-top: 2px;
+        }
+        .metric-val.ok { color: var(--ok); }
+        .metric-val.warn { color: var(--warn); }
+        .metric-val.crit { color: var(--crit); }
+        .diag-box {
+            border-radius: 6px;
+            padding: 8px 10px;
+            font-size: 12px;
+            margin-bottom: 10px;
+            border: 1px solid var(--border-strong);
+            background: var(--bg-alt);
+        }
+        .diag-box.crit { background: var(--crit-tint); color: var(--crit); border-color: transparent; }
+        .diag-box.warn { background: var(--warn-tint); color: var(--warn); border-color: transparent; }
+        .diag-box.ok { background: var(--ok-tint); color: var(--ok); border-color: transparent; }
+        .field { display: flex; flex-direction: column; gap: 4px; margin-bottom: 8px; }
+        .field label { font-size: 11px; font-weight: 600; color: var(--text-2); }
+        .field input {
+            padding: 7px 9px;
+            border-radius: 6px;
+            border: 1px solid var(--border-strong);
+            background: var(--bg);
+            color: var(--text);
+            font: inherit;
+        }
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            padding: 8px 12px;
+            border-radius: 6px;
+            border: 1px solid var(--accent);
+            background: var(--accent);
+            color: #ffffff;
+            font-weight: 600;
+            font-size: 12px;
+            cursor: pointer;
+            text-decoration: none;
+        }
+        .btn:disabled { opacity: 0.55; cursor: not-allowed; }
+        .btn-secondary {
+            background: transparent;
+            color: var(--text);
+            border-color: var(--border-strong);
+            margin-top: 6px;
+        }
+        .foot {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 11px;
+            color: var(--text-3);
+            margin-top: 8px;
+        }
+        .foot a { color: var(--accent); text-decoration: none; font-weight: 600; }
+        .err { color: var(--crit); font-size: 12px; margin-bottom: 8px; }
+    </style>
+</head>
 <body>
-<strong>VoiceVanguard</strong>
-<p id="info">Conversa: <span id="cid">-</span></p>
-<small>Widget somente leitura. Nenhum áudio é capturado; apenas estatísticas de rede (RTP).</small>
-<script>
-const q = new URLSearchParams(location.search);
-document.getElementById('cid').textContent = (q.get('conversationId') || '-').replace(/[^\w-]/g, '');
-</script>
-</body></html>
+    <div class="card">
+        <div class="head">
+            <div class="brand">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2.5L4 6v5.5c0 4.7 3.3 8.7 8 10 4.7-1.3 8-5.3 8-10V6l-8-3.5z"/><path d="M8.5 12h1.8l1.2-3 1.8 6 1.2-3h1"/></svg>
+                <span>VoiceVanguard CCaaS</span>
+            </div>
+            <span id="connBadge" class="badge">OFFLINE</span>
+        </div>
+
+        <div class="meta-row">
+            <span><strong id="lblConv">Interação:</strong> <code id="valConv">--</code></span>
+            <span id="envWrap" hidden><strong>Env:</strong> <code id="valEnv">--</code></span>
+        </div>
+
+        <div id="authSection">
+            <div id="authError" class="err" hidden></div>
+            <div class="field">
+                <label id="lblKey" for="inputKey">Chave de supervisor do tenant</label>
+                <input type="password" id="inputKey" autocomplete="off" placeholder="Insira a chave de supervisor">
+            </div>
+            <button type="button" id="btnConnect" class="btn">Conectar telemetria</button>
+        </div>
+
+        <div id="telemetrySection" hidden>
+            <div class="meta-row" id="agentMeta">
+                <span><strong id="lblStation">PA:</strong> <code id="valStation">--</code></span>
+                <span><strong id="lblOperator">Operador:</strong> <span id="valOperator">--</span></span>
+                <span><strong id="lblNet">Rede:</strong> <span id="valNet">--</span></span>
+            </div>
+
+            <div class="grid">
+                <div class="metric">
+                    <div class="metric-label">MOS (G.107)</div>
+                    <div class="metric-val" id="valMos">--</div>
+                </div>
+                <div class="metric">
+                    <div class="metric-label" id="lblRtt">Latência (RTT)</div>
+                    <div class="metric-val" id="valRtt">--</div>
+                </div>
+                <div class="metric">
+                    <div class="metric-label">Jitter</div>
+                    <div class="metric-val" id="valJitter">--</div>
+                </div>
+                <div class="metric">
+                    <div class="metric-label" id="lblLoss">Perda</div>
+                    <div class="metric-val" id="valLoss">--</div>
+                </div>
+            </div>
+
+            <div id="diagBox" class="diag-box">Aguardando amostras da conversa...</div>
+
+            <button type="button" id="btnRemediate" class="btn" disabled>Limpeza segura de cache (pós-chamada)</button>
+            <div id="cmdStatus" class="foot" hidden></div>
+        </div>
+
+        <div class="foot">
+            <span id="tenantLabel">Zero Audio Recording</span>
+            <a href="/dashboard" target="_blank" rel="noopener" id="lnkConsole">Abrir console completo →</a>
+        </div>
+    </div>
+
+    <script>
+        (function () {
+            const params = new URLSearchParams(location.search);
+            const rawConv = params.get('conversationId') || '';
+            const convId = (rawConv && !rawConv.includes('{{')) ? rawConv.trim() : '';
+            const rawEnv = params.get('environment') || '';
+            const pcEnv = (rawEnv && !rawEnv.includes('{{')) ? rawEnv.trim() : '';
+            const rawLang = (params.get('lang') || navigator.language || 'pt-BR').toLowerCase();
+            const isEn = rawLang.startsWith('en');
+
+            const I18N = isEn ? {
+                conv: 'Interaction:',
+                keyLabel: 'Tenant supervisor key',
+                keyPlaceholder: 'Enter supervisor key',
+                connect: 'Connect telemetry',
+                station: 'Workstation:',
+                operator: 'Agent:',
+                net: 'Network:',
+                rtt: 'Latency (RTT)',
+                loss: 'Packet Loss',
+                waiting: 'Waiting for WebRTC telemetry for this interaction...',
+                noMatch: 'Connected to relay. No active workstation matches this conversation ID yet.',
+                live: 'LIVE CALL',
+                audited: 'AUDITED CALL',
+                online: 'CONNECTED',
+                remediate: 'Safe post-call cache cleanup',
+                openConsole: 'Open full console →',
+                invalidKey: 'Invalid or unauthorized supervisor key.',
+                cmdQueued: 'Queued by In-Call Lock: will execute automatically after call ends.',
+                cmdDone: 'Safe cache cleanup executed on workstation.'
+            } : {
+                conv: 'Interação:',
+                keyLabel: 'Chave de supervisor do tenant',
+                keyPlaceholder: 'Insira a chave de supervisor',
+                connect: 'Conectar telemetria',
+                station: 'PA:',
+                operator: 'Operador:',
+                net: 'Rede:',
+                rtt: 'Latência (RTT)',
+                loss: 'Perda',
+                waiting: 'Aguardando telemetria WebRTC desta interação...',
+                noMatch: 'Conectado ao relay. Nenhuma PA ativa reportou este ID de conversa ainda.',
+                live: 'EM CHAMADA',
+                audited: 'AUDITADA',
+                online: 'CONECTADO',
+                remediate: 'Limpeza segura de cache (pós-chamada)',
+                openConsole: 'Abrir console completo →',
+                invalidKey: 'Chave de supervisor inválida ou não autorizada.',
+                cmdQueued: 'Enfileirado pelo In-Call Lock: executará após o término da chamada.',
+                cmdDone: 'Limpeza segura de cache concluída na PA.'
+            };
+
+            const $ = (id) => document.getElementById(id);
+            document.documentElement.lang = isEn ? 'en' : 'pt-BR';
+            $('lblConv').textContent = I18N.conv;
+            $('lblKey').textContent = I18N.keyLabel;
+            $('inputKey').placeholder = I18N.keyPlaceholder;
+            $('btnConnect').textContent = I18N.connect;
+            $('lblStation').textContent = I18N.station;
+            $('lblOperator').textContent = I18N.operator;
+            $('lblNet').textContent = I18N.net;
+            $('lblRtt').textContent = I18N.rtt;
+            $('lblLoss').textContent = I18N.loss;
+            $('diagBox').textContent = I18N.waiting;
+            $('btnRemediate').textContent = I18N.remediate;
+            $('lnkConsole').textContent = I18N.openConsole;
+
+            $('valConv').textContent = convId || (isEn ? 'All active' : ' Geral');
+            if (pcEnv) {
+                $('envWrap').hidden = false;
+                $('valEnv').textContent = pcEnv;
+            }
+
+            let ws = null;
+            let activeKey = sessionStorage.getItem('vv_tenant_key') || '';
+            let agents = new Map();
+            let calls = [];
+            let matchedAgentId = null;
+
+            function mosClass(mos) {
+                const n = Number(mos);
+                if (!Number.isFinite(n)) return '';
+                if (n >= 4.0) return 'ok';
+                if (n >= 3.6) return 'warn';
+                return 'crit';
+            }
+
+            function renderMatch() {
+                let liveAgent = null;
+                if (convId) {
+                    for (const a of agents.values()) {
+                        if (a.currentCallId === convId) { liveAgent = a; break; }
+                    }
+                }
+                if (!liveAgent && !convId) {
+                    for (const a of agents.values()) {
+                        if (a.callActive) { liveAgent = a; break; }
+                    }
+                    if (!liveAgent && agents.size === 1) liveAgent = Array.from(agents.values())[0];
+                }
+
+                if (liveAgent) {
+                    matchedAgentId = liveAgent.agentId;
+                    $('btnRemediate').disabled = false;
+                    $('connBadge').textContent = I18N.live;
+                    $('connBadge').className = 'badge ' + (liveAgent.status === 'ALERTA' ? 'crit' : 'ok');
+                    $('valStation').textContent = liveAgent.station || liveAgent.agentId;
+                    $('valOperator').textContent = liveAgent.operator || '--';
+                    $('valNet').textContent = liveAgent.networkType || '--';
+                    $('valMos').textContent = liveAgent.mosScore || '--';
+                    $('valMos').className = 'metric-val ' + mosClass(liveAgent.mosScore);
+                    $('valRtt').textContent = (liveAgent.rttMs ?? '--') + ' ms';
+                    $('valJitter').textContent = (liveAgent.jitterMs ?? '--') + ' ms';
+                    $('valLoss').textContent = (liveAgent.lossPct ?? '--') + '%';
+
+                    const issue = liveAgent.audioIssue && liveAgent.audioIssue !== 'NONE' ? liveAgent.audioIssue : null;
+                    if (issue) {
+                        $('diagBox').className = 'diag-box crit';
+                        $('diagBox').textContent = (isEn ? 'Audio incident: ' : 'Incidente de áudio: ') + issue;
+                    } else if (Number(liveAgent.mosScore) < 3.6) {
+                        $('diagBox').className = 'diag-box warn';
+                        $('diagBox').textContent = (isEn ? 'Degraded voice quality on ' : 'Qualidade degradada em ') + (liveAgent.networkType || 'WebRTC');
+                    } else {
+                        $('diagBox').className = 'diag-box ok';
+                        $('diagBox').textContent = isEn ? 'Voice path healthy (ITU-T G.107).' : 'Fluxo de voz saudável (ITU-T G.107).';
+                    }
+                    return;
+                }
+
+                const audited = convId ? calls.find(c => c.interactionId === convId) : calls[0];
+                if (audited) {
+                    matchedAgentId = audited.agentId || null;
+                    $('btnRemediate').disabled = !matchedAgentId;
+                    $('connBadge').textContent = I18N.audited;
+                    $('connBadge').className = 'badge ' + (audited.classificacao === 'CRÍTICA' ? 'crit' : (audited.classificacao === 'DEGRADADA' ? 'warn' : 'ok'));
+                    $('valStation').textContent = audited.station || audited.agentId || '--';
+                    $('valOperator').textContent = audited.operator || '--';
+                    $('valNet').textContent = audited.networkType || '--';
+                    $('valMos').textContent = Number(audited.mosMedio).toFixed(2);
+                    $('valMos').className = 'metric-val ' + mosClass(audited.mosMedio);
+                    $('valRtt').textContent = (audited.rttMedioMs ?? '--') + ' ms';
+                    $('valJitter').textContent = (audited.jitterPicoMs ?? '--') + ' ms';
+                    $('valLoss').textContent = (audited.perdaPacotesPct ?? '--') + '%';
+                    $('diagBox').className = 'diag-box ' + (audited.classificacao === 'CRÍTICA' ? 'crit' : 'ok');
+                    $('diagBox').textContent = `${audited.classificacao} • ${audited.causaRaiz || 'OK'}`;
+                    return;
+                }
+
+                matchedAgentId = null;
+                $('btnRemediate').disabled = true;
+                $('connBadge').textContent = I18N.online;
+                $('connBadge').className = 'badge ok';
+                $('diagBox').className = 'diag-box';
+                $('diagBox').textContent = I18N.noMatch;
+            }
+
+            function connect(key) {
+                if (!key) return;
+                $('authError').hidden = true;
+                if (ws) { try { ws.close(); } catch (_) {} }
+                const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+                const sock = new WebSocket(`${proto}//${location.host}`);
+                ws = sock;
+
+                sock.onopen = () => {
+                    sock.send(JSON.stringify({ type: 'AUTH', key }));
+                };
+
+                sock.onmessage = (ev) => {
+                    try {
+                        const msg = JSON.parse(ev.data);
+                        if (msg.type === 'AUTH_ERROR') {
+                            $('authError').textContent = I18N.invalidKey;
+                            $('authError').hidden = false;
+                            $('authSection').hidden = false;
+                            $('telemetrySection').hidden = true;
+                            return;
+                        }
+                        if (msg.type === 'INIT_STATE') {
+                            sessionStorage.setItem('vv_tenant_key', key);
+                            $('authSection').hidden = true;
+                            $('telemetrySection').hidden = false;
+                            $('tenantLabel').textContent = msg.tenant || 'VoiceVanguard';
+                            agents.clear();
+                            (msg.agents || []).forEach(a => agents.set(`${a.tower || ''}|${a.agentId}`, a));
+                            calls = Array.isArray(msg.callHistory) ? msg.callHistory : [];
+                            renderMatch();
+                        } else if (msg.type === 'TELEMETRY_UPDATE' && msg.payload) {
+                            const a = msg.payload;
+                            agents.set(`${a.tower || ''}|${a.agentId}`, a);
+                            renderMatch();
+                        } else if (msg.type === 'NEW_CALL_AUDIT' && msg.payload) {
+                            calls.unshift(msg.payload);
+                            renderMatch();
+                        } else if (msg.type === 'AGENT_COMMAND_FEEDBACK' && msg.agentId === matchedAgentId) {
+                            const box = $('cmdStatus');
+                            box.hidden = false;
+                            box.textContent = (msg.result && msg.result.inCall) ? I18N.cmdQueued : I18N.cmdDone;
+                        }
+                    } catch (_) {}
+                };
+
+                sock.onclose = (ev) => {
+                    if (ev.code === 4001) {
+                        sessionStorage.removeItem('vv_tenant_key');
+                        $('authError').textContent = I18N.invalidKey;
+                        $('authError').hidden = false;
+                        $('authSection').hidden = false;
+                        $('telemetrySection').hidden = true;
+                    }
+                };
+            }
+
+            $('btnConnect').addEventListener('click', () => {
+                const k = $('inputKey').value.trim();
+                if (k) connect(k);
+            });
+            $('inputKey').addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    const k = $('inputKey').value.trim();
+                    if (k) connect(k);
+                }
+            });
+            $('btnRemediate').addEventListener('click', () => {
+                if (ws && ws.readyState === WebSocket.OPEN && matchedAgentId) {
+                    ws.send(JSON.stringify({
+                        type: 'SUPERVISOR_COMMAND',
+                        targetAgentId: matchedAgentId,
+                        command: 'SAFE_CACHE_CLEAR'
+                    }));
+                }
+            });
+
+            if (activeKey) {
+                $('inputKey').value = activeKey;
+                connect(activeKey);
+            }
+        })();
+    </script>
+</body>
+</html>

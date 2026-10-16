@@ -7,9 +7,9 @@ const path = require('node:path');
 const src = fs.readFileSync(path.join(__dirname, '../../03_Chrome_Edge_Extension/injected_webrtc_hook.js'), 'utf8');
 const m = src.match(/\/\/ <audio-flow>[\s\S]*?\n([\s\S]*?)\/\/ <\/audio-flow>/);
 assert.ok(m, 'marcadores <audio-flow> não encontrados no hook');
-const detectAudioIssue = new Function(`${m[1]}\nreturn detectAudioIssue;`)();
+const { detectAudioIssue, computeIntervalLoss } = new Function(`${m[1]}\nreturn { detectAudioIssue, computeIntervalLoss };`)();
 
-const newState = () => ({ prevIn: null, prevOut: null, zeroIn: 0, zeroOut: 0 });
+const newState = () => ({ prevIn: null, prevOut: null, zeroIn: 0, zeroOut: 0, prevLost: null, prevRecv: null });
 const pcWith = (track) => ({ getSenders: () => (track ? [{ track }] : []) });
 const mic = (over = {}) => ({ kind: 'audio', readyState: 'live', muted: false, enabled: true, ...over });
 
@@ -63,4 +63,13 @@ test('sem trilha de áudio local (replaceTrack(null)/espera) não gera incidente
 test('getSenders lançando erro não derruba a detecção', () => {
     const pc = { getSenders: () => { throw new Error('x'); } };
     assert.strictEqual(feed(pc, newState(), [[1, 1], [2, 2]]), 'NONE');
+});
+
+test('computeIntervalLoss detecta pico súbito de 50% de perda mesmo após 50.000 pacotes sem perda', () => {
+    const st = newState();
+    assert.strictEqual(computeIntervalLoss(st, 0, 50000), 0);
+    // Na janela seguinte: 50 pacotes perdidos e 50 recebidos (50% de perda no intervalo de 2 s)
+    assert.strictEqual(computeIntervalLoss(st, 50, 50050), 50);
+    // Janela seguinte volta ao normal: 0 perdidos e 100 recebidos
+    assert.strictEqual(computeIntervalLoss(st, 50, 50150), 0);
 });

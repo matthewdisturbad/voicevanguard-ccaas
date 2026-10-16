@@ -18,12 +18,12 @@
     if (!OriginalRTCPeerConnection) return;
 
     // Detecta automaticamente em qual plataforma o operador está trabalhando
-    function detectPlatform() {
-        const host = window.location.hostname.toLowerCase();
-        const href = window.location.href.toLowerCase();
+    function detectPlatform(hostname) {
+        const host = String(hostname || window.location.hostname || '').toLowerCase();
 
         if (host.includes('pure.cloud') || host.includes('mypurecloud')) return { name: 'Genesys Cloud', code: 'GENESYS' };
         if (host.includes('awsapps.com') || host.includes('amazonconnect') || host.includes('connect.')) return { name: 'Amazon Connect', code: 'AWS_CONNECT' };
+        if (host.includes('niceincontact.com') || host.includes('nice-incontact.com') || host.includes('cxone')) return { name: 'NICE CXone', code: 'NICE_CXONE' };
         if (host.includes('ciscocc') || host.includes('webex.com')) return { name: 'Cisco Webex CC', code: 'CISCO_WEBEX' };
         if (host.includes('twilio') || host.includes('flex.')) return { name: 'Twilio Flex', code: 'TWILIO' };
         if (host.includes('five9')) return { name: 'Five9', code: 'FIVE9' };
@@ -70,6 +70,19 @@
         if (track && track.enabled && st.zeroOut >= AUDIO_STALL_SAMPLES) return 'SEM_AUDIO_ENVIADO';
         return 'NONE';
     }
+
+    // Perda de pacotes por intervalo (delta entre amostras de 2 s), evitando que o acumulado
+    // de chamadas longas dilua picos súbitos de perda de pacotes.
+    function computeIntervalLoss(st, totalLost, totalReceived) {
+        const lost = Math.max(0, Number(totalLost) || 0);
+        const recv = Math.max(0, Number(totalReceived) || 0);
+        const dLost = (st.prevLost !== undefined && st.prevLost !== null && lost >= st.prevLost) ? (lost - st.prevLost) : lost;
+        const dRecv = (st.prevRecv !== undefined && st.prevRecv !== null && recv >= st.prevRecv) ? (recv - st.prevRecv) : recv;
+        st.prevLost = lost;
+        st.prevRecv = recv;
+        const dTotal = dLost + dRecv;
+        return dTotal > 0 ? Math.round((dLost / dTotal) * 1000) / 10 : 0;
+    }
     // </audio-flow>
     let lastDetectedConversationId = null;
 
@@ -113,13 +126,13 @@
             const url = typeof args[0] === 'string' ? args[0] : (args[0] && args[0].url ? args[0].url : '');
             if (url) {
                 // Genesys Cloud: /conversations/(calls/)?[UUID]
-                let match = url.match(/\/conversations\/(calls\/)?([a-f0-9-]{36})/i);
-                if (match) lastDetectedConversationId = match[2];
+                let match = url.match(/\/conversations\/(?:calls\/)?([a-f0-9-]{36})/i);
+                if (match) lastDetectedConversationId = match[1];
 
-                // Amazon Connect: /contact/[UUID] ou contactId=[UUID]
+                // Amazon Connect / NICE CXone: /contact(s)/[ID] ou contactId=[ID]
                 if (!match) {
-                    match = url.match(/\/contact(s)?\/([a-f0-9-]{36})/i) || url.match(/contactId=([a-f0-9-]{36})/i);
-                    if (match) lastDetectedConversationId = match[1] || match[2];
+                    match = url.match(/\/contacts?\/([a-f0-9-]{36}|\d{8,20})/i) || url.match(/[?&]contactId=([a-f0-9-]{36}|\d{8,20})/i);
+                    if (match) lastDetectedConversationId = match[1];
                 }
 
                 // Twilio Flex / Voice: CallSid CA[a-f0-9]{32}
@@ -188,6 +201,8 @@
     }
 
     // 4. Hook Universal em RTCPeerConnection (O Core do WebRTC de todas as plataformas)
+    const activeVoiceSessions = new Set();
+
     window.RTCPeerConnection = function(...args) {
         const pc = new OriginalRTCPeerConnection(...args);
         setupMonitoring(pc);
@@ -198,7 +213,7 @@
     function setupMonitoring(pc) {
         let statsInterval = null;
         let activeCall = null;
-        const audioState = { prevIn: null, prevOut: null, zeroIn: 0, zeroOut: 0 };
+        const audioState = { prevIn: null, prevOut: null, zeroIn: 0, zeroOut: 0, prevLost: null, prevRecv: null };
 
         function startCallSession() {
             if (activeCall) return;
@@ -227,6 +242,7 @@
 
         function endCallSession() {
             if (!activeCall) return;
+            activeVoiceSessions.delete(activeCall);
 
             const now = new Date();
             const durationSec = Math.round((now.getTime() - activeCall.startTimestamp) / 1000);
@@ -278,6 +294,7 @@
                     causaRaiz: rootCause,
                     incidentesAudio: audioIncidents,
                     trocasDispositivo: deviceChangeCount - activeCall.deviceChangesAtStart,
+                    stillInCall: activeVoiceSessions.size > 0,
                     timestamp: now.toISOString()
                 };
 
@@ -345,8 +362,7 @@
                         if (report.jitter !== undefined) jitter = Math.round(report.jitter * 10000) / 10;
                         const lost = report.packetsLost || 0;
                         const received = report.packetsReceived || 0;
-                        const total = lost + received;
-                        if (total > 0) lossPct = Math.round((lost / total) * 1000) / 10;
+                        lossPct = computeIntervalLoss(audioState, lost, received);
 
                         if (activeCall) {
                             activeCall.packetsLostTotal = lost;
@@ -378,6 +394,7 @@
                 const mos = calculateMos(rtt, jitter, lossPct);
 
                 if (activeCall) {
+                    activeVoiceSessions.add(activeCall);
                     activeCall.sampleCount++;
                     activeCall.jitterSum += jitter;
                     if (jitter > activeCall.maxJitter) activeCall.maxJitter = jitter;
@@ -422,7 +439,7 @@
     // 5. Latência e erros das APIs do agent desktop (Resource Timing)
     // Agregado por janela e por HOSTNAME. URL, caminho, query string e IDs nunca são lidos nem enviados.
     const API_WINDOW_MS = 30000;
-    const API_HOST_PATTERN = /(^|\.)(pure\.cloud|mypurecloud\.[a-z.]+|connect\.aws|awsapps\.com)$/i;
+    const API_HOST_PATTERN = /(^|\.)(pure\.cloud|mypurecloud\.[a-z.]+|connect\.aws|awsapps\.com|niceincontact\.com|nice-incontact\.com)$/i;
     const MAX_SAMPLES_PER_HOST = 500;
     let apiWindow = new Map(); // host -> { durations: number[], errors: number }
 

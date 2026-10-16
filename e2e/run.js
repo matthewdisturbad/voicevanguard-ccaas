@@ -144,6 +144,16 @@ window.endCall = () => { (window.__pcs||[]).forEach(p => p.close()); };
     check('latência não expõe caminho nem query', !/\/api\/v2|\?i=/.test(healthText), JSON.stringify(healthText.slice(0, 160)));
     await sup.screenshot({ path: path.join(OUT, 'console-saude.png') });
     check('popup não exibe a chave (apenas "Configurada")', (await popup.locator('#lblTenant').innerText()) === 'Configurada');
+    const popupHist = await popup.locator('#historyList').innerText();
+    check('popup exibe o ID real da chamada no histórico', /3f2b8c1e/.test(popupHist), JSON.stringify(popupHist));
+
+    // Genesys Interaction Widget (/widget) correlacionando conversationId
+    const widget = await ctx.newPage();
+    await widget.goto(`http://localhost:${PORT}/widget?conversationId=3f2b8c1e-5d4a-4b7e-9c10-2a6d8e9f0b11&lang=pt-BR`);
+    await widget.fill('#inputKey', 'e2e-super-key-0001');
+    await widget.click('#btnConnect');
+    await widget.waitForFunction(() => /AUDITADA|EM CHAMADA/.test(document.getElementById('connBadge').textContent), null, { timeout: 8000 })
+      .then(() => check('Interaction Widget (/widget) correlaciona a conversa em tempo real', true), () => check('Interaction Widget (/widget) correlaciona a conversa em tempo real', false));
   } catch (e) {
     console.log('ERRO E2E:', e.message); check('execução sem exceção', false, e.message);
   } finally {

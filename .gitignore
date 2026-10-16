@@ -5,6 +5,8 @@ node_modules/
 .DS_Store
 Thumbs.db
 
-# Dados de runtime e artefatos binários (distribuir extensão via GitHub Releases)
+# Dados de runtime, segredos locais e artefatos binários (distribuir extensão via GitHub Releases)
 01_Cloud_Relay_Backend/data_store/
+TENANTS_JSON*
 *.zip
+

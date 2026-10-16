@@ -1,8 +1,9 @@
 const WebSocket = require('ws');
 const AGENT_KEY = process.env.AGENT_KEY || 'dev-agent-BPO-APEX-GLOBAL'; // chave de agente do tenant fictício de desenvolvimento
-const ws = new WebSocket(`ws://localhost:9090?key=${AGENT_KEY}&agentId=PA-SP-TEST01`);
+const ws = new WebSocket('ws://localhost:9090');
 
 ws.on('open', () => {
+    ws.send(JSON.stringify({ type: 'AUTH', key: AGENT_KEY, agentId: 'PA-SP-TEST01' }));
     console.log('[SIMULADOR] Conectado ao Relay com sucesso!');
     ws.send(JSON.stringify({
         type: 'AGENT_TELEMETRY',
@@ -21,13 +22,15 @@ ws.on('open', () => {
     }));
 
     setTimeout(() => {
+        const end = new Date();
+        const start = new Date(end.getTime() - 125000);
         ws.send(JSON.stringify({
             type: 'CALL_AUDIT_SUMMARY',
             interactionId: 'conv-9842a-11bc-99fe',
             operator: 'Carlos Silva',
             station: 'PA-SP-TEST01',
-            startTime: '08:50:10',
-            endTime: '08:52:15',
+            startTime: start.toISOString(),
+            endTime: end.toISOString(),
             durationSeconds: 125,
             mosMedio: 4.41,
             mosMinimo: 4.38,

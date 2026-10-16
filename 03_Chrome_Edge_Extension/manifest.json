@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "VoiceVanguard CCaaS",
   "version": "1.0.0",
-  "description": "Observabilidade de qualidade de voz (MOS aproximado) para Genesys Cloud CX e Amazon Connect. Não captura áudio.",
+  "description": "Observabilidade de qualidade de voz (MOS aproximado) para Genesys Cloud CX, Amazon Connect e NICE CXone. Não captura áudio.",
   "author": "TrustCo Technologies",
   "icons": {
     "16": "icon16.png",
@@ -30,7 +30,9 @@
     "https://*.mypurecloud.de/*",
     "https://*.mypurecloud.jp/*",
     "https://*.my.connect.aws/*",
-    "https://*.awsapps.com/connect/*"
+    "https://*.awsapps.com/connect/*",
+    "https://*.niceincontact.com/*",
+    "https://*.nice-incontact.com/*"
   ],
   "content_scripts": [
     {
@@ -42,7 +44,9 @@
         "https://*.mypurecloud.de/*",
         "https://*.mypurecloud.jp/*",
         "https://*.my.connect.aws/*",
-        "https://*.awsapps.com/connect/*"
+        "https://*.awsapps.com/connect/*",
+        "https://*.niceincontact.com/*",
+        "https://*.nice-incontact.com/*"
       ],
       "js": [
         "content.js"
@@ -64,7 +68,9 @@
         "https://*.mypurecloud.de/*",
         "https://*.mypurecloud.jp/*",
         "https://*.my.connect.aws/*",
-        "https://*.awsapps.com/*"
+        "https://*.awsapps.com/*",
+        "https://*.niceincontact.com/*",
+        "https://*.nice-incontact.com/*"
       ]
     }
   ],

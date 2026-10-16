@@ -1,8 +1,9 @@
 const WebSocket = require('ws');
 const AGENT_KEY = process.env.AGENT_KEY || 'dev-agent-BPO-APEX-GLOBAL'; // chave de agente do tenant fictício de desenvolvimento
-const ws = new WebSocket(`ws://localhost:9090?key=${AGENT_KEY}&agentId=PA-MULTI-CLOUD-01`);
+const ws = new WebSocket('ws://localhost:9090');
 
 ws.on('open', () => {
+    ws.send(JSON.stringify({ type: 'AUTH', key: AGENT_KEY, agentId: 'PA-MULTI-CLOUD-01' }));
     console.log('[SIMULADOR UNIVERSAL] Conectado ao Cloud Relay!');
 
     // 1. Simula Agente no Amazon Connect
@@ -24,17 +25,18 @@ ws.on('open', () => {
         currentCallId: 'aws-contact-7762-uuid'
     }));
 
-    // 2. Simula Agente no Twilio Flex
-    const ws2 = new WebSocket(`ws://localhost:9090?key=${AGENT_KEY}&agentId=PA-TWILIO-02`);
+    // 2. Simula Agente no NICE CXone
+    const ws2 = new WebSocket('ws://localhost:9090');
     ws2.on('open', () => {
+        ws2.send(JSON.stringify({ type: 'AUTH', key: AGENT_KEY, agentId: 'PA-NICE-02' }));
         ws2.send(JSON.stringify({
             type: 'AGENT_TELEMETRY',
-            platform: 'Twilio Flex',
-            platformCode: 'TWILIO',
+            platform: 'NICE CXone',
+            platformCode: 'NICE_CXONE',
             operator: 'Rodrigo Santos',
-            station: 'PA-TWILIO-02',
-            genesysOrg: 'Twilio Flex Voice',
-            region: 'flex.twilio.com',
+            station: 'PA-NICE-02',
+            genesysOrg: 'NICE CXone MAX',
+            region: 'na1.nice-incontact.com',
             status: 'ALERTA',
             mosScore: '3.70',
             rttMs: 85,
@@ -42,9 +44,11 @@ ws.on('open', () => {
             lossPct: 2.2,
             protocol: 'UDP',
             callActive: true,
-            currentCallId: 'CA9942a188fbc'
+            currentCallId: '49102938471'
         }));
 
+        const end = new Date();
+        const start = new Date(end.getTime() - 145000);
         // Simula Chamada Finalizada no Cisco Webex
         ws.send(JSON.stringify({
             type: 'CALL_AUDIT_SUMMARY',
@@ -53,8 +57,8 @@ ws.on('open', () => {
             interactionId: 'cisco-call-99128',
             operator: 'Mariana Lima',
             station: 'PA-MULTI-CLOUD-01',
-            startTime: '09:00:15',
-            endTime: '09:02:40',
+            startTime: start.toISOString(),
+            endTime: end.toISOString(),
             durationSeconds: 145,
             mosMedio: 4.38,
             mosMinimo: 4.25,

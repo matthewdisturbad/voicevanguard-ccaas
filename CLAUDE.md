@@ -13,7 +13,7 @@ Este documento fornece contexto arquitetural, convenções de código e diretriz
   * Console do Supervisor: `https://voicevanguard.trustco.pro/app` (protegida por chave de tenant)
   * Portal Corporativo: `https://www.trustco.pro`
 * **Hospedagem em Produção:** Railway (Projeto `voicevanguard-cloud`, serviço `01_Cloud_Relay_Backend`)
-* **Propósito:** Observabilidade de chamadas WebRTC em tempo real, cálculo objetivo de MOS (ITU-T G.107), isolamento de problemas de Wi-Fi residencial em home office e remediação segura pós-chamada para **Amazon Connect** e **Genesys Cloud CX**.
+* **Propósito:** Observabilidade de chamadas WebRTC em tempo real, cálculo objetivo de MOS (aproximação ITU-T G.107), isolamento de problemas de Wi-Fi residencial em home office e remediação segura pós-chamada para **Genesys Cloud CX**, **Amazon Connect** e **NICE CXone**.
 
 ---
 
@@ -24,23 +24,30 @@ Este documento fornece contexto arquitetural, convenções de código e diretriz
 │   ├── server.js              # Servidor HTTP (módulo http nativo) + WebSocket (ws)
 │   │                          # Rotas HTTP:
 │   │                          #   GET / -> Serve public/index.html (Landing comercial)
-│   │                          #   GET /app, /login -> Serve public/app.html (Console restrito)
-│   │                          #   GET /api/health -> Status e conexões ativas
+│   │                          #   GET /app, /login, /dashboard -> Serve public/app.html (Console restrito)
+│   │                          #   GET /widget -> Serve public/widget.html (Genesys Interaction Widget em tempo real)
+│   │                          #   GET /privacy -> Serve public/privacy.html (Política de privacidade)
+│   │                          #   GET /api/health -> Status público (sem expor métricas internas por tenant)
 │   │                          #   GET /api/validate-tenant -> Valida chave de SUPERVISOR (header X-Tenant-Key)
 │   │                          # WebSocket:
-│   │                          #   Autentica a chave na conexão (?key=...; 4001 se inválida).
-│   │                          #   O papel (agente/supervisor) é derivado da chave, nunca do cliente
-│   │                          #   Pub/Sub de telemetria por sala de tenant
-│   │                          #   Rate limit, maxPayload, heartbeat, persistência atômica
+│   │                          #   Autenticação por primeira mensagem ({ type: 'AUTH', key, agentId }) com timeout de 5s
+│   │                          #   (mantendo fallback ?key=... para compatibilidade, desativável via DISABLE_URL_KEY=1).
+│   │                          #   O papel (agente/supervisor) e a torre são derivados da chave (SHA-256), nunca do cliente.
+│   │                          #   Pub/Sub de telemetria por sala de tenant e torre.
+│   │                          #   CSP com hashes SHA-256 em script-src (sem unsafe-inline), rate limit, maxPayload, heartbeat.
 │   │
 │   └── public/
 │       ├── index.html         # Landing page institucional com toggle PT-BR / EN
-│       └── app.html           # Console operacional do supervisor (gráficos Chart.js, telemetria)
+│       ├── app.html           # Console operacional do supervisor
+│       ├── widget.html        # Interaction Widget em tempo real correlacionado por conversationId
+│       ├── privacy.html       # Política de privacidade pública (inventário completo de dados)
+│       └── assets/            # Ícones oficiais SVG, 128x128 PNG e 512x512 PNG
 │
 ├── 03_Chrome_Edge_Extension/  # Extensão Manifest V3 para os navegadores dos operadores
-│   ├── manifest.json          # Permissões restritas a Genesys Cloud e Amazon Connect (sem <all_urls>)
-│   ├── background.js          # Service worker que conecta ao Cloud Relay via WSS
-│   ├── injected_webrtc_hook.js# Intercepta RTCPeerConnection, extrai ContactId/ConversationId e calcula MOS (aproximação G.107)
+│   ├── manifest.json          # Permissões restritas a Genesys Cloud, Amazon Connect e NICE CXone (sem <all_urls>)
+│   ├── managed_schema.json    # Schema para implantação corporativa via GPO / Microsoft Intune
+│   ├── background.js          # Service worker que conecta ao Cloud Relay via WSS (First-Message AUTH)
+│   ├── injected_webrtc_hook.js# Intercepta RTCPeerConnection, extrai ContactId/ConversationId e calcula MOS (aproximação G.107) com perda de pacotes por intervalo
 │   ├── precheck.js            # Lógica pura do pré-check de turno (testada com node:test)
 │   └── popup.html / popup.js  # Diagnóstico local e botão de limpeza com In-Call Lock
 │
@@ -53,7 +60,7 @@ Este documento fornece contexto arquitetural, convenções de código e diretriz
 ## 🔒 Princípios Inegociáveis de Segurança & LGPD
 
 1. **Zero Gravação de Áudio:** O VoiceVanguard NUNCA captura, armazena ou transmite áudio ou texto de conversas. Ele apenas lê estatísticas de pacotes RTP (`getStats()`).
-2. **Nenhuma Demo Pública Aberta:** A raiz `/` do domínio `voicevanguard.trustco.pro` DEVE ser sempre a landing page comercial. O console de monitoramento `/app` NUNCA deve conter "demo pills" clicáveis ou senhas pré-preenchidas. O acesso aos DADOS exige chave de supervisor válida (validada no WebSocket); chaves nunca vão em URL, README ou código.
+2. **Nenhuma Demo Pública Aberta:** A raiz `/` do domínio `voicevanguard.trustco.pro` DEVE ser sempre a landing page comercial. O console de monitoramento `/app` NUNCA deve conter "demo pills" clicáveis ou senhas pré-preenchidas. O acesso aos DADOS exige chave de supervisor válida (validada no WebSocket via primeira mensagem `AUTH`); chaves nunca vão em URL, README ou código.
 3. **In-Call Lock:** Comandos de remediação remota (limpeza de cache de telefonia) NUNCA podem ser executados durante uma chamada ativa (`isCallActive === true`). O comando deve ser enfileirado para a fase de encerramento (*wrap-up*).
 4. **Isolamento de Tenants:** Supervisores de um tenant nunca podem ter acesso a eventos de outro tenant.
 5. **Segredos:** tenants/chaves vêm de `TENANTS_JSON` (env). Chaves de agente e de supervisor são distintas. Todo dado vindo de agente é não confiável: escape na UI (`esc()`), sanitização no servidor.
@@ -63,7 +70,7 @@ Este documento fornece contexto arquitetural, convenções de código e diretriz
 
 ## 📚 Documentação complementar
 
-* `docs/AVALIACAO.md` — avaliação e pendências do dono · `docs/PRECHECK.md` — funções de saúde da estação (limiares, privacidade) · `docs/ROADMAP.md` — **planejamento apenas**, nada implementado; não citar em material comercial.
+* `docs/AUDITORIA_APROVADOR.md` — registro consolidado das auditorias de segurança e certificação · `docs/AVALIACAO.md` — avaliação e pendências do dono · `docs/PRECHECK.md` — funções de saúde da estação (limiares, privacidade) · `CHROMEWEBSTORE.md` — guia de submissão Chrome Web Store / Edge Add-ons · `docs/ROADMAP.md` — **planejamento apenas**, nada implementado; não citar em material comercial.
 
 ## 🛠️ Comandos e Execução Local
 
@@ -74,7 +81,7 @@ cd 01_Cloud_Relay_Backend
 # Instalar dependências
 npm install
 
-# Rodar os testes automatizados
+# Rodar os testes automatizados (52 testes unitários)
 npm test
 
 # Rodar backend localmente (Porta 9090; sem TENANTS_JSON usa tenants fictícios de dev)
@@ -98,10 +105,11 @@ node test_multicloud_simulator.js
 ## 📑 Integração com Clouds
 
 * **Amazon Connect:**
-  * Integração via *Amazon Connect Streams API* e interceptação de WebRTC no CCP.
+  * Integração via interceptação nativa de `RTCPeerConnection.getStats()` e `fetch` no CCP (`*.my.connect.aws` e `*.awsapps.com/connect/*`), sem dependência da biblioteca *Amazon Connect Streams API*.
   * Correlação por `ContactId`.
   * IDs de marketplace/APN informados pelo dono: `prod-2xqzdscmymoma` e `soln-5mzgflbmd2cym` (**não verificados** neste repositório; confirmar antes de citar publicamente).
 * **Genesys Cloud CX:**
-  * Integração via Client App Manifest (`genesys_client_app_manifest.json`).
+  * Integração via Client App e Interaction Widget (`genesys_client_app_manifest.json` com interpolação oficial `{{pcLangTag}}`, `{{pcEnvironment}}`, `{{pcConversationId}}` e ícones PNG 128x128 e 512x512).
   * Correlação por `ConversationId`.
-  * Status da candidatura ao *Genesys Ascend Partner Program*: confirmar (a documentação do repositório diverge).
+* **NICE CXone:**
+  * Suporte nativo na extensão (`*.niceincontact.com`, `*.nice-incontact.com`) com detecção automática de plataforma (`NICE_CXONE`), correlação de `contactId` e agregação de latência de API por hostname.
