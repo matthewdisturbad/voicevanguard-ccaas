@@ -245,6 +245,14 @@
             }
         }
 
+        // pc.close() chamado pela aplicação NÃO dispara connectionstatechange (spec W3C):
+        // sem este wrapper o resumo da chamada nunca seria enviado ao encerrar normalmente.
+        const originalClose = pc.close.bind(pc);
+        pc.close = function() {
+            endCallSession();
+            return originalClose();
+        };
+
         pc.addEventListener('connectionstatechange', () => {
             const state = pc.connectionState;
             if (state === 'connected') {
