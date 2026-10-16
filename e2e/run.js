@@ -5,7 +5,8 @@ const REPO = path.resolve(__dirname, '..');
 const EXT = path.join(REPO, '03_Chrome_Edge_Extension');
 const OUT = process.env.E2E_OUT || path.join(os.tmpdir(), 'vv-e2e-shots'); fs.mkdirSync(OUT, { recursive: true });
 const PORT = 9292;
-const TENANTS = { 'E2E-TENANT': { name: 'E2E Tenant', plan: 'Test', maxAgents: 5, agentKey: 'e2e-agent-key-0001', supervisorKey: 'e2e-super-key-0001', widgetKey: 'e2e-widget-key-0001' } };
+const TENANTS = { 'E2E-TENANT': { name: 'E2E Tenant', plan: 'Test', maxAgents: 5, agentKey: 'e2e-agent-key-0001', supervisorKey: 'e2e-super-key-0001', widgetKey: 'e2e-widget-key-0001',
+  genesys: { orgId: '11111111-1111-1111-1111-111111111111', region: 'mypurecloud.com', clientId: 'e2e-client-id', supervisorRoles: ['VoiceVanguard Supervisor'] } } };
 const results = [];
 const check = (name, ok, extra='') => { results.push({ name, ok }); console.log(`${ok ? 'PASS' : 'FAIL'}  ${name} ${extra}`); };
 const sleep = ms => new Promise(r => setTimeout(r, ms));
@@ -147,6 +148,39 @@ window.endCall = () => { (window.__pcs||[]).forEach(p => p.close()); };
     const popupHist = await popup.locator('#historyList').innerText();
     check('popup exibe o ID real da chamada no histórico', /3f2b8c1e/.test(popupHist), JSON.stringify(popupHist));
 
+
+    // Inglês: console, popup e widget (troca ao vivo sem perder a conexão)
+    const isPt = (t) => /[ãõçé]|Chave|Entrar|Ao vivo/.test(t);
+    await sup.evaluate(() => document.querySelector('.lang-btn[data-lang="en"]').click());
+    await sleep(400);
+    const enConn = await sup.locator('#connStatus').innerText();
+    check('console em inglês mantém a conexão ao vivo', /live/i.test(enConn), JSON.stringify(enConn));
+    const enTabs = await sup.locator('.tab-btn').allInnerTexts();
+    check('abas do console em inglês', !enTabs.some(isPt), JSON.stringify(enTabs));
+    await sup.evaluate(() => document.querySelector('.lang-btn[data-lang="pt"]').click());
+    await popup.evaluate(() => document.getElementById('btnLangEn').click());
+    await sleep(300);
+    const enPopup = await popup.locator('body').innerText();
+    check('popup da extensão em inglês', /Language|Shift pre-check|Pre-check/i.test(enPopup) && !/Verificar|Idioma/.test(enPopup), JSON.stringify(enPopup.slice(0, 120)));
+    await popup.evaluate(() => document.getElementById('btnLangPt').click());
+    const wEn = await ctx.newPage();
+    await wEn.goto(`http://localhost:${PORT}/widget?conversationId=3f2b8c1e-5d4a-4b7e-9c10-2a6d8e9f0b11&lang=en#wk=e2e-widget-key-0001`);
+    await sleep(600);
+    check('widget em inglês via ?lang=en', /Conversation|Interaction/i.test(await wEn.locator('body').innerText()));
+
+    // Login Genesys (cliente): redireciona ao Genesys, volta com token, o servidor recusa (API real inacessível) e o console mostra erro sem vazar o token
+    const g = await ctx.newPage();
+    let authorizeUrl = null;
+    await g.route('https://login.mypurecloud.com/**', (route) => {
+      authorizeUrl = new URL(route.request().url());
+      const back = `${authorizeUrl.searchParams.get('redirect_uri')}#access_token=tok-e2e-0000000000000001&token_type=bearer&state=${authorizeUrl.searchParams.get('state')}`;
+      route.fulfill({ status: 302, headers: { Location: back } });
+    });
+    await g.goto(`http://localhost:${PORT}/dashboard?tenant=E2E-TENANT&lang=en`);
+    await g.waitForFunction(() => document.getElementById('authErrorBox') && getComputedStyle(document.getElementById('authErrorBox')).display !== 'none', null, { timeout: 15000 })
+      .then(() => check('login Genesys: redireciona, volta com token e a recusa do servidor é exibida', true), () => check('login Genesys: redireciona, volta com token e a recusa do servidor é exibida', false));
+    check('login Genesys usa o clientId e o redirect do tenant', !!authorizeUrl && authorizeUrl.searchParams.get('client_id') === 'e2e-client-id' && authorizeUrl.searchParams.get('response_type') === 'token');
+    check('login Genesys não deixa o token no endereço', await g.evaluate(() => !location.hash && !/access_token/.test(location.href)));
     // Genesys Interaction Widget (/widget) correlacionando conversationId
     const widget = await ctx.newPage();
     await widget.goto(`http://localhost:${PORT}/widget?conversationId=3f2b8c1e-5d4a-4b7e-9c10-2a6d8e9f0b11&lang=pt-BR#wk=e2e-widget-key-0001`);
