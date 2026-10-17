@@ -998,9 +998,14 @@ function createRelay(options = {}) {
 
     async function shutdown() {
         clearInterval(heartbeat);
-        for (const ws of wss.clients) ws.close(1001, 'Server shutting down');
+        for (const ws of wss.clients) {
+            try { ws.close(1001, 'Server shutting down'); ws.terminate(); } catch (_) {}
+        }
         await flushAllSaves(tenantRooms);
-        await new Promise(resolve => server.close(resolve));
+        await new Promise(resolve => {
+            server.close(resolve);
+            if (typeof server.closeAllConnections === 'function') server.closeAllConnections();
+        });
     }
 
     return { server, wss, tenantRooms, shutdown };
