@@ -1655,9 +1655,9 @@
             const durMin = Math.floor((c.durationSeconds || 0) / 60);
             const durSec = (c.durationSeconds || 0) % 60;
             const audioLine = (c.incidentesAudio && c.incidentesAudio.length)
-                ? `<div class="txt-crit" style="font-size: var(--fs-xs); margin-top: 2px;">${esc(t('calls_audio', { list: c.incidentesAudio.map(code => audioLabel(code) || code).join(', ') }))}</div>` : '';
+                ? `<div class="txt-crit cell-block" style="font-size: var(--fs-xs); margin-top: 2px;">${esc(t('calls_audio', { list: c.incidentesAudio.map(code => audioLabel(code) || code).join(', ') }))}</div>` : '';
             const rcLine = (c.causaRaiz && c.causaRaiz !== 'N/D' && c.causaRaiz !== 'REDE_HOMOLOGADA')
-                ? `<div class="muted" style="font-size: var(--fs-xs); margin-top: 2px;">${esc(t('calls_cause', { c: rootCauseLabel(c.causaRaiz) }))}</div>` : '';
+                ? `<div class="muted cell-block" style="font-size: var(--fs-xs); margin-top: 2px;">${esc(t('calls_cause', { c: rootCauseLabel(c.causaRaiz) }))}</div>` : '';
             return `
                 <tr>
                     <td data-label="${esc(t('calls_col_class'))}"><span class="badge ${tagClass}"><span class="badge-sym" aria-hidden="true">${sym}</span>${esc(classLabel(c.classificacao))}</span>${audioLine}${rcLine}</td>

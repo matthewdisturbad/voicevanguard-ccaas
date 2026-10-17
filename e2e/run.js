@@ -13,10 +13,14 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
 
 (async () => {
   const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'vv-e2e-'));
-  const relay = spawn('node', ['server.js'], { cwd: path.join(REPO, '01_Cloud_Relay_Backend'),
-    env: { ...process.env, PORT, DATA_DIR: dataDir, TENANTS_JSON: JSON.stringify(TENANTS) }, stdio: 'pipe' });
-  relay.stdout.on('data', d => process.stdout.write('[relay] ' + d));
-  relay.stderr.on('data', d => process.stdout.write('[relay!] ' + d));
+  const startRelay = () => {
+    const r = spawn('node', ['server.js'], { cwd: path.join(REPO, '01_Cloud_Relay_Backend'),
+      env: { ...process.env, PORT, DATA_DIR: dataDir, TENANTS_JSON: JSON.stringify(TENANTS) }, stdio: 'pipe' });
+    r.stdout.on('data', d => process.stdout.write('[relay] ' + d));
+    r.stderr.on('data', d => process.stdout.write('[relay!] ' + d));
+    return r;
+  };
+  let relay = startRelay();
   await sleep(1500);
 
   const ctx = await chromium.launchPersistentContext(fs.mkdtempSync(path.join(os.tmpdir(), 'vv-prof-')), {
@@ -211,6 +215,89 @@ window.endCall = () => { (window.__pcs||[]).forEach(p => p.close()); };
       .then(() => check('Interaction Widget (/widget) correlaciona a conversa em tempo real com chave própria', true), () => check('Interaction Widget (/widget) correlaciona a conversa em tempo real com chave própria', false));
     check('widget não oferece botão de comando nem campo de chave de supervisor', await widget.evaluate(() => !document.getElementById('btnRemediate') && !document.getElementById('inputKey')));
     check('widget remove a chave do endereço da página', await widget.evaluate(() => !location.hash));
+
+    // Resiliência: o relay reinicia (deploy) e console e extensão reconectam sozinhos
+    relay.kill('SIGTERM');
+    await sleep(1500);
+    await sup.waitForFunction(() => /offline|down|reconect|retry|Reconnect|Waiting|Aguard|Tentando|Desconect/i.test(document.getElementById('connStatus').textContent), null, { timeout: 15000 })
+      .then(() => check('console percebe a queda do relay', true), () => check('console percebe a queda do relay', false));
+    relay = startRelay();
+    await sleep(1500);
+    await sup.waitForFunction(() => /^(Live|Ao vivo)/i.test(document.getElementById('connStatus').textContent.trim()), null, { timeout: 60000 })
+      .then(() => check('console reconecta sozinho depois que o relay volta', true), () => check('console reconecta sozinho depois que o relay volta', false));
+    await agentPage.evaluate(() => startCall());
+    await sup.waitForFunction(() => document.querySelectorAll('#agentsTableBody [data-open-agent]').length > 0, null, { timeout: 60000 })
+      .then(() => check('extensão reconecta sozinha e a telemetria volta ao console', true), () => check('extensão reconecta sozinha e a telemetria volta ao console', false));
+    await agentPage.evaluate(() => endCall());
+
+    // Segurança: dado vindo do agente é não confiável; nada pode virar HTML ou script no console do supervisor
+    const WS = require(path.join(REPO, '01_Cloud_Relay_Backend', 'node_modules', 'ws'));
+    const evil = '<img src=x onerror="window.__xss=1"><script>window.__xss=1</script>';
+    await sup.bringToFront();
+    await sup.evaluate(() => document.querySelector('.tab-btn[data-tab="live"]').click());
+    const bad = new WS(`ws://localhost:${PORT}`);
+    await new Promise((res, rej) => { bad.on('open', res); bad.on('error', rej); });
+    bad.send(JSON.stringify({ type: 'AUTH', key: 'e2e-agent-key-0001', agentId: 'PA-XSS01' }));
+    await sleep(300);
+    bad.send(JSON.stringify({ type: 'AGENT_TELEMETRY', operator: evil, station: evil, platform: evil, platformCode: 'WEBRTC', genesysOrg: evil, region: evil,
+      status: 'ALERTA', audioIssue: evil, mosScore: '2.1', rttMs: 400, jitterMs: 80, lossPct: 9, networkType: evil, cpuStress: evil, protocol: evil, callActive: false, currentCallId: evil }));
+    bad.send(JSON.stringify({ type: 'CALL_AUDIT_SUMMARY', interactionId: evil, platform: evil, platformCode: 'WEBRTC', operator: evil, station: evil, startTime: evil, endTime: evil,
+      durationSeconds: 5, mosMedio: 2.1, mosMinimo: 1.5, jitterPicoMs: 80, rttMedioMs: 400, perdaPacotesPct: 9, protocolo: evil, classificacao: evil, networkType: evil, cpuStress: evil,
+      causaRaiz: evil, incidentesAudio: [evil], trocasDispositivo: 1, stillInCall: false }));
+    await sleep(1200);
+    await sup.evaluate(() => document.querySelector('.tab-btn[data-tab="calls"]').click());
+    await sleep(300);
+    await sup.evaluate(() => document.querySelector('.tab-btn[data-tab="live"]').click());
+    check('dados hostis do agente não executam script no console', await sup.evaluate(() => window.__xss === undefined));
+    check('dados hostis do agente chegam ao console como texto literal, sem virar elementos', await sup.evaluate(() => /<img src=x/.test(document.getElementById('agentsTableBody').innerText) && !document.querySelector('#agentsTableBody img[src="x"], #callsTableBody img[src="x"], #agentsTableBody script')));
+    bad.close();
+
+    // Páginas públicas e console: sem violação de CSP nem erro de script, em PT e EN
+    const sweep = async (url, label) => {
+      const pg = await ctx.newPage();
+      const problems = [];
+      pg.on('pageerror', e => problems.push('pageerror: ' + e.message));
+      pg.on('console', m => { if (/Content Security Policy|Refused to/i.test(m.text())) problems.push('csp: ' + m.text().slice(0, 120)); });
+      await pg.goto(url, { waitUntil: 'load' });
+      await sleep(500);
+      check(`sem violação de CSP nem erro de script: ${label}`, problems.length === 0, problems.join(' | '));
+      await pg.close();
+    };
+    await sweep(`http://localhost:${PORT}/`, 'landing PT');
+    await sweep(`http://localhost:${PORT}/?lang=en`, 'landing EN');
+    await sweep(`http://localhost:${PORT}/app?lang=en`, 'login do console EN');
+    await sweep(`http://localhost:${PORT}/privacy`, 'privacidade');
+
+    // Landing: o seletor de idioma troca o texto e o idioma da página
+    const land = await ctx.newPage();
+    await land.goto(`http://localhost:${PORT}/`);
+    await land.evaluate(() => localStorage.removeItem('vv_lang'));
+    await land.reload();
+    const ptText = await land.locator('body').innerText();
+    await land.evaluate(() => document.querySelector('.lang-btn[data-lang="en"]').click());
+    await sleep(300);
+    const enText = await land.locator('body').innerText();
+    check('landing troca para inglês pelo seletor', ptText !== enText && await land.evaluate(() => document.documentElement.lang.startsWith('en')));
+    await land.close();
+
+    // Celular: nenhuma aba do console rola na horizontal
+    await sup.setViewportSize({ width: 390, height: 844 });
+    await sleep(300);
+    const overflow = [];
+    for (const tab of ['live', 'calls', 'health', 'bi']) {
+      await sup.evaluate((t) => document.querySelector(`.tab-btn[data-tab="${t}"]`).click(), tab);
+      await sleep(250);
+      const wide = await sup.evaluate(() => {
+        if (document.documentElement.scrollWidth <= window.innerWidth + 1) return null;
+        const out = [];
+        for (const el of document.querySelectorAll('body *:not(th):not(.tab-btn)')) { const r = el.getBoundingClientRect(); if (r.right > window.innerWidth + 1 && r.width > 0) out.push(`${el.tagName.toLowerCase()}${el.id ? '#' + el.id : ''}${el.className && typeof el.className === 'string' ? '.' + el.className.split(' ')[0] : ''}:${Math.round(r.right)}`); }
+        return out.slice(0, 4).join(' ');
+      });
+      if (wide !== null) overflow.push(`${tab}[${wide}]`);
+    }
+    check('console sem rolagem horizontal a 390 px nas quatro abas', overflow.length === 0, overflow.join(','));
+    await sup.setViewportSize({ width: 1440, height: 900 });
+
   } catch (e) {
     console.log('ERRO E2E:', e.message); check('execução sem exceção', false, e.message);
   } finally {
