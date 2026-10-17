@@ -745,6 +745,10 @@
                 ap_last: "Última leitura",
                 ap_mos: "MOS (G.107)",
                 ap_rtt: "RTT",
+                ap_ref_ok: "dentro do recomendado",
+                ap_ref_over: "acima do recomendado",
+                ap_ref_rtt: "ref. Genesys: abaixo de 150 ms",
+                ap_ref_loss: "ref. Genesys: abaixo de 1%",
                 ap_jitter: "Jitter",
                 ap_loss: "Perda de pacotes",
                 ap_network: "Rede",
@@ -1001,6 +1005,10 @@
                 ap_last: "Last reading",
                 ap_mos: "MOS (G.107)",
                 ap_rtt: "RTT",
+                ap_ref_ok: "within recommended range",
+                ap_ref_over: "above recommended range",
+                ap_ref_rtt: "Genesys ref.: under 150 ms",
+                ap_ref_loss: "Genesys ref.: under 1%",
                 ap_jitter: "Jitter",
                 ap_loss: "Packet loss",
                 ap_network: "Network",
@@ -1352,6 +1360,14 @@
     function needsAttention(a) { return !isOffline(a) && (a.status === 'ALERTA' || hasAudioIssue(a) || isRescue(a)); }
 
     // Retorna [{ text, crit }]; vazio = nada anormal nos dados recebidos.
+    // Referência pública da documentação Genesys Cloud (WebRTC Diagnostics): perda < 1% e RTT < 150 ms.
+    function refNote(value, limit, refKey) {
+        const v = Number(value);
+        if (!isFinite(v)) return '';
+        const ok = v < limit;
+        return `<span class="muted">${ok ? '✓' : '▲'} ${esc(t(ok ? 'ap_ref_ok' : 'ap_ref_over'))} (${esc(t(refKey))})</span>`;
+    }
+
     function causesOf(a) {
         if (isOffline(a)) return [{ text: t('cause_offline'), crit: false }];
         const out = [];
@@ -1735,9 +1751,9 @@
                 <h3>${esc(t('ap_h_metrics'))}</h3>
                 <dl class="ap-dl">
                     <dt>${esc(t('ap_mos'))}</dt><dd>${esc(a.mosScore ?? t('na'))} / 4.50</dd>
-                    <dt>${esc(t('ap_rtt'))}</dt><dd>${esc(a.rttMs || 0)} ms</dd>
+                    <dt>${esc(t('ap_rtt'))}</dt><dd>${esc(a.rttMs || 0)} ms ${refNote(a.rttMs, 150, 'ap_ref_rtt')}</dd>
                     <dt>${esc(t('ap_jitter'))}</dt><dd>${esc(a.jitterMs || 0)} ms</dd>
-                    <dt>${esc(t('ap_loss'))}</dt><dd>${esc(a.lossPct || 0)}%</dd>
+                    <dt>${esc(t('ap_loss'))}</dt><dd>${esc(a.lossPct || 0)}% ${refNote(a.lossPct, 1, 'ap_ref_loss')}</dd>
                     <dt>${esc(t('ap_network'))}</dt><dd>${esc(t(n.key))} <span class="muted">${esc(t('ap_reported', { v: a.networkType || t('na_lc') }))}</span></dd>
                     <dt>${esc(t('ap_protocol'))}</dt><dd>${esc(a.protocol || t('na_lc'))}</dd>
                     <dt>${esc(t('ap_load'))}</dt><dd>${esc(a.cpuStress === 'ALTO_CONSUMO_RAM' ? t('load_high') : t('load_normal'))}</dd>
