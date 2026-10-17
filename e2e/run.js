@@ -31,6 +31,8 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
 
     // Console do supervisor
     const sup = await ctx.newPage();
+    const supFrames = []; // tudo o que o relay entrega ao console, para provar que dados do cliente final não saem da estação
+    sup.on('websocket', w => w.on('framereceived', f => supFrames.push(String(f.payload))));
     await sup.goto(`http://localhost:${PORT}/app`);
     await sup.fill('#inputTenantKey', 'e2e-agent-key-0001');
     await sup.click('#btnSubmitLogin');
@@ -71,6 +73,8 @@ window.endCall = () => { (window.__pcs||[]).forEach(p => p.close()); };
     const agentPage = await ctx.newPage();
     agentPage.on('console', m => { if (/VoiceDoctor|VoiceVanguard/.test(m.text())) console.log('[page]', m.text()); });
     await agentPage.goto('https://acme.mypurecloud.com/');
+    const TAB_SECRET = 'TITULO-CLIENTE-FINAL-9137';
+    await agentPage.evaluate((t) => { document.title = t; }, TAB_SECRET);
     await agentPage.evaluate(() => startCall());
     await agentPage.evaluate(() => apiCalls());
     const pageLoadedAt = Date.now();
@@ -181,6 +185,9 @@ window.endCall = () => { (window.__pcs||[]).forEach(p => p.close()); };
       .then(() => check('login Genesys: redireciona, volta com token e a recusa do servidor é exibida', true), () => check('login Genesys: redireciona, volta com token e a recusa do servidor é exibida', false));
     check('login Genesys usa o clientId e o redirect do tenant', !!authorizeUrl && authorizeUrl.searchParams.get('client_id') === 'e2e-client-id' && authorizeUrl.searchParams.get('response_type') === 'token');
     check('login Genesys não deixa o token no endereço', await g.evaluate(() => !location.hash && !/access_token/.test(location.href)));
+    // Privacidade: o título da aba (pode ter dado do cliente final) nunca chega ao relay nem ao supervisor
+    check('título da aba do agente não chega ao console do supervisor', supFrames.length > 0 && !supFrames.some(f => f.includes(TAB_SECRET)), `${supFrames.length} mensagens`);
+
     // Genesys Interaction Widget (/widget) correlacionando conversationId
     const widget = await ctx.newPage();
     await widget.goto(`http://localhost:${PORT}/widget?conversationId=3f2b8c1e-5d4a-4b7e-9c10-2a6d8e9f0b11&lang=pt-BR#wk=e2e-widget-key-0001`);

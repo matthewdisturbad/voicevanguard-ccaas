@@ -31,7 +31,7 @@ Botão no popup da extensão (indisponível durante chamada). Mede e avalia:
 | Equipamento | < 4 núcleos ou < 4 GB | — |
 | Conexão com o relay | — | desconectado |
 
-Veredito: `PRONTA`, `ATENCAO` ou `NAO_PRONTA`, com orientação por item. O resultado é enviado ao relay e aparece em **Saúde da estação** no console. Limiares em `03_Chrome_Edge_Extension/precheck.js` (`LIMITS`).
+Veredito: `PRONTA`, `ATENCAO` ou `NAO_PRONTA`, com orientação por item. O resultado é enviado ao relay e aparece em **Saúde da estação** no console. Limiares em `03_Chrome_Edge_Extension/precheck.js` (`LIMITS`). Os de latência e perda seguem as referências públicas da Genesys (RTT abaixo de 150 ms, perda abaixo de 1%) e da Amazon (latência média até 300 ms); ver `docs/COMPARATIVO_MERCADO.md`.
 
 Limitações: a sonda mede até o relay, não até o servidor do CCaaS; sem permissão de microfone o navegador informa apenas a presença do tipo de dispositivo; `deviceMemory` é aproximado e limitado a 8 GB.
 
