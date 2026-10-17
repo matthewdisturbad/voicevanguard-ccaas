@@ -56,6 +56,15 @@ Três revisões independentes (Ciclo 1 — Claude Code) seguidas de uma auditori
 - **CSP:** `connect-src` passou de `'self' ws: wss:` para `'self'` (o console, o widget e a extensão falam com o mesmo host). `style-src` ainda permite `'unsafe-inline'` por causa de estilos dinâmicos; é o próximo candidato.
 - **Testes:** 57 unitários e 23 verificações no e2e (inclui widget com chave própria, sem campo de chave de supervisor e sem a chave no endereço).
 
+## Ciclo 4 — auditoria da extensão (saída de rede e dados lidos)
+Revisão estática do código da extensão (`03_Chrome_Edge_Extension`), como um revisor de loja faria. Feita com busca no código-fonte, sem ferramenta externa de engenharia reversa.
+- **Saída de rede:** o único destino é o WebSocket para o relay configurado (`background.js`). Não há `fetch`, `XMLHttpRequest`, `sendBeacon`, `eval`, `new Function` nem carregamento de script remoto. O `importScripts` carrega apenas `precheck.js`, do próprio pacote.
+- **O que sai pelo WebSocket:** `AUTH`, `AGENT_TELEMETRY`, `CALL_AUDIT_SUMMARY`, `API_LATENCY`, `SHIFT_PRECHECK`, `COMMAND_RESULT` e `PING`. Todos os campos estão no inventário de `public/privacy.html`: métricas de rede, estado de áudio, ID da conversa, ID da estação, operador (se configurado), tipo de conexão, nome do domínio da plataforma e nomes de servidor com tempos de API.
+- **O que não é lido:** não há acesso a cookies, histórico, `document.cookie`, `getUserMedia` nem captura de tela ou aba. O título da aba não é enviado (há um comentário no código que proíbe; não existe teste automatizado para isso). `enumerateDevices` só conta entradas e saídas de áudio, sem ler nomes.
+- **URL da página:** só o ID da conversa (UUID) é extraído localmente; a URL completa não sai do navegador.
+- **Limiares:** o pré-check usa RTT 150 ms (atenção) e 300 ms (falha) e perda 1% e 5%, alinhados às referências públicas da Genesys e da Amazon (`docs/COMPARATIVO_MERCADO.md`).
+- **Conclusão:** nenhuma divergência entre o que o código envia e o que a política declara.
+
 ## Validações Externas / Administrativas (Dependem do Operador / Jurídico)
 1. **Chave de Agente Compartilhada por Torre (`agentKey`):** documentado no `SECURITY_ONE_PAGER.md` como modelo de chave por torre (provisionada via GPO/Intune); caso um cliente exija identidade individual criptográfica por estação, planejar mTLS ou token OAuth por agente em roadmap futuro.
 2. **Validação em Domínio Windows Real (GPO / Intune) e Revisão Jurídica:** testar aplicação do `managed_schema.json` via AD/Intune corporativo e validar os termos de retenção e minutas contratuais (`04_ Kit_Comercial_Juridico_BPO`) com advogado especializado.
