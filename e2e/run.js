@@ -184,6 +184,22 @@ window.endCall = () => { (window.__pcs||[]).forEach(p => p.close()); };
     await g.waitForFunction(() => document.getElementById('authErrorBox') && getComputedStyle(document.getElementById('authErrorBox')).display !== 'none', null, { timeout: 15000 })
       .then(() => check('login Genesys: redireciona, volta com token e a recusa do servidor é exibida', true), () => check('login Genesys: redireciona, volta com token e a recusa do servidor é exibida', false));
     check('login Genesys usa o clientId e o redirect do tenant', !!authorizeUrl && authorizeUrl.searchParams.get('client_id') === 'e2e-client-id' && authorizeUrl.searchParams.get('response_type') === 'token');
+    // Sessão OAuth expirada (4002): o console entra de novo pelo Genesys, sem cair na tela de chave
+    const exp = await ctx.newPage();
+    let reauthUrl = null;
+    await exp.route('https://login.mypurecloud.com/**', (route) => { reauthUrl = route.request().url(); route.fulfill({ status: 200, contentType: 'text/html', body: 'login' }); });
+    await exp.addInitScript(() => {
+      if (!sessionStorage.getItem('e2e_seeded')) { // só na primeira carga; o reload após o 4002 não pode recriar a sessão
+        sessionStorage.setItem('e2e_seeded', '1');
+        sessionStorage.setItem('vv_oauth_token', 'tok-e2e-0000000000000001');
+        sessionStorage.setItem('vv_oauth_region', 'mypurecloud.com');
+        sessionStorage.setItem('vv_tenant_name', 'E2E Tenant');
+      }
+      window.WebSocket = class { constructor() { this.readyState = 0; setTimeout(() => { this.readyState = 1; this.onopen && this.onopen(); setTimeout(() => { this.readyState = 3; this.onclose && this.onclose({ code: 4002 }); }, 50); }, 20); } send() {} close() {} };
+    });
+    await exp.goto(`http://localhost:${PORT}/dashboard?tenant=E2E-TENANT&lang=en`).catch(() => {});
+    await exp.waitForFunction(() => location.hostname === 'login.mypurecloud.com', null, { timeout: 15000 }).catch(() => {});
+    check('sessão OAuth expirada (4002) reentra pelo Genesys sem passar pela tela de chave', !!reauthUrl && /client_id=e2e-client-id/.test(reauthUrl), String(reauthUrl).slice(0, 80));
     check('login Genesys não deixa o token no endereço', await g.evaluate(() => !location.hash && !/access_token/.test(location.href)));
     // Privacidade: o título da aba (pode ter dado do cliente final) nunca chega ao relay nem ao supervisor
     check('título da aba do agente não chega ao console do supervisor', supFrames.length > 0 && !supFrames.some(f => f.includes(TAB_SECRET)), `${supFrames.length} mensagens`);

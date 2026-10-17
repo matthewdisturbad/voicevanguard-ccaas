@@ -1223,8 +1223,9 @@
         return true;
     }
 
-    function logoutSupervisor() {
-        try { sessionStorage.setItem('vv_no_auto', '1'); } catch (e) {}
+    // opts.reauth: sessão OAuth expirada; mantém o login automático para entrar de novo pelo Genesys sem passar pela tela de chave.
+    function logoutSupervisor(opts) {
+        if (!(opts && opts.reauth === true)) { try { sessionStorage.setItem('vv_no_auto', '1'); } catch (e) {} }
         ['vv_tenant_key', 'vv_tenant_name', 'vv_tenant_plan', 'vv_logged_in', 'vv_oauth_token', 'vv_oauth_region', 'vv_oauth_state'].forEach(k => sessionStorage.removeItem(k));
         clearTimeout(reconnectTimer); clearInterval(countdownTimer);
         if (ws) { try { ws.close(); } catch (e) {} }
@@ -1319,7 +1320,7 @@
             if (ev.code === 4001 || ev.code === 4002) {
                 if (activeOauth && ev.code === 4001) { try { sessionStorage.setItem('vv_login_error', 'auth_genesys_refused'); } catch (e) {} }
                 setConn('down', 'conn_key_refused');
-                logoutSupervisor();
+                logoutSupervisor({ reauth: ev.code === 4002 });
                 return;
             }
             scheduleReconnect();

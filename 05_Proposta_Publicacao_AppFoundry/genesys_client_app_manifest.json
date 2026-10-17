@@ -19,7 +19,7 @@
     "category": "Workforce Engagement Management"
   },
   "url": "https://voicevanguard.trustco.pro/dashboard?lang={{pcLangTag}}&env={{pcEnvironment}}",
-  "sandbox": "allow-scripts allow-same-origin allow-forms allow-modals allow-popups",
+  "sandbox": "allow-scripts allow-same-origin allow-forms",
   "permissions": [],
   "monetization": {
     "model": "PUPM",
