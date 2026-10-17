@@ -83,3 +83,17 @@ test('configuração Genesys inválida ou duplicada falha na subida', () => {
     assert.throws(() => buildKeyIndex({ A: { ...base, genesys: { ...g, supervisorRoles: [] } } }));
     assert.throws(() => buildKeyIndex({ A: { ...base, genesys: g }, B: { agentKey: 'agent-key-bbbb-1', supervisorKey: 'super-key-bbbb-1', genesys: g } }));
 });
+
+test('segunda mensagem AUTH enviada enquanto validação OAuth está pendente é ignorada', async () => {
+    const ws = new WebSocket(`ws://localhost:${port}`);
+    const msgs = [];
+    ws.on('message', m => msgs.push(JSON.parse(m)));
+    ws.on('error', () => {});
+    await new Promise(r => ws.on('open', r));
+    ws.send(JSON.stringify({ type: 'AUTH', oauth: { token: 'tok-supervisor-0000000001', region: 'mypurecloud.com' } }));
+    ws.send(JSON.stringify({ type: 'AUTH', key: 'chave-invalida-concorrente' }));
+    await new Promise(r => setTimeout(r, 300));
+    assert.strictEqual(msgs.filter(m => m.type === 'INIT_STATE').length, 1);
+    ws.close();
+});
+

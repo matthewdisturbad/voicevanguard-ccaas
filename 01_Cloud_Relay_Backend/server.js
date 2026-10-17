@@ -782,6 +782,7 @@ function createRelay(options = {}) {
             if (!data || typeof data !== 'object') return;
 
             if (!ws.authenticated) {
+                if (ws.authPending) return;
                 if (data.type !== 'AUTH') {
                     if (authTimer) { clearTimeout(authTimer); authTimer = null; }
                     recordFailure(ip);

@@ -1316,8 +1316,8 @@
 
         sock.onclose = (ev) => {
             if (sock !== ws) return;
-            if (ev.code === 4001) {
-                if (activeOauth) { try { sessionStorage.setItem('vv_login_error', 'auth_genesys_refused'); } catch (e) {} }
+            if (ev.code === 4001 || ev.code === 4002) {
+                if (activeOauth && ev.code === 4001) { try { sessionStorage.setItem('vv_login_error', 'auth_genesys_refused'); } catch (e) {} }
                 setConn('down', 'conn_key_refused');
                 logoutSupervisor();
                 return;

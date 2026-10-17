@@ -40,7 +40,7 @@ This document contains the exact disclosures, permission justifications, privacy
 
 ## 3. Data Usage & Privacy Disclosures (Dashboard Questionnaire)
 
-- **Remote Code:** **No.** All JavaScript (`background.js`, `content.js`, `injected_webrtc_hook.js`, `precheck.js`, `popup.js`) is packaged locally inside the extension bundle.
+- **Remote Code:** **No.** All JavaScript (`background.js`, `content.js`, `injected_webrtc_hook.js`, `precheck.js`, `i18n.js`, `popup.js`) and localization files (`_locales/en/messages.json`, `_locales/pt_BR/messages.json`) are packaged locally inside the extension bundle. No `eval`, `new Function`, or remote script loading is used.
 - **Audio / Video / Screen Capture:** **No.** The extension never records, intercepts, or transmits audio, video, or screen content.
 - **Data Collected & Transmitted to the Customer's Relay (`wss://voicevanguard.trustco.pro`):**
   1. **Workstation & Operator Identifiers:** `agentStationId` (e.g., `PA-XXXX`), `operatorName` (when configured by corporate IT), and the CCaaS `conversationId` / `contactId` for call correlation.
