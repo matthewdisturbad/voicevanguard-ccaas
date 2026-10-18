@@ -4,7 +4,8 @@ A extensão lê a configuração de `chrome.storage.managed`, definida em `03_Ch
 
 | Campo | Obrigatório | Descrição |
 |---|---|---|
-| `tenantKey` | sim | Chave de agente da torre (ou do tenant, em contas sem torres) |
+| `enrollToken` | recomendado | Token de cadastro da torre: cada estação o troca, no primeiro uso, por uma credencial individual. Não abre telemetria. Ver "Credencial individual por estação" |
+| `tenantKey` | sim, se não houver `enrollToken` | Chave de agente da torre (ou do tenant, em contas sem torres). Mantida por compatibilidade |
 | `relayServer` | não | `wss://` do relay. Padrão: `wss://voicevanguard.trustco.pro`. Valores que não começam com `wss://` são ignorados |
 | `operatorName` | não | Nome ou matrícula exibida ao supervisor. Vazio = só o identificador da estação |
 
@@ -41,3 +42,31 @@ Sem a seção `genesys` no tenant, nada muda: o console continua usando a chave 
 - No Genesys, crie um OAuth Client do tipo *Token Implicit Grant (Browser)* com redirect URI `https://voicevanguard.trustco.pro/dashboard` e um papel (ex.: "VoiceVanguard Supervisor") atribuído aos supervisores.
 - URL do Client App: `https://voicevanguard.trustco.pro/dashboard?lang={{pcLangTag}}&env={{pcEnvironment}}&tenant=<ID-do-tenant>`. O login é automático dentro do Genesys; não há botão na tela de acesso.
 - O servidor valida o token em `api.<região>/api/v2/users/me`, exige a mesma organização e um dos `supervisorRoles`; a sessão expira em 12 h.
+
+## Credencial individual por estação (opcional)
+
+Com a chave compartilhada, vazar uma estação compromete a torre inteira. Com o cadastro, cada estação passa a ter uma credencial própria, revogável sozinha. Sem `stationSecret` no tenant nada muda.
+
+No `TENANTS_JSON`, por torre (ou no tenant, se não houver torres):
+
+```json
+"towers": { "FRAUDES": {
+  "agentKey": "<chave compartilhada atual>",
+  "stationSecret": "<16+ caracteres, distinto de todas as chaves; openssl rand -hex 24>",
+  "enrollToken": "<16+ caracteres, distinto; é o valor que vai na política>",
+  "maxStations": 100,
+  "credentialDays": 90,
+  "epoch": 1,
+  "revoked": ["PA-XXXX"],
+  "stationSecretPrev": "<segredo antigo, só durante a rotação>",
+  "allowTowerKey": true
+} }
+```
+
+Como funciona: a política entrega o `enrollToken`; a extensão envia `ENROLL` ao relay, recebe uma credencial assinada (`vv1....`, validade `credentialDays`) e passa a usar só ela. O relay confere a assinatura; tenant, torre e id da estação saem da credencial, nunca do cliente. Cadastro e renovação (7 dias antes de vencer) só acontecem fora de chamada.
+
+- **Migrar:** instale a extensão nova, coloque `stationSecret` e `enrollToken` no tenant, troque a política de `tenantKey` para `enrollToken` e acompanhe nos logs do relay as conexões `via: estação` x `via: torre`. Quando todas forem `estação`, defina `allowTowerKey: false`.
+- **Revogar uma estação:** inclua o id em `revoked` e reinicie/redeploye o relay (a lista vem do env); ela perde o acesso na próxima conexão.
+- **Revogar a torre toda / rotacionar:** aumente `epoch`, ou troque `stationSecret` (mantendo o antigo em `stationSecretPrev` por uma janela). As extensões se recadastram sozinhas pelo `enrollToken` (até 3 tentativas).
+- **Token vazado:** troque o `enrollToken`; `maxStations` limita quantas estações novas ele consegue criar (o contador fica em `DATA_DIR/enrolled_stations.json`, então use Volume).
+- **Limites conhecidos:** revogação e expiração valem na conexão (não derrubam socket já aberto); a credencial fica no `chrome.storage.local` do perfil do navegador, legível por quem tem acesso ao perfil, como a política de hoje; o fluxo com GPO/Intune reais ainda não foi validado em cliente piloto.

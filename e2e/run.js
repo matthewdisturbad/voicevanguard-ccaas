@@ -5,7 +5,7 @@ const REPO = path.resolve(__dirname, '..');
 const EXT = path.join(REPO, '03_Chrome_Edge_Extension');
 const OUT = process.env.E2E_OUT || path.join(os.tmpdir(), 'vv-e2e-shots'); fs.mkdirSync(OUT, { recursive: true });
 const PORT = 9292;
-const TENANTS = { 'E2E-TENANT': { name: 'E2E Tenant', plan: 'Test', maxAgents: 5, agentKey: 'e2e-agent-key-0001', supervisorKey: 'e2e-super-key-0001', widgetKey: 'e2e-widget-key-0001',
+const TENANTS = { 'E2E-TENANT': { name: 'E2E Tenant', plan: 'Test', maxAgents: 5, agentKey: 'e2e-agent-key-0001', supervisorKey: 'e2e-super-key-0001', stationSecret: 'e2e-station-secret-0123456789', enrollToken: 'e2e-enroll-token-0123456789', widgetKey: 'e2e-widget-key-0001',
   genesys: { orgId: '11111111-1111-1111-1111-111111111111', region: 'mypurecloud.com', clientId: 'e2e-client-id', supervisorRoles: ['VoiceVanguard Supervisor'] } } };
 const results = [];
 const check = (name, ok, extra='') => { results.push({ name, ok }); console.log(`${ok ? 'PASS' : 'FAIL'}  ${name} ${extra}`); };
@@ -228,6 +228,22 @@ window.endCall = () => { (window.__pcs||[]).forEach(p => p.close()); };
     await agentPage.evaluate(() => startCall());
     await sup.waitForFunction(() => document.querySelectorAll('#agentsTableBody [data-open-agent]').length > 0, null, { timeout: 60000 })
       .then(() => check('extensão reconecta sozinha e a telemetria volta ao console', true), () => check('extensão reconecta sozinha e a telemetria volta ao console', false));
+    await agentPage.evaluate(() => endCall());
+
+    // Cadastro individual: o token da torre vira credencial por estação e a extensão conecta sem a chave compartilhada
+    await sw.evaluate(() => { tenantKey = ''; enrollToken = 'e2e-enroll-token-0123456789'; stationCredential = ''; stationCredentialExp = 0; enrollFailures = 0;
+      chrome.storage.local.set({ tenantKey: '' }); chrome.storage.local.remove(['stationCredential', 'stationCredentialExp']); reconnectAttempts = 0; if (ws) ws.close(); connectToCloudRelay(); });
+    let cred = '';
+    for (let i = 0; i < 80 && !cred; i++) { await sleep(500); cred = await sw.evaluate(() => stationCredential); }
+    check('extensão troca o token de cadastro por uma credencial individual (vv1)', /^vv1\./.test(cred), cred.slice(0, 24));
+    check('credencial individual não carrega a chave compartilhada nem o token', !cred.includes('e2e-agent-key-0001') && !cred.includes('e2e-enroll-token'));
+    const stationId = await sw.evaluate(() => agentStationId);
+    await sleep(8000);
+    supFrames.length = 0;
+    await agentPage.evaluate(() => startCall());
+    let seen = false;
+    for (let i = 0; i < 30 && !seen; i++) { await sleep(500); seen = supFrames.some(f => f.includes('"' + stationId + '"') && f.includes('TELEMETRY_UPDATE')); }
+    check('telemetria chega ao console usando só a credencial individual (id da estação vem da assinatura)', seen);
     await agentPage.evaluate(() => endCall());
 
     // Segurança: dado vindo do agente é não confiável; nada pode virar HTML ou script no console do supervisor

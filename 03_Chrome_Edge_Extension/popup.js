@@ -128,10 +128,10 @@ function renderLangSwitch() {
 }
 
 function render() {
-    chrome.storage.local.get(['lastMetric', 'callHistory', 'tenantKey', 'agentStationId', 'isCallActive', 'lastCacheCleared'], (res) => {
+    chrome.storage.local.get(['lastMetric', 'callHistory', 'tenantKey', 'enrollToken', 'stationCredential', 'agentStationId', 'isCallActive', 'lastCacheCleared'], (res) => {
         applyI18n();
         renderLangSwitch();
-        $('lblTenant').textContent = res.tenantKey ? t('license.set') : t('license.unset');
+        $('lblTenant').textContent = (res.tenantKey || res.enrollToken || res.stationCredential) ? t('license.set') : t('license.unset');
         $('lblStation').textContent = res.agentStationId || 'PA-LIVE';
 
         const m = res.lastMetric;

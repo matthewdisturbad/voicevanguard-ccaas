@@ -3,7 +3,7 @@
   "properties": {
     "tenantKey": {
       "title": "Chave do agente (tenant ou torre)",
-      "description": "Chave de AGENTE fornecida pela TrustCo. Cada operação/torre recebe a sua; o agente não escolhe nem altera.",
+      "description": "Chave de AGENTE fornecida pela TrustCo. Cada operação/torre recebe a sua; o agente não escolhe nem altera. Mantida para compatibilidade; prefira o token de cadastro.",
       "type": "string"
     },
     "relayServer": {
@@ -15,6 +15,11 @@
     "operatorName": {
       "title": "Identificação do operador (opcional)",
       "description": "Nome ou matrícula exibida ao supervisor. Deixe vazio para usar apenas o identificador da estação.",
+      "type": "string"
+    },
+    "enrollToken": {
+      "title": "Token de cadastro da torre (recomendado)",
+      "description": "Token fornecido pela TrustCo. Cada estação o troca, no primeiro uso, por uma credencial individual; ele não abre telemetria. Quando preenchido, é preferido à chave de agente compartilhada.",
       "type": "string"
     }
   }

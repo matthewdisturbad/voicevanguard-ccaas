@@ -21,6 +21,7 @@ Este documento fornece contexto arquitetural, convenções de código e diretriz
 
 ```
 ├── 01_Cloud_Relay_Backend/
+│   ├── station-credential.js  # Credencial individual por estação (HMAC) e cadastro; webhook.js = alertas de saída
 │   ├── server.js              # Servidor HTTP (módulo http nativo) + WebSocket (ws)
 │   │                          # Rotas HTTP:
 │   │                          #   GET / -> Serve public/index.html (Landing comercial)
@@ -81,7 +82,7 @@ cd 01_Cloud_Relay_Backend
 # Instalar dependências
 npm install
 
-# Rodar os testes automatizados (69 testes unitários)
+# Rodar os testes automatizados (81 testes unitários)
 npm test
 
 # Rodar backend localmente (Porta 9090; sem TENANTS_JSON usa tenants fictícios de dev)

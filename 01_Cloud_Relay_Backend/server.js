@@ -23,6 +23,7 @@ const crypto = require('crypto');
 const https = require('https');
 const { WebSocketServer, WebSocket } = require('ws');
 const { validateWebhookConfig, createWebhookDispatcher } = require('./webhook');
+const { STATION_ID, mintStationCredential, verifyStationCredential, looksLikeStationCredential, parseStationScope } = require('./station-credential');
 
 const PORT = process.env.PORT !== undefined ? Number(process.env.PORT) : 9090;
 const IS_PROD = process.env.NODE_ENV === 'production';
@@ -98,6 +99,8 @@ function buildKeyIndex(tenants) {
     const index = new Map();
     const meta = new Map();
     const genesys = new Map(); // `${region}|${orgId}` -> { tenantId, roles, towers, clientId }
+    const stations = new Map(); // `${tenantId}|${torre|-}` -> escopo de credenciais individuais
+    const enrollIndex = new Map(); // sha256(enrollToken) -> { tenantId, tower, scopeKey }
     const addKey = (tenantId, key, entry) => {
         const h = sha256(key);
         if (index.has(h)) throw new Error(`Tenant ${tenantId}: chave duplicada na configuração.`);
@@ -125,11 +128,28 @@ function buildKeyIndex(tenants) {
             towers: towerIds,
             webhook: validateWebhookConfig(tenantId, t.webhook)
         });
+        // Credenciais individuais por estação (opcionais). allowTowerKey:false desliga a chave compartilhada da torre.
+        const tenantScope = parseStationScope(`Tenant ${tenantId}`, t, t.agentKey);
+        if (tenantScope) stations.set(`${tenantId}|-`, tenantScope);
+        for (const id of towerIds) {
+            const sc = parseStationScope(`Tenant ${tenantId}/${id}`, t.towers[id], t.towers[id].agentKey);
+            if (sc) stations.set(`${tenantId}|${id}`, sc);
+        }
+        for (const [sk, sc] of stations) {
+            if (!sk.startsWith(`${tenantId}|`) || !sc.enroll) continue;
+            const h = sha256(sc.enroll.token);
+            if (enrollIndex.has(h) || index.has(h)) throw new Error(`Tenant ${tenantId}: enrollToken duplicado na configuração.`);
+            const tw = sk.slice(tenantId.length + 1);
+            enrollIndex.set(h, { tenantId, tower: tw === '-' ? null : tw, scopeKey: sk });
+        }
+        const allowShared = (cfg) => cfg.allowTowerKey !== false;
+        if (t.allowTowerKey === false && !tenantScope) throw new Error(`Tenant ${tenantId}: allowTowerKey:false exige stationSecret`);
+        for (const id of towerIds) if (t.towers[id].allowTowerKey === false && !stations.has(`${tenantId}|${id}`)) throw new Error(`Tenant ${tenantId}/${id}: allowTowerKey:false exige stationSecret`);
         if (hasLegacy) {
-            addKey(tenantId, t.agentKey, { role: 'agent', tower: null, towers: '*' });
+            if (allowShared(t)) addKey(tenantId, t.agentKey, { role: 'agent', tower: null, towers: '*' });
             addKey(tenantId, t.supervisorKey, { role: 'supervisor', tower: null, towers: '*', supervisorName: 'Supervisor' });
         }
-        for (const id of towerIds) addKey(tenantId, t.towers[id].agentKey, { role: 'agent', tower: id, towers: [id] });
+        for (const id of towerIds) if (allowShared(t.towers[id])) addKey(tenantId, t.towers[id].agentKey, { role: 'agent', tower: id, towers: [id] });
         // Chave do widget (somente leitura, restrita a uma conversa): é a única que pode aparecer na tela do agente
         if (t.widgetKey !== undefined) {
             if (!validKey(t.widgetKey)) throw new Error(`Tenant ${tenantId}: widgetKey deve ter ao menos 8 caracteres.`);
@@ -156,7 +176,9 @@ function buildKeyIndex(tenants) {
             addKey(tenantId, sup.key, { role: 'supervisor', tower: null, towers, supervisorName: String(sup.name || 'Supervisor') });
         }
     }
-    return { index, meta, genesys };
+    // Um enrollToken não pode coincidir com nenhuma chave de acesso.
+    for (const h of enrollIndex.keys()) if (index.has(h)) throw new Error('enrollToken igual a uma chave de acesso.');
+    return { index, meta, genesys, stations, enrollIndex };
 }
 
 // ---------------------------------------------------------------------------
@@ -348,6 +370,23 @@ function saveTenantHistory(tenantId, history) {
     pendingSaves.set(tenantId, timer);
 }
 
+// Estações cadastradas por torre (teto de emissões). Persistido em DATA_DIR para sobreviver a reinícios.
+const ENROLLED_FILE = path.join(DATA_DIR, 'enrolled_stations.json');
+function loadEnrolled() {
+    const out = new Map();
+    try {
+        const raw = JSON.parse(fs.readFileSync(ENROLLED_FILE, 'utf8'));
+        for (const [k, ids] of Object.entries(raw)) if (Array.isArray(ids)) out.set(k, new Set(ids.filter(x => typeof x === 'string')));
+    } catch (_) {}
+    return out;
+}
+function saveEnrolled(map) {
+    const obj = {};
+    for (const [k, set] of map) obj[k] = [...set];
+    const tmp = `${ENROLLED_FILE}.${process.pid}.tmp`;
+    try { fs.writeFileSync(tmp, JSON.stringify(obj)); fs.renameSync(tmp, ENROLLED_FILE); } catch (e) { console.warn('[DataStore] Falha ao gravar estações cadastradas:', e.message); }
+}
+
 async function flushAllSaves(rooms) {
     for (const [tenantId, timer] of pendingSaves) {
         clearTimeout(timer);
@@ -431,7 +470,8 @@ const SECURITY_HEADERS = {
 
 function createRelay(options = {}) {
     const tenants = loadTenants();
-    const { index: keyIndex, meta: tenantMeta, genesys: genesysIndex } = buildKeyIndex(tenants);
+    const { index: keyIndex, meta: tenantMeta, genesys: genesysIndex, stations: stationScopes, enrollIndex } = buildKeyIndex(tenants);
+    const enrolled = loadEnrolled(); // scopeKey -> Set(stationId) emitidos
     const genesysFetch = options.genesysFetch || genesysUsersMe;
     const mosWatch = new Map(); // `${tenantId}|${akey}` -> { callId, low, alerted }
     const webhooks = createWebhookDispatcher({ send: options.webhookSend, log: (m) => console.warn('[Webhook]', m) });
@@ -495,6 +535,10 @@ function createRelay(options = {}) {
 
     function lookupKey(key) {
         if (typeof key !== 'string' || key.length === 0 || key.length > 256) return null;
+        if (looksLikeStationCredential(key)) {
+            const v = verifyStationCredential(key, stationScopes);
+            return v ? { tenantId: v.tenantId, role: 'agent', tower: v.tower, towers: v.tower ? [v.tower] : '*', stationId: v.stationId } : null;
+        }
         return keyIndex.get(sha256(key)) || null;
     }
 
@@ -669,9 +713,10 @@ function createRelay(options = {}) {
             let agentId = null;
             if (clientType === 'agent') {
                 const requested = typeof rawAgentId === 'string' ? rawAgentId : url.searchParams.get('agentId');
-                agentId = requested && ID_PATTERN.test(requested)
+                // Com credencial individual o id da estação vem da assinatura, não do cliente.
+                agentId = found.stationId || (requested && ID_PATTERN.test(requested)
                     ? requested
-                    : `PA-${crypto.randomBytes(4).toString('hex').toUpperCase()}`;
+                    : `PA-${crypto.randomBytes(4).toString('hex').toUpperCase()}`);
 
                 for (const c of wss.clients) {
                     if (c !== ws && c.readyState === WebSocket.OPEN && c.authenticated && c.tenantId === tenantId && c.clientType === 'agent' && c.tower === tower && c.agentId === agentId) {
@@ -722,7 +767,7 @@ function createRelay(options = {}) {
             } else {
                 const prev = room.agents.get(akey(tower, agentId));
                 if (prev) prev.reconnectedAt = Date.now(); // até a próxima telemetria, o estado de chamada é desconhecido
-                console.log(`[+] Agente conectado | ID: ${agentId} | Tenant: ${tenantId}`);
+                console.log(`[+] Agente conectado | ID: ${agentId} | Tenant: ${tenantId} | via: ${found.stationId ? 'estação' : 'torre'}`);
                 if (viaMessage) {
                     ws.send(JSON.stringify({ type: 'AUTH_OK', agentId }));
                 }
@@ -731,6 +776,30 @@ function createRelay(options = {}) {
         }
 
         // Login do supervisor com Genesys: o token é validado na API do Genesys antes de qualquer acesso.
+        // Cadastro de estação: troca o enrollToken da torre por uma credencial individual assinada.
+        function handleEnroll(d) {
+            if (authTimer) { clearTimeout(authTimer); authTimer = null; }
+            const fail = (code, reason, message) => { reject(ws, code, reason, message); return false; };
+            const hit = typeof d.enrollToken === 'string' && d.enrollToken.length <= 256 ? enrollIndex.get(sha256(d.enrollToken)) : null;
+            if (!hit) { recordFailure(ip); return fail(4001, 'Invalid Key', 'Token de cadastro inválido.'); }
+            if (typeof d.stationId !== 'string' || !STATION_ID.test(d.stationId)) return fail(4001, 'Invalid Station', 'Identificador de estação inválido.');
+            const scope = stationScopes.get(hit.scopeKey);
+            if (scope.revoked.has(d.stationId)) { recordFailure(ip); return fail(4001, 'Revoked', 'Estação revogada.'); }
+            let set = enrolled.get(hit.scopeKey);
+            if (!set) { set = new Set(); enrolled.set(hit.scopeKey, set); }
+            if (!set.has(d.stationId)) {
+                if (set.size >= scope.enroll.maxStations) return fail(4003, 'Enroll Limit', 'Limite de estações cadastradas atingido.');
+                set.add(d.stationId);
+                saveEnrolled(enrolled);
+            }
+            const exp = Math.floor(Date.now() / 1000) + scope.enroll.days * 86400;
+            const credential = mintStationCredential({ secret: scope.secrets[0], tenantId: hit.tenantId, tower: hit.tower, stationId: d.stationId, exp, epoch: scope.epoch });
+            try { ws.send(JSON.stringify({ type: 'ENROLL_OK', credential, exp })); } catch (_) {}
+            ws.close(1000, 'Enrolled');
+            console.log(`[+] Estação cadastrada | ID: ${d.stationId} | Tenant: ${hit.tenantId}`);
+            return true;
+        }
+
         function authWithGenesys(oauth) {
             if (authTimer) { clearTimeout(authTimer); authTimer = null; }
             const deny = () => { recordFailure(ip); reject(ws, 4001, 'Invalid Key', 'Chave inválida ou não autorizada.'); };
@@ -798,6 +867,7 @@ function createRelay(options = {}) {
 
             if (!ws.authenticated) {
                 if (ws.authPending) return;
+                if (data.type === 'ENROLL') { handleEnroll(data); return; }
                 if (data.type !== 'AUTH') {
                     if (authTimer) { clearTimeout(authTimer); authTimer = null; }
                     recordFailure(ip);

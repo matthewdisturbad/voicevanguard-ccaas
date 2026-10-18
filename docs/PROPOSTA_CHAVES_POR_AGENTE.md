@@ -1,6 +1,6 @@
 # Proposta: credencial individual por estação (planejamento)
 
-> **Nada aqui está implementado.** Não citar em material comercial antes de existir e estar testado. Itens marcados [INF] são inferência e [NÃO VERIFICADO] depende de documentação Microsoft/Google que não foi consultada.
+> **Status:** etapas 1 a 3 implementadas (servidor, cadastro e extensão; ver `docs/IMPLANTACAO_GPO_INTUNE.md`). Faltam o piloto com GPO/Intune reais, a telemetria de adoção e a prova de posse (ECDSA). Não citar em material comercial antes do piloto. Itens marcados [INF] são inferência e [NÃO VERIFICADO] depende de documentação Microsoft/Google que não foi consultada.
 
 ## Problema
 Cada torre usa uma única `agentKey` compartilhada por todas as extensões (`server.js`, `buildKeyIndex`). Se uma estação vaza a chave, a torre inteira fica exposta e revogar exige reemitir a chave para todos. O `agentId` também é escolhido pelo cliente.

@@ -7,7 +7,12 @@
 
 let RELAY_SERVER = "wss://voicevanguard.trustco.pro"; // Custom domain principal
 importScripts('precheck.js'); // VVPrecheck.summarizeProbe
+importScripts('enroll.js'); // VVEnroll.chooseAuth
 
+let enrollToken = ""; // token de cadastro da torre (GPO/Intune); troca por credencial individual
+let stationCredential = "";
+let stationCredentialExp = 0;
+let enrollFailures = 0;
 let tenantKey = ""; // chave de AGENTE do tenant (definida por GPO/Intune ou pelo popup); sem valor padrão
 let agentStationId = null;
 let operatorName = "Operador";
@@ -29,11 +34,13 @@ function scheduleReconnect() {
 }
 
 // Inicializa Identificadores
-chrome.storage.local.get(['tenantKey', 'agentStationId', 'operatorName', 'isCallActive', 'lastTelemetryAt', 'isManaged'], (res) => {
+chrome.storage.local.get(['tenantKey', 'enrollToken', 'stationCredential', 'stationCredentialExp', 'agentStationId', 'operatorName', 'isCallActive', 'lastTelemetryAt', 'isManaged'], (res) => {
     // O In-Call Lock sobrevive à reinicialização do service worker (MV3 encerra o worker por ociosidade)
     if (res.isCallActive === true) { isCallActive = true; lastTelemetryAt = Number(res.lastTelemetryAt) || Date.now(); }
     if (res.isManaged === true) isManaged = true;
     if (!tenantKey && res.tenantKey) tenantKey = res.tenantKey;
+    if (!enrollToken && res.enrollToken) enrollToken = res.enrollToken;
+    if (typeof res.stationCredential === 'string') { stationCredential = res.stationCredential; stationCredentialExp = Number(res.stationCredentialExp) || 0; }
     if (res.agentStationId) agentStationId = res.agentStationId;
     else {
         agentStationId = `PA-${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
@@ -45,12 +52,16 @@ chrome.storage.local.get(['tenantKey', 'agentStationId', 'operatorName', 'isCall
 
 // Suporte a GPO / Active Directory (Políticas Corporativas do Windows / Chrome Managed Storage)
 if (chrome.storage.managed) {
-    chrome.storage.managed.get(['tenantKey', 'relayServer', 'operatorName'], (managedConfig) => {
+    chrome.storage.managed.get(['tenantKey', 'enrollToken', 'relayServer', 'operatorName'], (managedConfig) => {
         if (chrome.runtime.lastError) return; // sem política instalada
-        if (managedConfig && managedConfig.tenantKey) {
-            tenantKey = managedConfig.tenantKey;
+        if (managedConfig && (managedConfig.tenantKey || managedConfig.enrollToken)) {
+            if (managedConfig.tenantKey) tenantKey = managedConfig.tenantKey;
+            if (managedConfig.enrollToken && managedConfig.enrollToken !== enrollToken) {
+                enrollToken = managedConfig.enrollToken;
+                enrollFailures = 0; // token novo: nova chance de cadastro
+            }
             isManaged = true;
-            chrome.storage.local.set({ tenantKey, isManaged: true });
+            chrome.storage.local.set({ tenantKey, enrollToken, isManaged: true });
             // A chave só pode ser enviada por canal cifrado
             if (typeof managedConfig.relayServer === 'string' && /^wss:\/\/[A-Za-z0-9.-]+(:\d+)?$/.test(managedConfig.relayServer)) {
                 RELAY_SERVER = managedConfig.relayServer;
@@ -60,7 +71,8 @@ if (chrome.storage.managed) {
                 chrome.storage.local.set({ operatorName });
             }
             reconnectAttempts = 0;
-            if (ws) { try { ws.close(); } catch (_) {} }
+            // Não derruba a telemetria no meio de uma chamada: a nova política vale na próxima conexão.
+            if (ws && !callIsActive()) { try { ws.close(); } catch (_) {} }
             connectToCloudRelay();
         }
     });
@@ -68,7 +80,12 @@ if (chrome.storage.managed) {
 
 function connectToCloudRelay() {
     if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) return;
-    if (!tenantKey) return; // sem chave configurada não há o que conectar
+    const auth = VVEnroll.chooseAuth({ credential: stationCredential, credentialExp: stationCredentialExp, enrollToken, tenantKey, callActive: callIsActive(), enrollFailures }, Math.floor(Date.now() / 1000));
+    if (auth.kind === 'none') {
+        // Cadastro adiado por chamada ativa (In-Call Lock): tenta de novo depois; sem nenhuma chave configurada não há o que conectar.
+        if (enrollToken && callIsActive() && enrollFailures < VVEnroll.MAX_ENROLL_FAILURES) scheduleReconnect();
+        return;
+    }
 
     const url = RELAY_SERVER;
     try {
@@ -76,15 +93,25 @@ function connectToCloudRelay() {
 
         ws.onopen = () => {
             reconnectAttempts = 0;
-            ws.send(JSON.stringify({ type: 'AUTH', key: tenantKey, agentId: agentStationId }));
+            if (auth.kind === 'enroll') ws.send(JSON.stringify({ type: 'ENROLL', enrollToken, stationId: agentStationId }));
+            else ws.send(JSON.stringify({ type: 'AUTH', key: auth.key, agentId: agentStationId }));
             console.log(`[VoiceVanguard] Conectado ao Cloud Relay | ID: ${agentStationId}`);
-            chrome.storage.local.set({ relayConnected: true });
+            if (auth.kind !== 'enroll') chrome.storage.local.set({ relayConnected: true });
         };
 
         ws.onmessage = (event) => {
             try {
                 const msg = JSON.parse(event.data);
-                
+
+                // Cadastro concluído: guarda a credencial individual; a reconexão (já agendada pelo onclose) passa a usá-la.
+                if (msg.type === 'ENROLL_OK' && typeof msg.credential === 'string' && msg.credential.startsWith('vv1.')) {
+                    stationCredential = msg.credential;
+                    stationCredentialExp = Number(msg.exp) || 0;
+                    enrollFailures = 0;
+                    chrome.storage.local.set({ stationCredential, stationCredentialExp });
+                    return;
+                }
+
                 // Resposta da sonda de rede do pré-check
                 if (msg.type === 'PONG') {
                     const waiter = pongWaiters.get(msg.n);
@@ -103,7 +130,20 @@ function connectToCloudRelay() {
 
         ws.onclose = (ev) => {
             chrome.storage.local.set({ relayConnected: false });
-            if (ev && ev.code === 4001) return; // chave recusada: não insistir em loop
+            if (auth.kind === 'enroll' && ev && ev.code === 1000 && stationCredential) { reconnectAttempts = 0; scheduleReconnect(); return; }
+            if (ev && ev.code === 4001) {
+                // Credencial recusada (revogada, epoch trocado ou segredo rotacionado): descarta e tenta cadastrar de novo, no máximo MAX_ENROLL_FAILURES vezes.
+                if (auth.kind === 'credential') {
+                    stationCredential = ''; stationCredentialExp = 0;
+                    chrome.storage.local.remove(['stationCredential', 'stationCredentialExp']);
+                    if (enrollToken) { enrollFailures++; scheduleReconnect(); }
+                } else if (auth.kind === 'enroll') {
+                    enrollFailures++; // esgotadas as tentativas, chooseAuth cai para a chave da torre, se houver
+                    scheduleReconnect();
+                }
+                return; // chave recusada: não insistir em loop
+            }
+            if (auth.kind === 'enroll' && ev && ev.code === 4003) { enrollFailures++; } // teto de estações da torre
             scheduleReconnect();
         };
 
