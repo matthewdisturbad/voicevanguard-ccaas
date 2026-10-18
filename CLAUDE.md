@@ -71,6 +71,7 @@ Este documento fornece contexto arquitetural, convenções de código e diretriz
 
 ## 📚 Documentação complementar
 
+* `docs/WEBHOOK_ALERTAS.md` · `docs/EXPORTACAO_CHAMADAS.md` · `docs/IMPLANTACAO_GPO_INTUNE.md` · `docs/OPERACAO_E_ESCALA.md` — alertas de saída, exportação CSV, implantação e limites de escala
 * `docs/AUDITORIA_APROVADOR.md` — registro consolidado das auditorias de segurança e certificação · `docs/AVALIACAO.md` — avaliação e pendências do dono · `docs/PRECHECK.md` — funções de saúde da estação (limiares, privacidade) · `CHROMEWEBSTORE.md` — guia de submissão Chrome Web Store / Edge Add-ons · `docs/ROADMAP.md` — **planejamento apenas**, nada implementado; não citar em material comercial.
 
 ## 🛠️ Comandos e Execução Local
@@ -82,7 +83,7 @@ cd 01_Cloud_Relay_Backend
 # Instalar dependências
 npm install
 
-# Rodar os testes automatizados (81 testes unitários)
+# Rodar os testes automatizados (93 testes unitários)
 npm test
 
 # Rodar backend localmente (Porta 9090; sem TENANTS_JSON usa tenants fictícios de dev)
@@ -99,7 +100,7 @@ node test_multicloud_simulator.js
 1. **Abra uma Issue antes de começar o trabalho.** Descreva o objetivo e contexto da mudança.
 2. **Crie uma branch de trabalho**, nunca commite direto em `main` (ex.: `feat/novo-recurso`, `fix/correcao-webrtc`).
 3. **Abra um Pull Request** referenciando a Issue (`Closes #ID`).
-4. **Deploy no Railway:** O deploy da branch `main` é automático no Railway. Qualquer merge em `main` vai direto para produção em `https://voicevanguard.trustco.pro`.
+4. **Deploy no Railway:** segundo o dono, o deploy é **manual** (`railway up` ou o workflow *Deploy (manual)*); um merge em `main` não publica sozinho. Confirme no painel do Railway se há deploy automático ligado ao GitHub antes de assumir qualquer um dos dois. Detalhes em `docs/OPERACAO_E_ESCALA.md`.
 
 ---
 

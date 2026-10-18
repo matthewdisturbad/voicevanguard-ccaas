@@ -1,0 +1,48 @@
+name: Deploy (manual)
+
+# Publica a main no Railway sob demanda. Não roda sozinho: o dono dispara em Actions > Deploy (manual).
+# Requer o secret RAILWAY_TOKEN (token de PROJETO do Railway, criado em Project Settings > Tokens).
+# Sem o secret, o job falha com uma mensagem clara e nada é publicado.
+on:
+  workflow_dispatch:
+    inputs:
+      confirmar:
+        description: 'Digite PUBLICAR para confirmar o deploy em produção'
+        required: true
+      service:
+        description: 'Serviço do Railway'
+        required: false
+        default: '01_Cloud_Relay_Backend'
+
+concurrency:
+  group: deploy-producao
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && github.event.inputs.confirmar == 'PUBLICAR'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: 01_Cloud_Relay_Backend/package-lock.json
+      - name: Testes antes de publicar
+        working-directory: 01_Cloud_Relay_Backend
+        run: |
+          npm ci
+          npm test
+      - name: Verificar paridade de idiomas
+        run: node scripts/check-i18n.js
+      - name: Publicar no Railway
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+          SERVICE: ${{ github.event.inputs.service }}
+        run: |
+          if [ -z "$RAILWAY_TOKEN" ]; then
+            echo "::error::Secret RAILWAY_TOKEN ausente. Crie um token de projeto no Railway e cadastre em Settings > Secrets and variables > Actions."
+            exit 1
+          fi
+          npx --yes @railway/cli@latest up --service "$SERVICE" --detach

@@ -23,6 +23,7 @@ const crypto = require('crypto');
 const https = require('https');
 const { WebSocketServer, WebSocket } = require('ws');
 const { validateWebhookConfig, createWebhookDispatcher } = require('./webhook');
+const { callsToCsv, filterCalls } = require('./export-csv');
 const { STATION_ID, mintStationCredential, verifyStationCredential, looksLikeStationCredential, parseStationScope } = require('./station-credential');
 
 const PORT = process.env.PORT !== undefined ? Number(process.env.PORT) : 9090;
@@ -611,6 +612,30 @@ function createRelay(options = {}) {
                 recordFailure(ip);
                 sendJson(res, 403, { valid: false, error: 'Chave inválida ou não autorizada.' });
             }
+            return;
+        }
+
+        // Exportação das chamadas auditadas (CSV) para cruzar MOS com TMA/CSAT no BI do cliente. Só por chave de supervisor, no cabeçalho.
+        if (url.pathname === '/api/calls.csv') {
+            const ip = clientIp(req);
+            if (isRateLimited(ip)) {
+                sendJson(res, 429, { error: 'Muitas tentativas. Aguarde um minuto.' }, { 'Retry-After': '60' });
+                return;
+            }
+            const found = lookupKey(req.headers['x-tenant-key']);
+            if (!found || found.role !== 'supervisor') {
+                recordFailure(ip);
+                sendJson(res, 403, { error: 'Chave inválida ou não autorizada.' });
+                return;
+            }
+            const room = getRoom(found.tenantId);
+            const rows = filterCalls(room.callHistory, { from: url.searchParams.get('from'), to: url.searchParams.get('to'), canSee: (tw) => canSee(found, tw) });
+            res.writeHead(200, {
+                'Content-Type': 'text/csv; charset=utf-8',
+                'Content-Disposition': `attachment; filename="chamadas-${found.tenantId}.csv"`,
+                'Cache-Control': 'no-store'
+            });
+            res.end(callsToCsv(rows));
             return;
         }
 
