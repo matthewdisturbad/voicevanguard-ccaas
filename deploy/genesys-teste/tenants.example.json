@@ -1,0 +1,10 @@
+{
+  "GENESYS-ALLIANCE-EVAL": {
+    "name": "Org de testes Genesys (piloto interno)",
+    "plan": "Piloto",
+    "maxAgents": 10,
+    "active": true,
+    "agentKey": "TROCAR-gere-com-openssl-rand-hex-24",
+    "supervisorKey": "TROCAR-outra-chave-diferente-da-de-agente"
+  }
+}
