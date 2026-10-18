@@ -1,0 +1,57 @@
+#!/usr/bin/env node
+/**
+ * Validador de configuração de produção (lê o ambiente atual; nunca imprime segredos).
+ * Uso: TENANTS_JSON=... DATA_DIR=... node scripts/check-config.js
+ * Sai com 1 se houver ERRO; AVISO não falha.
+ */
+const fs = require('fs');
+const out = [];
+const add = (lvl, msg) => out.push([lvl, msg]);
+const env = process.env;
+
+let tenants = null;
+if (!env.TENANTS_JSON) add('ERRO', 'TENANTS_JSON ausente (em produção o relay recusa subir sem ele).');
+else {
+    try { tenants = JSON.parse(env.TENANTS_JSON); } catch (e) { add('ERRO', 'TENANTS_JSON não é JSON válido.'); }
+}
+const weak = (k) => typeof k !== 'string' || k.length < 8;
+const short = (k) => typeof k === 'string' && k.length < 24;
+if (tenants && typeof tenants === 'object') {
+    const ids = Object.keys(tenants);
+    if (!ids.length) add('ERRO', 'TENANTS_JSON sem nenhum tenant.');
+    const seen = new Map();
+    for (const id of ids) {
+        const t = tenants[id] || {};
+        if (/^(demo|dev|test)/i.test(id)) add('AVISO', `Tenant "${id}" parece de teste.`);
+        const keys = [t.supervisorKey, t.agentKey, ...Object.values(t.towers || {}).flatMap(w => [w.supervisorKey, w.agentKey])].filter(Boolean);
+        if (!keys.length) add('AVISO', `Tenant "${id}" sem chaves visíveis (formato diferente?).`);
+        for (const k of keys) {
+            if (weak(k)) add('ERRO', `Tenant "${id}" tem chave com menos de 8 caracteres (o relay recusa).`);
+            else if (short(k)) add('AVISO', `Tenant "${id}" tem chave curta (<24); prefira 32+ caracteres aleatórios.`);
+            if (seen.has(k)) add('ERRO', `Tenant "${id}" repete chave de "${seen.get(k)}".`); else seen.set(k, id);
+        }
+        if (t.supervisorKey && t.supervisorKey === t.agentKey) add('ERRO', `Tenant "${id}" usa a mesma chave para agente e supervisor.`);
+        if (t.stationSecret && weak(t.stationSecret)) add('ERRO', `Tenant "${id}" stationSecret fraco.`);
+        if (t.webhook && (!t.webhook.url || !String(t.webhook.url).startsWith('https://'))) add('ERRO', `Tenant "${id}" webhook deve usar https.`);
+    }
+}
+
+if (env.TRUST_PROXY !== '1') add('AVISO', 'TRUST_PROXY não é 1: atrás do Railway o limite por IP enxerga o IP do proxy.');
+if (env.ALLOW_URL_KEY === '1') add('AVISO', 'ALLOW_URL_KEY=1: chave em URL aceita (só durante migração; remova depois).');
+if (env.NODE_ENV !== 'production') add('AVISO', 'NODE_ENV não é production.');
+if (env.CORS_ORIGIN === '*') add('AVISO', 'CORS_ORIGIN=* é amplo demais.');
+
+if (!env.DATA_DIR) add('AVISO', 'DATA_DIR ausente: histórico e estações cadastradas somem a cada deploy (sem Volume).');
+else {
+    try {
+        fs.mkdirSync(env.DATA_DIR, { recursive: true });
+        const f = `${env.DATA_DIR}/.vv-write-test`;
+        fs.writeFileSync(f, 'ok'); fs.unlinkSync(f);
+    } catch (e) { add('ERRO', `DATA_DIR sem permissão de escrita (${e.code || e.message}).`); }
+}
+add('INFO', 'Mantenha 1 réplica (salas e fila de webhook são em memória) e confirme que o Volume está montado em DATA_DIR.');
+
+for (const [l, m] of out) console.log(`${l.padEnd(5)} ${m}`);
+const errors = out.filter(([l]) => l === 'ERRO').length;
+console.log(errors ? `\n${errors} erro(s).` : '\nSem erros bloqueantes.');
+process.exit(errors ? 1 : 0);
