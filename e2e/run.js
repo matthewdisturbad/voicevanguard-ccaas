@@ -230,6 +230,8 @@ window.endCall = () => { (window.__pcs||[]).forEach(p => p.close()); };
       .then(() => check('extensão reconecta sozinha e a telemetria volta ao console', true), () => check('extensão reconecta sozinha e a telemetria volta ao console', false));
     await agentPage.evaluate(() => endCall());
 
+    check('console mostra a leitura de causa por frota (pouca amostra: não conclui)', await sup.evaluate(() => /Causa por frota.*ao menos 5/.test(document.getElementById('fleetLine').textContent)));
+
     // Cadastro individual: o token da torre vira credencial por estação e a extensão conecta sem a chave compartilhada
     await sw.evaluate(() => { tenantKey = ''; enrollToken = 'e2e-enroll-token-0123456789'; stationCredential = ''; stationCredentialExp = 0; enrollFailures = 0;
       chrome.storage.local.set({ tenantKey: '' }); chrome.storage.local.remove(['stationCredential', 'stationCredentialExp']); reconnectAttempts = 0; if (ws) ws.close(); connectToCloudRelay(); });

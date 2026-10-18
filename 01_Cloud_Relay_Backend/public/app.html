@@ -153,6 +153,7 @@
         .cell-sub { font-size: var(--fs-xs); margin-top: 2px; }
         .note-sm { margin-top: var(--s3); font-size: var(--fs-sm); }
         .mt-8 { margin-top: 8px; }
+        .fleet-line { margin: 0 0 var(--s3); font-size: var(--fs-sm); }
         .pc-item + .pc-item { margin-top: var(--s2); }
         .pc-hint { font-size: var(--fs-xs); color: var(--text-3); max-width: 46ch; }
 
@@ -369,6 +370,8 @@
             <button class="btn-quiet" id="btnAttention" type="button" aria-pressed="false" data-i18n="btn_attn_only">Ver só as que precisam de atenção</button>
         </div>
 
+        <div class="muted fleet-line" id="fleetLine" role="status"></div>
+
         <div class="toolbar" role="search" aria-label="Filtros da lista de PAs" data-i18n-aria="filters_aria">
             <div class="field grow">
                 <label for="fltSearch" data-i18n="flt_search">Buscar por operador, estação ou ID</label>
@@ -518,6 +521,7 @@
 <!-- Avisos na tela (leitores de tela anunciam via aria-live) -->
 <div class="toast-region" id="toastRegion" role="status" aria-live="polite" aria-atomic="false"></div>
 
+<script src="/fleet.js"></script>
 <script>
         // Dicionários PT-BR / EN: as chaves devem ser idênticas (scripts/check-i18n.js).
         const translations = {
@@ -563,6 +567,15 @@
                 hint_calls_of: "{a} de {b} chamadas",
                 hint_sample: "Amostra insuficiente (mín. {n} chamadas)",
                 attn_initial: "Precisam de atenção agora: 0",
+                fleet_insufficient: "Causa por frota: são necessárias ao menos {min} estações em chamada para comparar (agora: {n}).",
+                fleet_healthy: "Causa por frota: {n} estações em chamada, nenhuma degradada.",
+                fleet_isolated: "Causa por frota: {d} de {n} estações em chamada estão degradadas e as demais estão bem. O problema parece ser da estação ({ids}), não da plataforma.",
+                fleet_group: "Causa por frota: {gd} de {gn} estações com {dim} \"{val}\" estão degradadas e as demais estão bem. O problema parece estar nesse grupo.",
+                fleet_widespread: "Causa por frota: {d} de {n} estações em chamada estão degradadas, sem um grupo em comum. Suspeite da plataforma, da região de mídia ou do relay.",
+                fleet_partial: "Causa por frota: {d} de {n} estações em chamada estão degradadas, sem um padrão claro. Acompanhe antes de concluir.",
+                fleet_dim_networkType: "rede",
+                fleet_dim_region: "região",
+                fleet_dim_platformCode: "plataforma",
                 attn_title_one: "{n} PA precisa de atenção agora",
                 attn_title_other: "{n} PAs precisam de atenção agora",
                 attn_none: "Nenhuma PA precisa de atenção agora",
@@ -823,6 +836,15 @@
                 hint_calls_of: "{a} of {b} calls",
                 hint_sample: "Not enough data (min. {n} calls)",
                 attn_initial: "Needing attention now: 0",
+                fleet_insufficient: "Fleet cause: at least {min} seats on a call are needed to compare (now: {n}).",
+                fleet_healthy: "Fleet cause: {n} seats on a call, none degraded.",
+                fleet_isolated: "Fleet cause: {d} of {n} seats on a call are degraded and the rest are fine. The problem looks like the seat ({ids}), not the platform.",
+                fleet_group: "Fleet cause: {gd} of {gn} seats with {dim} \"{val}\" are degraded and the rest are fine. The problem looks tied to that group.",
+                fleet_widespread: "Fleet cause: {d} of {n} seats on a call are degraded with no common group. Suspect the platform, the media region or the relay.",
+                fleet_partial: "Fleet cause: {d} of {n} seats on a call are degraded with no clear pattern. Keep watching before concluding.",
+                fleet_dim_networkType: "network",
+                fleet_dim_region: "region",
+                fleet_dim_platformCode: "platform",
                 attn_title_one: "{n} seat needs attention now",
                 attn_title_other: "{n} seats need attention now",
                 attn_none: "No seat needs attention now",
@@ -1677,10 +1699,23 @@
         }).join('');
     }
 
+    // Causa por frota: isolado x grupo x amplo, comparando as estações em chamada neste instante
+    function renderFleet(agents) {
+        const f = VVFleet.analyze(agents);
+        const dim = f.group ? t('fleet_dim_' + f.group.dimension) : '';
+        const key = f.state === 'insufficient' ? 'fleet_insufficient' : 'fleet_' + f.state;
+        $('fleetLine').textContent = t(key, {
+            n: fmtNum(f.total), d: fmtNum(f.degraded), min: fmtNum(VVFleet.MIN_SAMPLE),
+            ids: f.stations.join(', '), dim, val: f.group ? f.group.key : '',
+            gd: f.group ? fmtNum(f.group.degraded) : '', gn: f.group ? fmtNum(f.group.total) : ''
+        });
+    }
+
     function renderAll() {
         renderTowers();
         const agents = Array.from(agentsMap.values()).filter(towerOk);
         renderLive(agents);
+        renderFleet(agents);
         renderCalls();
         renderHealth();
         renderPanel();
