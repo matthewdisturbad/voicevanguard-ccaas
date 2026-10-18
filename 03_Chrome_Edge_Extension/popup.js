@@ -155,6 +155,7 @@ async function runPrecheck() {
     renderPrecheckArea();
     try {
         const net = await chrome.runtime.sendMessage({ action: 'RUN_NET_PROBE' });
+        const region = await chrome.runtime.sendMessage({ action: 'RUN_REGION_PROBE' }).catch(() => ({ error: 'falha' }));
         const devices = { audioInputs: 0, audioOutputs: 0 };
         try {
             // Apenas a contagem por tipo; nomes/IDs de dispositivo nunca são lidos
@@ -167,6 +168,7 @@ async function runPrecheck() {
         const result = VVPrecheck.evaluatePrecheck({
             relayConnected: !!stored.relayConnected,
             net: net || { error: 'sem_resposta' },
+            region,
             devices,
             connection: navigator.connection ? { effectiveType: navigator.connection.effectiveType } : null,
             hw: { cores: navigator.hardwareConcurrency, memoryGb: navigator.deviceMemory }

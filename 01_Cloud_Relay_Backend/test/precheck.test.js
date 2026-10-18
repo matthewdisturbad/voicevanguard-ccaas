@@ -40,3 +40,19 @@ test('summarizeProbe: mediana, jitter e perda', () => {
     assert.strictEqual(r.lossPct, 20);
 });
 test('summarizeProbe sem respostas devolve erro', () => assert.deepStrictEqual(summarizeProbe([], 20), { error: 'sem_resposta' }));
+
+test('latência até a região Genesys entra no veredito quando medida', () => {
+    const base = { relayConnected: true, net: { rttMs: 40, jitterMs: 3, lossPct: 0 }, devices: { audioInputs: 1, audioOutputs: 1 }, connection: { effectiveType: '4g' }, hw: { cores: 8, memoryGb: 8 } };
+    const find = (r) => r.itens.find(i => i.id === 'regiao_rtt');
+    assert.strictEqual(find(evaluatePrecheck(base)), undefined, 'sem região configurada, nada muda');
+    assert.strictEqual(find(evaluatePrecheck({ ...base, region: { rttMs: 80 } })).status, 'ok');
+    assert.strictEqual(find(evaluatePrecheck({ ...base, region: { rttMs: 180 } })).status, 'atencao');
+    assert.strictEqual(evaluatePrecheck({ ...base, region: { rttMs: 400 } }).status, 'NAO_PRONTA');
+    assert.strictEqual(find(evaluatePrecheck({ ...base, region: { error: 'sem_resposta' } })).status, 'atencao');
+});
+
+test('só regiões Genesys conhecidas são aceitas para a sonda', () => {
+    const { isGenesysRegion } = require('../../03_Chrome_Edge_Extension/precheck.js');
+    for (const ok of ['mypurecloud.com', 'mypurecloud.com.au', 'sae1.pure.cloud', 'usw2.pure.cloud']) assert.ok(isGenesysRegion(ok), ok);
+    for (const bad of ['evil.com', 'mypurecloud.com.evil.com', 'api.mypurecloud.com/x', '', null, undefined, 'x.pure.cloud.evil.io']) assert.ok(!isGenesysRegion(bad), String(bad));
+});

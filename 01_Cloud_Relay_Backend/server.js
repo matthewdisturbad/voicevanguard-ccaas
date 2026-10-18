@@ -126,6 +126,7 @@ function buildKeyIndex(tenants) {
             plan: String(t.plan || 'Standard'),
             maxAgents: Number.isFinite(t.maxAgents) && t.maxAgents > 0 ? t.maxAgents : 100,
             towers: towerIds,
+            genesysRegion: t.genesys && GENESYS_REGIONS.has(t.genesys.region) ? t.genesys.region : null,
             webhook: validateWebhookConfig(tenantId, t.webhook)
         });
         // Credenciais individuais por estação (opcionais). allowTowerKey:false desliga a chave compartilhada da torre.
@@ -769,13 +770,12 @@ function createRelay(options = {}) {
                 if (prev) prev.reconnectedAt = Date.now(); // até a próxima telemetria, o estado de chamada é desconhecido
                 console.log(`[+] Agente conectado | ID: ${agentId} | Tenant: ${tenantId} | via: ${found.stationId ? 'estação' : 'torre'}`);
                 if (viaMessage) {
-                    ws.send(JSON.stringify({ type: 'AUTH_OK', agentId }));
+                    ws.send(JSON.stringify({ type: 'AUTH_OK', agentId, genesysRegion: meta.genesysRegion }));
                 }
             }
             return true;
         }
 
-        // Login do supervisor com Genesys: o token é validado na API do Genesys antes de qualquer acesso.
         // Cadastro de estação: troca o enrollToken da torre por uma credencial individual assinada.
         function handleEnroll(d) {
             if (authTimer) { clearTimeout(authTimer); authTimer = null; }
@@ -800,6 +800,7 @@ function createRelay(options = {}) {
             return true;
         }
 
+        // Login do supervisor com Genesys: o token é validado na API do Genesys antes de qualquer acesso.
         function authWithGenesys(oauth) {
             if (authTimer) { clearTimeout(authTimer); authTimer = null; }
             const deny = () => { recordFailure(ip); reject(ws, 4001, 'Invalid Key', 'Chave inválida ou não autorizada.'); };

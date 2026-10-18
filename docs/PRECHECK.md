@@ -33,7 +33,10 @@ Botão no popup da extensão (indisponível durante chamada). Mede e avalia:
 
 Veredito: `PRONTA`, `ATENCAO` ou `NAO_PRONTA`, com orientação por item. O resultado é enviado ao relay e aparece em **Saúde da estação** no console. Limiares em `03_Chrome_Edge_Extension/precheck.js` (`LIMITS`). Os de latência e perda seguem as referências públicas da Genesys (RTT abaixo de 150 ms, perda abaixo de 1%) e da Amazon (latência média até 300 ms); ver `docs/COMPARATIVO_MERCADO.md`.
 
-Limitações: a sonda mede até o relay, não até o servidor do CCaaS; sem permissão de microfone o navegador informa apenas a presença do tipo de dispositivo; `deviceMemory` é aproximado e limitado a 8 GB.
+### Latência até a região Genesys (opcional)
+Se o tenant tem a seção `genesys` (região da organização), o relay informa essa região no `AUTH_OK`. O pré-check mede então 5 requisições HTTPS à API pública da região (`https://api.<região>/`), com os mesmos limiares de RTT (atenção 150 ms, falha 300 ms; referência pública do Genesys: menos de 150 ms), e mostra o item "Latência até o Genesys". É uma **aproximação**: mede o caminho até a API da região, não o caminho de mídia (TURN/edge) da chamada. A requisição não leva cookies nem credenciais, a resposta é descartada e só o tempo é usado. A região é validada contra a lista de regiões Genesys conhecidas (as mesmas de `host_permissions`). Sem a seção `genesys`, o item não aparece.
+
+Limitações: a sonda do relay mede até o relay, não até o servidor do CCaaS; sem permissão de microfone o navegador informa apenas a presença do tipo de dispositivo; `deviceMemory` é aproximado e limitado a 8 GB.
 
 ## 3. Latência das APIs do agent desktop
 `PerformanceObserver` (resource timing) na página do CCaaS, em janelas de 30 s, **por hostname**: quantidade, média, p95, máximo e erros.

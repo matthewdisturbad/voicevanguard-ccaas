@@ -139,6 +139,7 @@ window.endCall = () => { (window.__pcs||[]).forEach(p => p.close()); };
       .then(() => check('pré-check concluído no popup', true), () => check('pré-check concluído no popup', false));
     const preText = await popup.locator('#precheckResult').innerText();
     check('pré-check mede a rede até o relay', /Latência/.test(preText) && /ms/.test(preText), JSON.stringify(preText.slice(0, 120)));
+    check('pré-check inclui a latência até a região Genesys do tenant', /Latência até o Genesys/.test(preText), JSON.stringify(preText.slice(0, 200)));
     await popup.screenshot({ path: path.join(OUT, 'popup-precheck.png') });
 
     // Saúde da estação no console: pré-check + latência de API (janela de 30 s do hook)

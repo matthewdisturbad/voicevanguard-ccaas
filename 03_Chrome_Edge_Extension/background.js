@@ -13,6 +13,7 @@ let enrollToken = ""; // token de cadastro da torre (GPO/Intune); troca por cred
 let stationCredential = "";
 let stationCredentialExp = 0;
 let enrollFailures = 0;
+let genesysRegion = ""; // região Genesys do tenant, informada pelo relay no AUTH_OK (validada antes do uso)
 let tenantKey = ""; // chave de AGENTE do tenant (definida por GPO/Intune ou pelo popup); sem valor padrão
 let agentStationId = null;
 let operatorName = "Operador";
@@ -102,6 +103,11 @@ function connectToCloudRelay() {
         ws.onmessage = (event) => {
             try {
                 const msg = JSON.parse(event.data);
+
+                if (msg.type === 'AUTH_OK') {
+                    genesysRegion = VVPrecheck.isGenesysRegion(msg.genesysRegion) ? msg.genesysRegion : "";
+                    return;
+                }
 
                 // Cadastro concluído: guarda a credencial individual; a reconexão (já agendada pelo onclose) passa a usá-la.
                 if (msg.type === 'ENROLL_OK' && typeof msg.credential === 'string' && msg.credential.startsWith('vv1.')) {
@@ -215,6 +221,26 @@ async function runNetProbe() {
     return self.VVPrecheck.summarizeProbe(rtts, COUNT);
 }
 
+// Latência até a API da região Genesys do cliente (pré-check). Só mede tempo: sem cookies, sem credenciais, resposta ignorada.
+async function runRegionProbe() {
+    if (!genesysRegion) return null;
+    const COUNT = 5, TIMEOUT_MS = 3000;
+    const url = `https://api.${genesysRegion}/api/v2/organizations/me`;
+    const rtts = [];
+    for (let i = 0; i <= COUNT; i++) { // a primeira serve só para abrir a conexão TLS e não entra na estatística
+        const ctl = new AbortController();
+        const timer = setTimeout(() => ctl.abort(), TIMEOUT_MS);
+        const t0 = performance.now();
+        try {
+            await fetch(url, { method: 'GET', cache: 'no-store', credentials: 'omit', referrerPolicy: 'no-referrer', signal: ctl.signal });
+            if (i > 0) rtts.push(performance.now() - t0);
+        } catch (_) { /* sem resposta */ }
+        clearTimeout(timer);
+    }
+    const s = self.VVPrecheck.summarizeProbe(rtts, COUNT);
+    return s.error ? s : { rttMs: s.rttMs, region: genesysRegion };
+}
+
 function sendWsMessage(obj) {
     if (ws && ws.readyState === WebSocket.OPEN) {
         ws.send(JSON.stringify(obj));
@@ -322,6 +348,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
     } else if (message.action === 'RUN_NET_PROBE' && fromExtensionPage) {
         runNetProbe().then(sendResponse);
+        return true;
+
+    } else if (message.action === 'RUN_REGION_PROBE' && fromExtensionPage) {
+        runRegionProbe().then(sendResponse);
         return true;
 
     } else if (message.action === 'SUBMIT_PRECHECK' && fromExtensionPage && message.result) {

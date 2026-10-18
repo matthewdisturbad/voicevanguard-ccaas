@@ -26,6 +26,7 @@
      * input: {
      *   relayConnected: boolean,
      *   net: { rttMs, jitterMs, lossPct } | { error: string },
+     *   region: null | { rttMs } | { error: string }   (latência até a API da região Genesys do cliente; null = não configurada),
      *   devices: { audioInputs: number, audioOutputs: number },
      *   connection: { effectiveType?: string } | null,
      *   hw: { cores?: number, memoryGb?: number }
@@ -48,6 +49,17 @@
                 'Rede instável. Feche downloads/streaming no mesmo roteador e, se estiver em Wi-Fi 2,4 GHz, troque para 5 GHz.'));
             items.push(item('rede_perda', byThreshold(net.lossPct, LIMITS.lossPct), `${net.lossPct}%`,
                 'Há perda de pacotes. Reinicie o roteador ou use conexão por cabo antes de iniciar o turno.'));
+        }
+
+        // Latência até a região Genesys do cliente (aproximação pela API da região, não pela mídia). Opcional.
+        if (input.region) {
+            const rg = input.region;
+            if (rg.error || typeof rg.rttMs !== 'number') {
+                items.push(item('regiao_rtt', 'atencao', 'sem medição', 'Não foi possível medir a latência até a região do Genesys. Verifique a conexão e tente novamente.'));
+            } else {
+                items.push(item('regiao_rtt', byThreshold(rg.rttMs, LIMITS.rttMs), `${rg.rttMs} ms`,
+                    'Latência alta até a região do Genesys Cloud. Prefira cabo de rede, evite VPN desnecessária e confirme o caminho de rede até a região da organização.'));
+            }
         }
 
         const dev = input.devices || { audioInputs: 0, audioOutputs: 0 };
@@ -92,7 +104,11 @@
         };
     }
 
-    const api = { evaluatePrecheck, summarizeProbe, LIMITS };
+    // Regiões Genesys Cloud aceitas para a sonda (as mesmas de host_permissions no manifest).
+    const REGION_PATTERN = /^(mypurecloud\.(com|ie|de|jp|com\.au)|[a-z0-9]{3,6}\.pure\.cloud)$/;
+    const isGenesysRegion = (r) => typeof r === 'string' && REGION_PATTERN.test(r);
+
+    const api = { evaluatePrecheck, summarizeProbe, isGenesysRegion, LIMITS };
     if (typeof module !== 'undefined' && module.exports) module.exports = api;
     else root.VVPrecheck = api;
 })(typeof self !== 'undefined' ? self : this);

@@ -139,3 +139,26 @@ test('configuração do cadastro: token distinto, limites válidos', () => {
     assert.throws(() => buildKeyIndex(base({ enrollToken: 'enroll-token-0123456789', credentialDays: 900 })), /credentialDays/);
     assert.throws(() => buildKeyIndex(base({ maxStations: 5 })), /exigem enrollToken/);
 });
+
+test('AUTH_OK informa a região Genesys do tenant ao agente (para a sonda do pré-check)', async () => {
+    const cfg = { T1: { agentKey: 'agent-key-t1-aaa', supervisorKey: 'super-key-t1-bbb', genesys: { orgId: '11111111-1111-1111-1111-111111111111', region: 'sae1.pure.cloud', supervisorRoles: ['Sup'] } },
+                  T2: { agentKey: 'agent-key-t2-aaa', supervisorKey: 'super-key-t2-bbb' } };
+    const prev = process.env.TENANTS_JSON;
+    process.env.TENANTS_JSON = JSON.stringify(cfg);
+    const relay = createRelay();
+    process.env.TENANTS_JSON = prev;
+    await new Promise(r => relay.server.listen(0, r));
+    const port = relay.server.address().port;
+    const authOk = (key) => new Promise((resolve) => {
+        const ws = new WebSocket(`ws://localhost:${port}`);
+        ws.on('message', m => { const d = JSON.parse(m); if (d.type === 'AUTH_OK') { ws.close(); resolve(d); } });
+        ws.on('open', () => ws.send(JSON.stringify({ type: 'AUTH', key, agentId: 'PA-R1' })));
+        setTimeout(() => { ws.close(); resolve(null); }, 800);
+    });
+    try {
+        assert.strictEqual((await authOk('agent-key-t1-aaa')).genesysRegion, 'sae1.pure.cloud');
+        assert.strictEqual((await authOk('agent-key-t2-aaa')).genesysRegion, null);
+    } finally {
+        await relay.shutdown();
+    }
+});
