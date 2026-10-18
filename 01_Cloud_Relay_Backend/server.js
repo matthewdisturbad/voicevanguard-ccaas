@@ -433,6 +433,7 @@ function createRelay(options = {}) {
     const tenants = loadTenants();
     const { index: keyIndex, meta: tenantMeta, genesys: genesysIndex } = buildKeyIndex(tenants);
     const genesysFetch = options.genesysFetch || genesysUsersMe;
+    const mosWatch = new Map(); // `${tenantId}|${akey}` -> { callId, low, alerted }
     const webhooks = createWebhookDispatcher({ send: options.webhookSend, log: (m) => console.warn('[Webhook]', m) });
     if (keyIndex.size === 0) throw new Error('Nenhum tenant ativo configurado.');
 
@@ -846,6 +847,7 @@ function createRelay(options = {}) {
                     }
                     room.agents.set(akey(tower, agentId), record);
                     broadcast(room, { type: 'TELEMETRY_UPDATE', payload: record }, tower);
+                    watchMos(meta, tenantId, tower, record);
                     if (!record.callActive) flushPending(room, ws);
                     return;
                 }
@@ -1010,6 +1012,24 @@ function createRelay(options = {}) {
         }
     }, HEARTBEAT_MS);
     heartbeat.unref();
+
+    // Alerta durante a chamada: MOS abaixo do limite por 3 amostras seguidas, uma vez por chamada.
+    const MOS_LOW_SAMPLES = 3;
+    function watchMos(meta, tenantId, tower, rec) {
+        if (!meta.webhook) return;
+        const k = `${tenantId}|${akey(tower, rec.agentId)}`;
+        if (!rec.callActive) { mosWatch.delete(k); return; }
+        let w = mosWatch.get(k);
+        if (!w || w.callId !== rec.currentCallId) { w = { callId: rec.currentCallId, low: 0, alerted: false }; mosWatch.set(k, w); }
+        const mos = Number(rec.mosScore);
+        if (mos >= meta.webhook.mosThreshold) { w.low = 0; return; }
+        if (++w.low < MOS_LOW_SAMPLES || w.alerted) return;
+        w.alerted = true;
+        webhooks.emit(meta.webhook, 'MOS_DEGRADED', {
+            tenant: tenantId, tower: rec.tower, station: rec.station, platform: rec.platformCode, interactionId: rec.currentCallId,
+            mosAtual: mos, limiteMos: meta.webhook.mosThreshold, rttMs: rec.rttMs, perdaPacotesPct: rec.lossPct, jitterMs: rec.jitterMs, networkType: rec.networkType
+        });
+    }
 
     // Alertas de saída: chamada crítica e incidente de áudio. Sem o nome do operador.
     function notifyWebhook(meta, tenantId, rec) {

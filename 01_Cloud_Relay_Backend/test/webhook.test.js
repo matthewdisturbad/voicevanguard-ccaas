@@ -11,7 +11,7 @@ const SECRET = 'segredo-webhook-0123456789';
 process.env.TENANTS_JSON = JSON.stringify({
     'BPO-APEX-GLOBAL': {
         name: 'Apex Global', plan: 'Std', maxAgents: 5, agentKey: 'agent-key-apex-1', supervisorKey: 'super-key-apex-1',
-        webhook: { url: 'https://alertas.example.com/hook', secret: SECRET, events: ['CALL_CRITICAL', 'AUDIO_INCIDENT'] }
+        webhook: { url: 'https://alertas.example.com/hook', secret: SECRET, events: ['CALL_CRITICAL', 'AUDIO_INCIDENT', 'MOS_DEGRADED'], mosThreshold: 3.0 }
     },
     'BPO-NEXUS-CORP': { name: 'Nexus', plan: 'Std', maxAgents: 5, agentKey: 'agent-key-nexus-1', supervisorKey: 'super-key-nexus-1' }
 });
@@ -26,6 +26,8 @@ test('validateWebhookConfig exige https, segredo longo e eventos conhecidos', ()
     assert.throws(() => validateWebhookConfig('T', { url: 'https://u:p@x.example.com', secret: SECRET }), /credenciais/);
     assert.throws(() => validateWebhookConfig('T', { url: 'https://x.example.com', secret: 'curto' }), /secret/);
     assert.throws(() => validateWebhookConfig('T', { url: 'https://x.example.com', secret: SECRET, events: ['OUTRO'] }), /events/);
+    assert.throws(() => validateWebhookConfig('T', { url: 'https://x.example.com', secret: SECRET, mosThreshold: 9 }), /mosThreshold/);
+    assert.strictEqual(ok.mosThreshold, 3.0);
     assert.throws(() => buildKeyIndex({ T1: { agentKey: 'aaaaaaaa1', supervisorKey: 'bbbbbbbb1', webhook: { url: 'nope', secret: SECRET } } }), /url/);
 });
 
@@ -83,6 +85,39 @@ test('relay envia alerta de chamada crítica sem o nome do operador e só para o
     assert.ok(sent[0].headers['X-VoiceVanguard-Signature'].startsWith('sha256='));
     } finally {
         apex.close(); nexus.close();
+        await relay.shutdown();
+    }
+});
+
+test('MOS abaixo do limite por 3 amostras seguidas alerta uma vez por chamada e rearma em nova chamada', async () => {
+    const sent = [];
+    const relay = createRelay({ webhookSend: async (url, headers, body) => { sent.push(JSON.parse(body)); return 200; } });
+    await new Promise(r => relay.server.listen(0, r));
+    const port = relay.server.address().port;
+    const ws = await new Promise((resolve) => {
+        const w = new WebSocket(`ws://localhost:${port}`);
+        w.on('open', () => w.send(JSON.stringify({ type: 'AUTH', key: 'agent-key-apex-1', agentId: 'PA-9' })));
+        setTimeout(() => resolve(w), 300);
+    });
+    const tel = (mos, callId, active = true) => ws.send(JSON.stringify({ type: 'AGENT_TELEMETRY', mosScore: mos, callActive: active, currentCallId: callId, rttMs: 320, lossPct: 4 }));
+    try {
+        tel(2.4, 'C1'); tel(2.3, 'C1');
+        await new Promise(r => setTimeout(r, 150));
+        assert.strictEqual(sent.length, 0, 'duas amostras ainda não alertam');
+        tel(2.2, 'C1'); tel(2.1, 'C1'); tel(2.0, 'C1');
+        await new Promise(r => setTimeout(r, 150));
+        assert.deepStrictEqual(sent.map(s => s.event), ['MOS_DEGRADED'], 'um alerta por chamada');
+        assert.strictEqual(sent[0].interactionId, 'C1');
+        assert.strictEqual(sent[0].tenant, 'BPO-APEX-GLOBAL');
+        tel(4.0, 'C1', false);
+        tel(2.0, 'C2'); tel(2.0, 'C2'); tel(2.0, 'C2');
+        await new Promise(r => setTimeout(r, 200));
+        assert.deepStrictEqual(sent.map(s => s.interactionId), ['C1', 'C2'], 'nova chamada rearma o alerta');
+        tel(4.0, 'C3'); tel(2.0, 'C3'); tel(2.0, 'C3'); tel(4.0, 'C3'); tel(2.0, 'C3');
+        await new Promise(r => setTimeout(r, 150));
+        assert.strictEqual(sent.length, 2, 'amostra boa no meio zera a contagem');
+    } finally {
+        ws.close();
         await relay.shutdown();
     }
 });

@@ -10,14 +10,16 @@ Envia um `POST` JSON assinado ao sistema do cliente (Power Automate, Zapier, n8n
   "webhook": {
     "url": "https://alertas.exemplo.com/voicevanguard",
     "secret": "<16+ caracteres aleatórios>",
-    "events": ["CALL_CRITICAL", "AUDIO_INCIDENT"]
+    "events": ["CALL_CRITICAL", "AUDIO_INCIDENT", "MOS_DEGRADED"],
+    "mosThreshold": 3.0
   }
 }
 ```
 
 - `url`: obrigatoriamente `https`, sem usuário/senha. O servidor resolve o DNS e **recusa destinos internos** (loopback, redes privadas, link-local/metadata) fixando o IP validado na conexão (proteção contra SSRF). Redirecionamentos não são seguidos.
 - `secret`: usado para assinar; gere com `openssl rand -hex 24`. Nunca vai em código ou README.
-- `events` (opcional): padrão são os dois eventos.
+- `events` (opcional): padrão são os três eventos.
+- `mosThreshold` (opcional, 1 a 4.5, padrão 3.0): limite do alerta durante a chamada.
 - Configuração inválida impede a subida do servidor (falha rápida).
 
 ## Eventos
@@ -26,8 +28,10 @@ Envia um `POST` JSON assinado ao sistema do cliente (Power Automate, Zapier, n8n
 |---|---|
 | `CALL_CRITICAL` | resumo da chamada com classificação `CRÍTICA` |
 | `AUDIO_INCIDENT` | resumo da chamada com ao menos um incidente de áudio (mudo/unidirecional) |
+| `MOS_DEGRADED` | **durante** a chamada: MOS abaixo de `mosThreshold` em 3 amostras seguidas de telemetria; um alerta por chamada (uma amostra boa zera a contagem) |
 
-Corpo (JSON): `event`, `delivery`, `tenant`, `tower`, `station`, `platform`, `interactionId`, `endTime`, `mosMedio`, `mosMinimo`, `rttMedioMs`, `perdaPacotesPct`, `classificacao`, `causaRaiz`, `incidentesAudio`.
+Corpo dos eventos de fim de chamada (JSON): `event`, `delivery`, `tenant`, `tower`, `station`, `platform`, `interactionId`, `endTime`, `mosMedio`, `mosMinimo`, `rttMedioMs`, `perdaPacotesPct`, `classificacao`, `causaRaiz`, `incidentesAudio`.
+`MOS_DEGRADED` leva `event`, `delivery`, `tenant`, `tower`, `station`, `platform`, `interactionId`, `mosAtual`, `limiteMos`, `rttMs`, `perdaPacotesPct`, `jitterMs` e `networkType`.
 **O nome do operador não é enviado** (só a estação), em linha com o posicionamento de saúde técnica da estação.
 
 ## Verificação da assinatura

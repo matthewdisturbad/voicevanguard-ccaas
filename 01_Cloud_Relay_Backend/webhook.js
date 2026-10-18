@@ -9,7 +9,8 @@ const dns = require('dns');
 const net = require('net');
 const https = require('https');
 
-const WEBHOOK_EVENTS = new Set(['CALL_CRITICAL', 'AUDIO_INCIDENT']);
+const WEBHOOK_EVENTS = new Set(['CALL_CRITICAL', 'AUDIO_INCIDENT', 'MOS_DEGRADED']);
+const DEFAULT_MOS_THRESHOLD = 3.0;
 const SEND_TIMEOUT_MS = 5000;
 const MAX_PENDING = 200;
 const RETRY_DELAYS_MS = [1000, 5000, 20000];
@@ -29,7 +30,12 @@ function validateWebhookConfig(tenantId, cfg) {
         }
         events = [...new Set(cfg.events)];
     }
-    return { url: u.toString(), secret: cfg.secret, events: new Set(events) };
+    let mosThreshold = DEFAULT_MOS_THRESHOLD;
+    if (cfg.mosThreshold !== undefined) {
+        if (typeof cfg.mosThreshold !== 'number' || !(cfg.mosThreshold >= 1 && cfg.mosThreshold <= 4.5)) throw new Error(`Tenant ${tenantId}: webhook.mosThreshold deve ficar entre 1 e 4.5`);
+        mosThreshold = cfg.mosThreshold;
+    }
+    return { url: u.toString(), secret: cfg.secret, events: new Set(events), mosThreshold };
 }
 
 function isPrivateAddress(ip) {
