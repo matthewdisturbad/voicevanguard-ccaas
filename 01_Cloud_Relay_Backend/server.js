@@ -378,13 +378,13 @@ function urlKeyAllowed() {
     return process.env.NODE_ENV !== 'production' || process.env.ALLOW_URL_KEY === '1';
 }
 
-function computeScriptSrcDirective(pubDir) {
+function computeInlineHashes(pubDir, tag) {
     const hashes = new Set();
     try {
         const files = fs.readdirSync(pubDir).filter(f => f.endsWith('.html'));
         for (const f of files) {
             const html = fs.readFileSync(path.join(pubDir, f), 'utf8');
-            const re = /<script>([\s\S]*?)<\/script>/gi;
+            const re = new RegExp(`<${tag}>([\\s\\S]*?)</${tag}>`, 'gi');
             let m;
             while ((m = re.exec(html)) !== null) {
                 const raw = m[1];
@@ -394,10 +394,21 @@ function computeScriptSrcDirective(pubDir) {
             }
         }
     } catch (_) {}
-    return hashes.size > 0 ? `script-src 'self' ${Array.from(hashes).join(' ')}` : "script-src 'self'";
+    return Array.from(hashes);
+}
+
+function computeScriptSrcDirective(pubDir) {
+    const hashes = computeInlineHashes(pubDir, 'script');
+    return hashes.length > 0 ? `script-src 'self' ${hashes.join(' ')}` : "script-src 'self'";
+}
+
+// <style> inline por hash (sem unsafe-inline); atributos style="" não são permitidos.
+function computeStyleSrcDirective(pubDir) {
+    return ["style-src 'self'", ...computeInlineHashes(pubDir, 'style'), 'https://fonts.googleapis.com'].join(' ');
 }
 
 const SCRIPT_SRC_DIRECTIVE = computeScriptSrcDirective(path.join(__dirname, 'public'));
+const STYLE_SRC_DIRECTIVE = computeStyleSrcDirective(path.join(__dirname, 'public'));
 
 const SECURITY_HEADERS = {
     'X-Content-Type-Options': 'nosniff',
@@ -407,7 +418,7 @@ const SECURITY_HEADERS = {
     'Content-Security-Policy': [
         "default-src 'self'",
         SCRIPT_SRC_DIRECTIVE,
-        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+        STYLE_SRC_DIRECTIVE,
         "font-src https://fonts.gstatic.com",
         "img-src 'self' data:",
         "connect-src 'self'",

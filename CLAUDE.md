@@ -34,7 +34,7 @@ Este documento fornece contexto arquitetural, convenções de código e diretriz
 │   │                          #   (o fallback ?key=... fica desativado em produção, salvo ALLOW_URL_KEY=1 durante a migração; DISABLE_URL_KEY=1 desliga sempre).
 │   │                          #   O papel (agente/supervisor) e a torre são derivados da chave (SHA-256), nunca do cliente.
 │   │                          #   Pub/Sub de telemetria por sala de tenant e torre.
-│   │                          #   CSP com hashes SHA-256 em script-src (sem unsafe-inline), rate limit, maxPayload, heartbeat.
+│   │                          #   CSP com hashes SHA-256 em script-src e style-src (sem unsafe-inline), rate limit, maxPayload, heartbeat.
 │   │
 │   └── public/
 │       ├── index.html         # Landing page institucional com toggle PT-BR / EN

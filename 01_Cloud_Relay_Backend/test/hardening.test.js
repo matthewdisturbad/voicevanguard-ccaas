@@ -140,6 +140,20 @@ test('CSP usa hashes SHA-256 em script-src sem unsafe-inline', async () => {
     assert.ok(scriptDirective.includes("'sha256-"), `script-src deve conter hashes sha256: ${scriptDirective}`);
 });
 
+test('CSP: style-src por hash, sem unsafe-inline, e nenhum atributo style="" nas páginas', async () => {
+    const r = await get('/');
+    const csp = r.headers['content-security-policy'] || '';
+    const styleDirective = csp.split(';').map(s => s.trim()).find(s => s.startsWith('style-src'));
+    assert.ok(styleDirective, 'deve conter diretiva style-src');
+    assert.ok(!styleDirective.includes("'unsafe-inline'"), `style-src não deve conter unsafe-inline: ${styleDirective}`);
+    assert.ok(styleDirective.includes("'sha256-"), `style-src deve conter hashes sha256: ${styleDirective}`);
+    const dir = path.join(__dirname, '..', 'public');
+    for (const f of fs.readdirSync(dir).filter(n => n.endsWith('.html'))) {
+        const html = fs.readFileSync(path.join(dir, f), 'utf8');
+        assert.ok(!/\sstyle=["'`]/.test(html), `${f} usa atributo style="" (bloqueado pela CSP); use classes`);
+    }
+});
+
 test('API_LATENCY de múltiplos frames na mesma PA mescla hosts na janela ativa', async () => {
     const supMsgs = [];
     const sup = new WebSocket(`ws://localhost:${port}`, { headers: { 'X-Forwarded-For': '203.0.113.20' } });

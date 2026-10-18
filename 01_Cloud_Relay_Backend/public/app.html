@@ -123,7 +123,7 @@
         .bi-hint { font-size: var(--fs-xs); color: var(--text-3); margin-top: var(--s1); }
 
         /* Login / route guard */
-        #authOverlay { position: fixed; inset: 0; background: var(--overlay); display: flex; align-items: center; justify-content: center; padding: var(--s4); z-index: 9999; overflow-y: auto; }
+        #authOverlay { position: fixed; inset: 0; background: var(--overlay); display: none; align-items: center; justify-content: center; padding: var(--s4); z-index: 9999; overflow-y: auto; }
         .auth-card { background: var(--surface); width: 100%; max-width: 420px; border-radius: 8px; border: 1px solid var(--border-strong); }
         .auth-header { padding: var(--s5) var(--s5) var(--s4); border-bottom: 1px solid var(--border); }
         .auth-header .brand-mark { margin-bottom: var(--s3); display: block; }
@@ -150,6 +150,9 @@
         .auth-header { position: relative; }
         .auth-lang { position: absolute; top: var(--s3); right: var(--s3); }
         .cell-block { min-width: 0; overflow-wrap: anywhere; }
+        .cell-sub { font-size: var(--fs-xs); margin-top: 2px; }
+        .note-sm { margin-top: var(--s3); font-size: var(--fs-sm); }
+        .mt-8 { margin-top: 8px; }
         .pc-item + .pc-item { margin-top: var(--s2); }
         .pc-hint { font-size: var(--fs-xs); color: var(--text-3); max-width: 46ch; }
 
@@ -261,7 +264,7 @@
 <body>
 
 <!-- Autenticação do supervisor -->
-<div id="authOverlay" style="display: none;">
+<div id="authOverlay">
     <div class="auth-card" role="dialog" aria-modal="true" aria-labelledby="authTitle">
         <div class="auth-header">
             <div class="lang-toggle auth-lang" role="group" aria-label="Idioma / Language">
@@ -452,7 +455,7 @@
                 </tbody>
             </table>
         </div>
-        <p class="muted" id="healthNote" data-i18n="health_note" style="margin-top: var(--s3); font-size: var(--fs-sm);">A latência é agregada por servidor (hostname) em janelas de 30 s; endereços completos, caminhos e identificadores não são coletados.</p>
+        <p class="muted note-sm" id="healthNote" data-i18n="health_note">A latência é agregada por servidor (hostname) em janelas de 30 s; endereços completos, caminhos e identificadores não são coletados.</p>
     </div>
 
     <!-- Aba 2: auditoria de chamadas -->
@@ -1655,9 +1658,9 @@
             const durMin = Math.floor((c.durationSeconds || 0) / 60);
             const durSec = (c.durationSeconds || 0) % 60;
             const audioLine = (c.incidentesAudio && c.incidentesAudio.length)
-                ? `<div class="txt-crit cell-block" style="font-size: var(--fs-xs); margin-top: 2px;">${esc(t('calls_audio', { list: c.incidentesAudio.map(code => audioLabel(code) || code).join(', ') }))}</div>` : '';
+                ? `<div class="txt-crit cell-block cell-sub">${esc(t('calls_audio', { list: c.incidentesAudio.map(code => audioLabel(code) || code).join(', ') }))}</div>` : '';
             const rcLine = (c.causaRaiz && c.causaRaiz !== 'N/D' && c.causaRaiz !== 'REDE_HOMOLOGADA')
-                ? `<div class="muted cell-block" style="font-size: var(--fs-xs); margin-top: 2px;">${esc(t('calls_cause', { c: rootCauseLabel(c.causaRaiz) }))}</div>` : '';
+                ? `<div class="muted cell-block cell-sub">${esc(t('calls_cause', { c: rootCauseLabel(c.causaRaiz) }))}</div>` : '';
             return `
                 <tr>
                     <td data-label="${esc(t('calls_col_class'))}"><span class="badge ${tagClass}"><span class="badge-sym" aria-hidden="true">${sym}</span>${esc(classLabel(c.classificacao))}</span>${audioLine}${rcLine}</td>
@@ -1734,7 +1737,7 @@
                     <button class="btn-quiet" type="button" data-cancel-clear data-keep="cancel">${esc(t('cmd_cancel'))}</button></div>`;
             } else {
                 cmdHtml = `<p>${esc(t('cmd_desc'))}</p>
-                    <div class="row"><button class="btn-action" type="button" data-clear-agent="${esc(ui.selected)}" data-keep="clear" ${isOffline(a) ? 'disabled' : ''}>${esc(t('cmd_clear'))}</button></div>${isOffline(a) ? `<p class="muted" style="margin-top:8px">${esc(t('cmd_offline'))}</p>` : ''}`;
+                    <div class="row"><button class="btn-action" type="button" data-clear-agent="${esc(ui.selected)}" data-keep="clear" ${isOffline(a) ? 'disabled' : ''}>${esc(t('cmd_clear'))}</button></div>${isOffline(a) ? `<p class="muted mt-8">${esc(t('cmd_offline'))}</p>` : ''}`;
             }
             const fbHtml = fb ? `<div class="cmd-state ${esc(fb.state)}" data-cmd-state>${esc(fbText(fb))} <span class="muted">(${esc(fmtDate(fb.ts))})</span></div>` : '';
             body.innerHTML = `
