@@ -6,7 +6,7 @@ const fs = require('fs');
 const path = require('path');
 
 const src = fs.readFileSync(path.join(__dirname, '../../03_Chrome_Edge_Extension/injected_webrtc_hook.js'), 'utf8');
-const m = src.match(/function calculateMos\(rtt, jitter, lossPct\) \{[\s\S]*?\n    \}\n/);
+const m = src.match(/function calculateMos\(rtt, jitter, lossPct\) \{[\s\S]*?\r?\n    \}\r?\n/);
 assert.ok(m, 'calculateMos não encontrada no hook');
 const calculateMos = new Function(`${m[0]}; return calculateMos;`)();
 
