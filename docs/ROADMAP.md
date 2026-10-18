@@ -7,7 +7,7 @@ Princípio: começar pelo mais barato e só construir conectores nativos sob dem
 
 | Etapa | O que é | Esforço estimado | Gatilho |
 |---|---|---|---|
-| 1. Webhook genérico de saída | `POST` JSON assinado (HMAC) quando o MOS cai, uma chamada é `CRÍTICA` ou há incidente de áudio; com retentativas e fila simples | 1 a 3 dias | Algum cliente pedir alertas |
+| 1. Webhook genérico de saída (**implementado**, ver `docs/WEBHOOK_ALERTAS.md`; falta alerta por queda de MOS em chamada ativa) | `POST` JSON assinado (HMAC) quando o MOS cai, uma chamada é `CRÍTICA` ou há incidente de áudio; com retentativas e fila simples | 1 a 3 dias | Algum cliente pedir alertas |
 | 2. Ponte por automação do cliente | Documentar como ligar o webhook a Power Automate, Zapier, n8n, Teams e Slack | 1 dia (docs) | Após a etapa 1 |
 | 3. Conector ServiceNow / Jira | OAuth, mapeamento de campos por cliente, tabelas/fluxos customizados, deduplicação, suporte contínuo | semanas por ferramenta | Cliente pagante exigir em contrato e financiar |
 

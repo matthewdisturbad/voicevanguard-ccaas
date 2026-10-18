@@ -22,6 +22,7 @@ const fs = require('fs');
 const crypto = require('crypto');
 const https = require('https');
 const { WebSocketServer, WebSocket } = require('ws');
+const { validateWebhookConfig, createWebhookDispatcher } = require('./webhook');
 
 const PORT = process.env.PORT !== undefined ? Number(process.env.PORT) : 9090;
 const IS_PROD = process.env.NODE_ENV === 'production';
@@ -121,7 +122,8 @@ function buildKeyIndex(tenants) {
             name: String(t.name || tenantId),
             plan: String(t.plan || 'Standard'),
             maxAgents: Number.isFinite(t.maxAgents) && t.maxAgents > 0 ? t.maxAgents : 100,
-            towers: towerIds
+            towers: towerIds,
+            webhook: validateWebhookConfig(tenantId, t.webhook)
         });
         if (hasLegacy) {
             addKey(tenantId, t.agentKey, { role: 'agent', tower: null, towers: '*' });
@@ -431,6 +433,7 @@ function createRelay(options = {}) {
     const tenants = loadTenants();
     const { index: keyIndex, meta: tenantMeta, genesys: genesysIndex } = buildKeyIndex(tenants);
     const genesysFetch = options.genesysFetch || genesysUsersMe;
+    const webhooks = createWebhookDispatcher({ send: options.webhookSend, log: (m) => console.warn('[Webhook]', m) });
     if (keyIndex.size === 0) throw new Error('Nenhum tenant ativo configurado.');
 
     // tenantId -> { supervisors: Set(ws), agents: Map(agentId, data), callHistory: [] }
@@ -881,6 +884,7 @@ function createRelay(options = {}) {
                     if (room.callHistory.length > MAX_HISTORY) room.callHistory.pop();
                     saveTenantHistory(tenantId, room.callHistory);
                     broadcast(room, { type: 'NEW_CALL_AUDIT', payload: record }, tower);
+                    notifyWebhook(meta, tenantId, record);
                     const cur = room.agents.get(akey(tower, agentId));
                     if (cur && data.stillInCall !== true) cur.callActive = false;
                     if (data.stillInCall !== true) flushPending(room, ws);
@@ -1007,7 +1011,20 @@ function createRelay(options = {}) {
     }, HEARTBEAT_MS);
     heartbeat.unref();
 
+    // Alertas de saída: chamada crítica e incidente de áudio. Sem o nome do operador.
+    function notifyWebhook(meta, tenantId, rec) {
+        if (!meta.webhook) return;
+        const payload = {
+            tenant: tenantId, tower: rec.tower, station: rec.station, platform: rec.platformCode, interactionId: rec.interactionId,
+            endTime: rec.endTime, mosMedio: rec.mosMedio, mosMinimo: rec.mosMinimo, rttMedioMs: rec.rttMedioMs,
+            perdaPacotesPct: rec.perdaPacotesPct, classificacao: rec.classificacao, causaRaiz: rec.causaRaiz, incidentesAudio: rec.incidentesAudio
+        };
+        if (rec.classificacao === 'CRÍTICA') webhooks.emit(meta.webhook, 'CALL_CRITICAL', payload);
+        if (rec.incidentesAudio.length) webhooks.emit(meta.webhook, 'AUDIO_INCIDENT', payload);
+    }
+
     async function shutdown() {
+        webhooks.close();
         clearInterval(heartbeat);
         for (const ws of wss.clients) {
             try { ws.close(1001, 'Server shutting down'); ws.terminate(); } catch (_) {}
