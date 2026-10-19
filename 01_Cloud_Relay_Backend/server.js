@@ -737,10 +737,10 @@ function createRelay(options = {}) {
                 const rows = filterCalls(room.callHistory, { from: url.searchParams.get('from'), to: url.searchParams.get('to'), canSee: (tw) => canSee(found, tw) });
                 res.writeHead(200, {
                     'Content-Type': 'text/csv; charset=utf-8',
-                    'Content-Disposition': `attachment; filename="chamadas-${found.tenantId}.csv"`,
+                    'Content-Disposition': `attachment; filename="${url.searchParams.get('lang') === 'en' ? 'calls' : 'chamadas'}-${found.tenantId}.csv"`,
                     'Cache-Control': 'no-store'
                 });
-                res.end(callsToCsv(rows));
+                res.end(callsToCsv(rows, url.searchParams.get('lang') === 'en' ? 'en' : 'pt'));
             };
             const deny = () => { recordFailure(ip); sendJson(res, 403, { error: 'Chave inválida ou não autorizada.' }); };
             const bearer = /^Bearer (\S+)$/.exec(String(req.headers['authorization'] || ''));
