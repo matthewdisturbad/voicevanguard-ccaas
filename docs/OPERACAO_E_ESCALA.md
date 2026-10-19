@@ -107,3 +107,20 @@ A coleta local continua a cada 2 s; só o envio é reduzido. O resumo da chamada
 
 - **Caminho de mídia:** a extensão lê o par de candidatos ICE selecionado em `getStats()` e envia só protocolo e tipo (`udp-srflx`, `udp-relay`, `tcp-relay` etc.). Endereços IP e portas nunca são lidos. Mídia em TCP durante a chamada gera ALERTA e a causa "Mídia caiu para TCP (UDP possivelmente bloqueado)".
 - **Teste de UDP 3478 (opcional):** com `"stunServers": ["stun:host[:porta]"]` (até 3) no tenant, o pré-check do popup coleta candidatos ICE e informa se há resposta UDP de saída. Sem `stunServers`, o item não aparece. O teste **não prova** a faixa ampla de mídia (por exemplo UDP 16384–65535 no Genesys Cloud); só indica bloqueio provável. Confirme as portas na documentação vigente de cada plataforma antes de passá-las à TI do cliente.
+
+## Métricas de saúde do relay (OpenTelemetry / OTLP)
+
+Opt-in: sem `OTEL_EXPORTER_OTLP_ENDPOINT` o relay não coleta nem envia nada. Implementação em `otel.js`, sem dependências (OTLP/HTTP em JSON). O destino é qualquer receptor OTLP; o planejado é o Grafana Cloud.
+
+| Variável (Railway) | Exemplo |
+|---|---|
+| `OTEL_EXPORTER_OTLP_ENDPOINT` | `https://otlp-gateway-<zona>.grafana.net/otlp` (https obrigatório; `/v1/metrics` é acrescentado) |
+| `OTEL_EXPORTER_OTLP_HEADERS` | `Authorization=Basic <base64 de instanceId:token>` (segredo; nunca logado) |
+| `OTEL_METRIC_EXPORT_INTERVAL` | `60000` (ms, 10000–600000) |
+| `OTEL_SERVICE_NAME` | `voicevanguard-relay` |
+
+No Grafana Cloud: *Connections → OpenTelemetry (OTLP)* mostra o endpoint, o instance ID e permite gerar o token (escopo de escrita de métricas).
+
+Métricas: `vvg.ws.connections` (tenant, papel), `vvg.stations` (tenant, status), `vvg.calls.active`, `vvg.call_history.size`, `vvg.webhook.pending`, `nodejs.eventloop.delay.p99`, `process.memory.rss`/`heap_used`, `process.uptime`, e contadores `vvg.auth.failures`, `vvg.limit.rejects`, `vvg.ratelimit.closed`, `vvg.messages.received` (papel). Rótulos só de baixa cardinalidade: nunca agentId, operador, chave ou IP (o plano gratuito comporta 10 mil séries).
+
+Alertas sugeridos: sem dados do serviço por 5 min (relay fora), `vvg.ws.connections{role="agent"}` caindo mais de 30% em 5 min, `nodejs.eventloop.delay.p99` acima de 200 ms, `vvg.webhook.pending` acima de 40, pico de `vvg.auth.failures`. Complemente com um monitor externo de uptime em `/api/health`, que continua pendente.

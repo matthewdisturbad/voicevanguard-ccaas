@@ -22,6 +22,7 @@ Este documento fornece contexto arquitetural, convenções de código e diretriz
 ```
 ├── 01_Cloud_Relay_Backend/
 │   ├── demo.js                # Simulador do tenant de demonstração (dados fictícios; só com `demo: true`)
+│   ├── otel.js                # Métricas de saúde do relay via OTLP/HTTP (opt-in por OTEL_EXPORTER_OTLP_ENDPOINT, sem dependências)
 │   ├── station-credential.js  # Credencial individual por estação (HMAC) e cadastro; webhook.js = alertas de saída
 │   ├── server.js              # Servidor HTTP (módulo http nativo) + WebSocket (ws)
 │   │                          # Rotas HTTP:
@@ -84,7 +85,7 @@ cd 01_Cloud_Relay_Backend
 # Instalar dependências
 npm install
 
-# Rodar os testes automatizados (115 testes unitários)
+# Rodar os testes automatizados (120 testes unitários)
 npm test
 
 # Rodar backend localmente (Porta 9090; sem TENANTS_JSON usa tenants fictícios de dev)

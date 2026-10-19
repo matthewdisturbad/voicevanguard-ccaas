@@ -115,6 +115,7 @@ function createWebhookDispatcher({ send = defaultSend, delays = RETRY_DELAYS_MS,
             pending++;
             return deliver(cfg, event, payload).catch(() => false).finally(() => { pending--; });
         },
+        pendingCount() { return pending; },
         close() { closed = true; for (const t of timers) clearTimeout(t); timers.clear(); }
     };
 }

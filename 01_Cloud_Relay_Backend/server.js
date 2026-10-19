@@ -24,6 +24,8 @@ const https = require('https');
 const { WebSocketServer, WebSocket } = require('ws');
 const { createDemoSimulator } = require('./demo');
 const { validateWebhookConfig, createWebhookDispatcher } = require('./webhook');
+const { createMetricsExporter } = require('./otel');
+const { monitorEventLoopDelay } = require('perf_hooks');
 const { callsToCsv, filterCalls } = require('./export-csv');
 const { STATION_ID, mintStationCredential, verifyStationCredential, looksLikeStationCredential, parseStationScope } = require('./station-credential');
 
@@ -548,6 +550,8 @@ function createRelay(options = {}) {
     }
     const mosWatch = new Map(); // `${tenantId}|${akey}` -> { callId, low, alerted }
     const webhooks = createWebhookDispatcher({ send: options.webhookSend, log: (m) => console.warn('[Webhook]', m) });
+    // Contadores cumulativos para as métricas de saúde (OTLP opcional, ver otel.js)
+    const counters = { authFailures: 0, limitRejects: 0, rateLimited: 0, msgAgent: 0, msgSupervisor: 0 };
     if (keyIndex.size === 0) throw new Error('Nenhum tenant ativo configurado.');
 
     // tenantId -> { supervisors: Set(ws), agents: Map(agentId, data), callHistory: [] }
@@ -806,6 +810,7 @@ function createRelay(options = {}) {
     const wss = new WebSocketServer({ server, maxPayload: MAX_PAYLOAD_BYTES });
 
     function reject(ws, code, reason, message) {
+        if (code === 4001) counters.authFailures++; else if (code === 4003) counters.limitRejects++;
         try { ws.send(JSON.stringify({ type: 'AUTH_ERROR', message })); } catch (_) {}
         ws.close(code, reason);
     }
@@ -990,9 +995,11 @@ function createRelay(options = {}) {
             ws.msgCount++;
             const maxMsg = ws.authenticated ? (ws.clientType === 'agent' ? MSG_MAX_AGENT : MSG_MAX_SUPERVISOR) : 5;
             if (ws.msgCount > maxMsg) {
+                counters.rateLimited++;
                 ws.close(1008, 'Rate Limited');
                 return;
             }
+            if (ws.authenticated) { if (ws.clientType === 'agent') counters.msgAgent++; else if (ws.clientType === 'supervisor') counters.msgSupervisor++; }
             let data;
             try { data = JSON.parse(raw); } catch (e) {
                 if (!ws.authenticated) {
@@ -1308,7 +1315,55 @@ function createRelay(options = {}) {
         if (rec.incidentesAudio.length) webhooks.emit(meta.webhook, 'AUDIO_INCIDENT', payload);
     }
 
+    // Métricas de saúde do relay: só rótulos de baixa cardinalidade (tenant, papel, status).
+    const loopDelay = monitorEventLoopDelay({ resolution: 20 });
+    loopDelay.enable();
+    function collectHealth() {
+        const conns = new Map(); // `${tenant}|${papel}` -> n
+        for (const c of wss.clients) {
+            if (!c.authenticated) continue;
+            const k = `${c.tenantId}|${c.clientType}`;
+            conns.set(k, (conns.get(k) || 0) + 1);
+        }
+        const stationsBy = [];
+        const callsBy = [];
+        const historyBy = [];
+        for (const [tenantId, room] of tenantRooms) {
+            const byStatus = { OK: 0, ALERTA: 0, OFFLINE: 0 };
+            let calls = 0;
+            for (const a of room.agents.values()) { byStatus[a.status] = (byStatus[a.status] || 0) + 1; if (a.callActive) calls++; }
+            for (const [status, value] of Object.entries(byStatus)) stationsBy.push({ value, attrs: { tenant: tenantId, status } });
+            callsBy.push({ value: calls, attrs: { tenant: tenantId } });
+            historyBy.push({ value: room.callHistory.length, attrs: { tenant: tenantId } });
+        }
+        const mem = process.memoryUsage();
+        const ms = (ns) => Math.round((ns / 1e6) * 100) / 100;
+        const gauges = [
+            { name: 'vvg.ws.connections', unit: '{connection}', description: 'Conexões WebSocket autenticadas', points: Array.from(conns, ([k, value]) => { const [tenant, role] = k.split('|'); return { value, attrs: { tenant, role } }; }) },
+            { name: 'vvg.stations', unit: '{station}', description: 'Estações por status', points: stationsBy },
+            { name: 'vvg.calls.active', unit: '{call}', description: 'Chamadas ativas', points: callsBy },
+            { name: 'vvg.call_history.size', unit: '{call}', description: 'Chamadas no histórico em memória', points: historyBy },
+            { name: 'vvg.webhook.pending', unit: '{alert}', description: 'Alertas de saída na fila', points: [{ value: webhooks.pendingCount(), attrs: {} }] },
+            { name: 'nodejs.eventloop.delay.p99', unit: 'ms', description: 'Atraso do event loop (p99 desde a última coleta)', points: [{ value: ms(loopDelay.percentile(99)), attrs: {} }] },
+            { name: 'process.memory.rss', unit: 'By', points: [{ value: mem.rss, attrs: {} }] },
+            { name: 'process.memory.heap_used', unit: 'By', points: [{ value: mem.heapUsed, attrs: {} }] },
+            { name: 'process.uptime', unit: 's', points: [{ value: Math.round(process.uptime()), attrs: {} }] }
+        ];
+        loopDelay.reset();
+        const sums = [
+            { name: 'vvg.auth.failures', unit: '{reject}', description: 'Conexões recusadas por chave/credencial inválida', points: [{ value: counters.authFailures, attrs: {} }] },
+            { name: 'vvg.limit.rejects', unit: '{reject}', description: 'Conexões recusadas por limite de plano', points: [{ value: counters.limitRejects, attrs: {} }] },
+            { name: 'vvg.ratelimit.closed', unit: '{connection}', description: 'Conexões encerradas por excesso de mensagens', points: [{ value: counters.rateLimited, attrs: {} }] },
+            { name: 'vvg.messages.received', unit: '{message}', description: 'Mensagens recebidas de clientes autenticados', points: [{ value: counters.msgAgent, attrs: { role: 'agent' } }, { value: counters.msgSupervisor, attrs: { role: 'supervisor' } }] }
+        ];
+        return { gauges, sums };
+    }
+    const metrics = createMetricsExporter({ env: options.env || process.env, collect: collectHealth, log: (m) => console.warn('[OTLP]', m) });
+    if (metrics) { metrics.start(); console.log(`[OTLP] métricas de saúde habilitadas a cada ${metrics.interval / 1000}s`); }
+
     async function shutdown() {
+        if (metrics) metrics.stop();
+        loopDelay.disable();
         webhooks.close();
         for (const t of batchTimers) clearTimeout(t);
         batchTimers.clear();
@@ -1325,7 +1380,7 @@ function createRelay(options = {}) {
         });
     }
 
-    return { server, wss, tenantRooms, shutdown };
+    return { server, wss, tenantRooms, shutdown, collectHealth };
 }
 
 if (require.main === module) {
