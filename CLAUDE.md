@@ -21,6 +21,7 @@ Este documento fornece contexto arquitetural, convenções de código e diretriz
 
 ```
 ├── 01_Cloud_Relay_Backend/
+│   ├── demo.js                # Simulador do tenant de demonstração (dados fictícios; só com `demo: true`)
 │   ├── station-credential.js  # Credencial individual por estação (HMAC) e cadastro; webhook.js = alertas de saída
 │   ├── server.js              # Servidor HTTP (módulo http nativo) + WebSocket (ws)
 │   │                          # Rotas HTTP:
