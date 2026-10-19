@@ -8,12 +8,15 @@
 let RELAY_SERVER = "wss://voicevanguard.trustco.pro"; // Custom domain principal
 importScripts('precheck.js'); // VVPrecheck.summarizeProbe
 importScripts('enroll.js'); // VVEnroll.chooseAuth
+importScripts('cadence.js'); // VVCadence (modo de monitoramento do tenant)
 
 let enrollToken = ""; // token de cadastro da torre (GPO/Intune); troca por credencial individual
 let stationCredential = "";
 let stationCredentialExp = 0;
 let enrollFailures = 0;
 let genesysRegion = ""; // região Genesys do tenant, informada pelo relay no AUTH_OK (validada antes do uso)
+const cadence = VVCadence.createCadence('realtime'); // modo informado pelo relay no AUTH_OK
+let stunServers = []; // servidores STUN do tenant para o teste de UDP 3478 do pré-check (opcional)
 let tenantKey = ""; // chave de AGENTE do tenant (definida por GPO/Intune ou pelo popup); sem valor padrão
 let agentStationId = null;
 let operatorName = "Operador";
@@ -113,6 +116,15 @@ function connectToCloudRelay() {
 
                 if (msg.type === 'AUTH_OK') {
                     genesysRegion = VVPrecheck.isGenesysRegion(msg.genesysRegion) ? msg.genesysRegion : "";
+                    cadence.setMode(msg.monitoringMode);
+                    stunServers = VVPrecheck.validStunServers(msg.stunServers);
+                    chrome.storage.local.set({ monitoringMode: cadence.mode, stunServers });
+                    return;
+                }
+
+                // "Medir agora": abre uma janela curta de envio em tempo real (somente leitura, permitido durante a chamada)
+                if (msg.type === 'MEASURE_NOW') {
+                    cadence.measure(msg.seconds, Date.now());
                     return;
                 }
 
@@ -274,6 +286,12 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             } catch (e) { }
         }
 
+        const status = (message.payload.perdaPct > 2 || message.payload.jitterMs > 30 || message.payload.mosScore < 3.4 ||
+                     (message.payload.audioIssue && message.payload.audioIssue !== 'NONE') ||
+                     (message.payload.protocolo && String(message.payload.protocolo).toUpperCase() === 'TCP')) ? "ALERTA" : "OK";
+        // O modo do tenant decide se esta amostra segue ao relay; o estado local (lastMetric) já foi atualizado acima.
+        if (!cadence.shouldSend({ status, audioIssue: message.payload.audioIssue || 'NONE', mediaPath: message.payload.caminhoMidia }, Date.now())) return;
+
         sendWsMessage({
             type: 'AGENT_TELEMETRY',
             operator: operatorName,
@@ -282,8 +300,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             platformCode: message.payload.platformCode || "WEBRTC",
             genesysOrg: detectedPlatform, // título da aba pode conter dado do cliente final: nunca enviar
             region: detectedHost,
-            status: (message.payload.perdaPct > 2 || message.payload.jitterMs > 30 || message.payload.mosScore < 3.4 ||
-                     (message.payload.audioIssue && message.payload.audioIssue !== 'NONE')) ? "ALERTA" : "OK",
+            status,
             audioIssue: message.payload.audioIssue || 'NONE',
             mosScore: String(message.payload.mosScore), // sem valor padrão: MOS ausente não pode virar "ótimo"
 
@@ -293,6 +310,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             networkType: message.payload.networkType || "N/D",
             cpuStress: message.payload.cpuStress || "NORMAL",
             protocol: message.payload.protocolo ? message.payload.protocolo.toUpperCase() : "UDP",
+            mediaPath: message.payload.caminhoMidia,
             callActive: true,
             currentCallId: message.payload.callId || ""
         });
@@ -300,6 +318,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     } else if (message.action === 'REPORT_CALL_SUMMARY' && message.payload) {
         const stillInCall = message.payload.stillInCall === true;
         if (!stillInCall) {
+            cadence.reset();
             isCallActive = false;
             chrome.storage.local.set({ isCallActive: false });
         }
@@ -329,6 +348,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             rttMedioMs: message.payload.rttMedioMs,
             perdaPacotesPct: message.payload.perdaPacotesPct,
             protocolo: message.payload.protocolo,
+            caminhoMidia: message.payload.caminhoMidia,
             classificacao: message.payload.classificacao,
             networkType: message.payload.networkType || "N/D",
             cpuStress: message.payload.cpuStress || "NORMAL",
@@ -360,6 +380,9 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     } else if (message.action === 'RUN_REGION_PROBE' && fromExtensionPage) {
         runRegionProbe().then(sendResponse);
         return true;
+
+    } else if (message.action === 'GET_STUN_SERVERS' && fromExtensionPage) {
+        sendResponse({ servers: stunServers });
 
     } else if (message.action === 'SUBMIT_PRECHECK' && fromExtensionPage && message.result) {
         const r = message.result;

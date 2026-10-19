@@ -149,6 +149,35 @@ function render() {
     });
 }
 
+// Teste opcional de UDP de saída: coleta candidatos ICE contra o STUN do tenant (~3 s). Nenhum dado de mídia, nenhum IP é guardado.
+// Retorna null quando o tenant não configurou STUN.
+async function probeUdp() {
+    let servers = [];
+    try { servers = (await chrome.runtime.sendMessage({ action: 'GET_STUN_SERVERS' })).servers || []; } catch (e) { }
+    servers = VVPrecheck.validStunServers(servers);
+    if (!servers.length) return null;
+    let pc = null;
+    try {
+        pc = new RTCPeerConnection({ iceServers: [{ urls: servers }] });
+        pc.createDataChannel('vv');
+        let srflx = false;
+        const done = new Promise((resolve) => {
+            const timer = setTimeout(resolve, 3000);
+            pc.onicecandidate = (ev) => {
+                if (!ev.candidate) { clearTimeout(timer); resolve(); return; }
+                if (/ typ srflx /.test(ev.candidate.candidate)) { srflx = true; clearTimeout(timer); resolve(); }
+            };
+        });
+        await pc.setLocalDescription(await pc.createOffer());
+        await done;
+        return { srflx };
+    } catch (e) {
+        return { error: 'falha' };
+    } finally {
+        try { if (pc) pc.close(); } catch (e) { }
+    }
+}
+
 async function runPrecheck() {
     const btnPre = $('btnPrecheck');
     btnPre.disabled = true;
@@ -157,6 +186,7 @@ async function runPrecheck() {
     try {
         const net = await chrome.runtime.sendMessage({ action: 'RUN_NET_PROBE' });
         const region = await chrome.runtime.sendMessage({ action: 'RUN_REGION_PROBE' }).catch(() => ({ error: 'falha' }));
+        const udp = await probeUdp();
         const devices = { audioInputs: 0, audioOutputs: 0 };
         try {
             // Apenas a contagem por tipo; nomes/IDs de dispositivo nunca são lidos
@@ -170,6 +200,7 @@ async function runPrecheck() {
             relayConnected: !!stored.relayConnected,
             net: net || { error: 'sem_resposta' },
             region,
+            udp,
             devices,
             connection: navigator.connection ? { effectiveType: navigator.connection.effectiveType } : null,
             hw: { cores: navigator.hardwareConcurrency, memoryGb: navigator.deviceMemory }
@@ -244,7 +275,8 @@ const PRE_VALUE_WORDS = [
     ['não detectado', 'pre.val.nao_detectado'], ['não detectada', 'pre.val.nao_detectada'],
     ['desconectado', 'pre.val.desconectado'], ['sem medição', 'pre.val.sem_medicao'],
     ['conectado', 'pre.val.conectado'], ['detectado', 'pre.val.detectado'],
-    ['detectada', 'pre.val.detectada'], ['núcleos', 'pre.val.nucleos']
+    ['detectada', 'pre.val.detectada'], ['núcleos', 'pre.val.nucleos'],
+    ['UDP liberado', 'pre.val.udp_ok'], ['UDP bloqueado?', 'pre.val.udp_bloqueado']
 ];
 
 function localizePrecheckValue(valor) {

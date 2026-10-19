@@ -413,7 +413,9 @@
             <button class="btn-quiet" id="btnClearFilters" type="button" data-i18n="btn_clear_filters">Limpar filtros</button>
         </div>
         <p class="result-count" id="resultCount"></p>
+        <p class="result-count" id="monitorInfo" hidden></p>
         <div class="batch-bar" id="batchBar" hidden>
+            <button class="btn-quiet" id="btnMeasure" type="button" hidden></button>
             <button class="btn-quiet" id="btnBatch" type="button"></button>
             <div class="batch-confirm" id="batchConfirm" hidden>
                 <span id="batchConfirmText"></span>
@@ -744,6 +746,8 @@
                 pcv_detectada: "detectada",
                 pcv_nao_detectada: "não detectada",
                 pcv_cores: "núcleos",
+                pcv_udp_ok: "UDP liberado",
+                pcv_udp_bloqueado: "UDP bloqueado?",
                 calls_col_class: "Classificação",
                 calls_col_platform: "Plataforma",
                 calls_col_id: "ID da interação",
@@ -768,6 +772,27 @@
                 rc_SOBRECARGA_CPU_OPERADOR: "Sobrecarga de CPU do operador",
                 rc_JITTER_INTERMITENTE: "Jitter intermitente",
                 rc_FALHA_AUDIO_ESTACAO: "Falha de áudio na estação",
+                rc_MIDIA_TCP_FALLBACK: "Mídia caiu para TCP (UDP possivelmente bloqueado)",
+                cause_tcp: "Mídia caiu para TCP (UDP possivelmente bloqueado no firewall ou VPN)",
+                ap_media: "Caminho de mídia",
+                media_udp_host: "UDP direto (rede local)",
+                media_udp_srflx: "UDP direto (via NAT)",
+                media_udp_prflx: "UDP direto (via NAT)",
+                media_udp_relay: "UDP via relay (TURN)",
+                media_tcp_host: "TCP direto",
+                media_tcp_srflx: "TCP direto",
+                media_tcp_prflx: "TCP direto",
+                media_tcp_relay: "TCP via relay (TURN)",
+                media_udp_unknown: "UDP",
+                media_tcp_unknown: "TCP",
+                measure_btn: "Medir agora as {n} estações da lista",
+                measure_ok: "Medição em tempo real aberta em {n} estações por {s} s.",
+                measure_none: "Nenhuma estação conectada recebeu o pedido de medição.",
+                measure_busy: "Uma medição foi pedida há pouco. Aguarde alguns segundos.",
+                mon_sampled: "Modo amostrado: cada estação envia uma medição a cada ~10 s e, na hora, quando algo muda. Use Medir agora para dados em tempo real.",
+                mon_on_demand: "Modo por disparo: cada estação informa presença a cada ~30 s. Use Medir agora para abrir uma janela de medição em tempo real.",
+                pc_n_udp_3478: "UDP de saída (3478)",
+                pc_o_udp_3478: "Não houve resposta UDP na porta 3478. Peça à TI para liberar UDP de saída (3478 e a faixa de mídia da plataforma); sem isso a chamada pode cair para TCP e perder qualidade.",
                 dur_fmt: "{m}m {s}s",
                 bi_title: "Fatores locais que afetam a qualidade de voz",
                 bi_desc: "Indícios de Wi-Fi e falhas de áudio no posto do atendente podem degradar a voz antes de virar chamado técnico.",
@@ -1026,6 +1051,8 @@
                 pcv_nao_detectado: "not detected",
                 pcv_detectada: "detected",
                 pcv_nao_detectada: "not detected",
+                pcv_udp_ok: "UDP open",
+                pcv_udp_bloqueado: "UDP blocked?",
                 pcv_cores: "cores",
                 calls_col_class: "Rating",
                 calls_col_platform: "Platform",
@@ -1051,6 +1078,27 @@
                 rc_SOBRECARGA_CPU_OPERADOR: "Operator CPU overload",
                 rc_JITTER_INTERMITENTE: "Intermittent jitter",
                 rc_FALHA_AUDIO_ESTACAO: "Station audio failure",
+                rc_MIDIA_TCP_FALLBACK: "Media fell back to TCP (UDP possibly blocked)",
+                cause_tcp: "Media fell back to TCP (UDP possibly blocked by firewall or VPN)",
+                ap_media: "Media path",
+                media_udp_host: "Direct UDP (local network)",
+                media_udp_srflx: "Direct UDP (via NAT)",
+                media_udp_prflx: "Direct UDP (via NAT)",
+                media_udp_relay: "UDP via relay (TURN)",
+                media_tcp_host: "Direct TCP",
+                media_tcp_srflx: "Direct TCP",
+                media_tcp_prflx: "Direct TCP",
+                media_tcp_relay: "TCP via relay (TURN)",
+                media_udp_unknown: "UDP",
+                media_tcp_unknown: "TCP",
+                measure_btn: "Measure now the {n} listed stations",
+                measure_ok: "Real-time measurement opened on {n} stations for {s} s.",
+                measure_none: "No connected station received the measurement request.",
+                measure_busy: "A measurement was requested a moment ago. Wait a few seconds.",
+                mon_sampled: "Sampled mode: each station sends a measurement about every 10 s and immediately when something changes. Use Measure now for real-time data.",
+                mon_on_demand: "On-demand mode: each station reports presence about every 30 s. Use Measure now to open a real-time measurement window.",
+                pc_n_udp_3478: "Outbound UDP (3478)",
+                pc_o_udp_3478: "No UDP reply on port 3478. Ask IT to allow outbound UDP (3478 and the platform media range); without it calls may fall back to TCP and lose quality.",
                 dur_fmt: "{m}m {s}s",
                 bi_title: "Local factors that affect voice quality",
                 bi_desc: "Signs of Wi-Fi and audio failures at the agent's seat can degrade voice before it becomes a support ticket.",
@@ -1361,6 +1409,8 @@
                 const msg = JSON.parse(event.data);
                 if (msg.type === 'INIT_STATE') {
                     $('demoBanner').hidden = msg.demo !== true;
+                    monitoringMode = ['sampled', 'on_demand'].includes(msg.monitoringMode) ? msg.monitoringMode : 'realtime';
+                    renderMonitorInfo();
                     attempt = 0;
                     hasData = true;
                     setConn('live', 'conn_live');
@@ -1380,6 +1430,8 @@
                     callsList.unshift(msg.payload);
                     if (callsList.length > 200) callsList.pop();
                     scheduleRender();
+                } else if (msg.type === 'MEASURE_ACK') {
+                    onMeasureAck(msg);
                 } else if (msg.type === 'BATCH_ACK' || msg.type === 'BATCH_DONE') {
                     onBatchMessage(msg);
                 } else if (msg.type === 'AGENT_COMMAND_FEEDBACK') {
@@ -1457,6 +1509,7 @@
             const txt = netInfo(a).kind === 'wifi' ? t('cause_wifi', { list: net.join(', ') }) : net.join(', ').replace(/^./, c => c.toUpperCase());
             out.push({ text: txt, crit: loss >= 5 || jit > 60 });
         }
+        if (a.callActive && String(a.mediaPath || '').startsWith('tcp-')) out.push({ text: t('cause_tcp'), crit: true });
         if (a.cpuStress === 'ALTO_CONSUMO_RAM') out.push({ text: t('cause_ram'), crit: false });
         if (!out.length && isRescue(a)) out.push({ text: t('cause_low_mos', { v: a.mosScore }), crit: true });
         if (!out.length && a.status === 'ALERTA') out.push({ text: t('cause_alert'), crit: false });
@@ -1546,7 +1599,8 @@
     const PRECHECK_VALUE_KEYS = {
         'conectado': 'pcv_conectado', 'desconectado': 'pcv_desconectado', 'sem medição': 'pcv_sem_medicao',
         'detectado': 'pcv_detectado', 'não detectado': 'pcv_nao_detectado',
-        'detectada': 'pcv_detectada', 'não detectada': 'pcv_nao_detectada'
+        'detectada': 'pcv_detectada', 'não detectada': 'pcv_nao_detectada',
+        'UDP liberado': 'pcv_udp_ok', 'UDP bloqueado?': 'pcv_udp_bloqueado'
     };
     const pcLabel = (s) => tHas('pc_' + s) ? t('pc_' + s) : s;
     const pcName = (id) => tHas('pc_n_' + id) ? t('pc_n_' + id) : id;
@@ -1768,7 +1822,7 @@
                     <td data-label="${esc(t('calls_col_mos'))}"><b>${esc(c.mosMedio)}</b> / ${esc(c.mosMinimo)}</td>
                     <td data-label="${esc(t('calls_col_jitter'))}">${esc(c.jitterPicoMs)}ms</td>
                     <td data-label="${esc(t('calls_col_loss'))}">${esc(c.perdaPacotesPct)}%</td>
-                    <td data-label="${esc(t('calls_col_proto'))}">${esc(c.protocolo)}</td>
+                    <td data-label="${esc(t('calls_col_proto'))}">${esc(c.protocolo)}${c.caminhoMidia && c.caminhoMidia !== 'N/D' && mediaLabel(c.caminhoMidia) ? `<div class="muted cell-block cell-sub">${esc(mediaLabel(c.caminhoMidia))}</div>` : ''}</td>
                 </tr>`;
         }).join('');
     }
@@ -1869,6 +1923,7 @@
                     <dt>${esc(t('ap_loss'))}</dt><dd>${esc(a.lossPct || 0)}% ${refNote(a.lossPct, 1, 'ap_ref_loss')}</dd>
                     <dt>${esc(t('ap_network'))}</dt><dd>${esc(t(n.key))} <span class="muted">${esc(t('ap_reported', { v: a.networkType || t('na_lc') }))}</span></dd>
                     <dt>${esc(t('ap_protocol'))}</dt><dd>${esc(a.protocol || t('na_lc'))}</dd>
+                    <dt>${esc(t('ap_media'))}</dt><dd>${esc(mediaLabel(a.mediaPath) || t('na_lc'))}</dd>
                     <dt>${esc(t('ap_load'))}</dt><dd>${esc(a.cpuStress === 'ALTO_CONSUMO_RAM' ? t('load_high') : t('load_normal'))}</dd>
                 </dl>
                 <h3>${esc(t('ap_h_remed'))}</h3>
@@ -1877,6 +1932,26 @@
     }
 
 
+    const mediaLabel = (p) => (typeof p === 'string' && tHas('media_' + p.replace('-', '_'))) ? t('media_' + p.replace('-', '_')) : '';
+
+    // Modo de monitoramento do tenant (informado no INIT_STATE) e "Medir agora" (somente leitura, sem In-Call Lock)
+    let monitoringMode = 'realtime';
+    function renderMonitorInfo() {
+        const el = $('monitorInfo');
+        el.hidden = monitoringMode === 'realtime';
+        el.textContent = monitoringMode === 'sampled' ? t('mon_sampled') : monitoringMode === 'on_demand' ? t('mon_on_demand') : '';
+    }
+    $('btnMeasure').addEventListener('click', () => {
+        if (!ws || ws.readyState !== WebSocket.OPEN) { showToast(t('toast_no_conn'), 'err'); return; }
+        const targets = batchPending.slice(0, 500).map(a => ({ agentId: a.agentId, tower: a.tower || null }));
+        if (targets.length) ws.send(JSON.stringify({ type: 'SUPERVISOR_MEASURE', targets }));
+    });
+    function onMeasureAck(msg) {
+        if (msg.busy) showToast(t('measure_busy'), 'warn');
+        else if (!msg.total) showToast(t('measure_none'), 'warn');
+        else showToast(t('measure_ok', { n: fmtNum(msg.total), s: fmtNum(msg.seconds) }), 'ok');
+    }
+
     // Limpeza de cache em lote: sobre a lista filtrada (sem estações offline), com confirmação e resumo.
     let batch = null; // { keys:Set, results:Map, total, absent, done, targets:[{agentId,tower}] }
     let batchPending = []; // alvos da lista atual
@@ -1884,6 +1959,10 @@
         batchPending = list.filter(a => !isOffline(a));
         const bar = $('batchBar');
         const running = batch && !batch.done;
+        const canMeasure = monitoringMode !== 'realtime' && batchPending.length > 0;
+        $('btnMeasure').hidden = !canMeasure;
+        $('btnMeasure').textContent = t('measure_btn', { n: fmtNum(Math.min(batchPending.length, 500)) });
+        $('btnMeasure').disabled = !ws || ws.readyState !== WebSocket.OPEN;
         bar.hidden = !batch && batchPending.length === 0;
         $('btnBatch').hidden = !!batch && !batch.done ? true : batchPending.length === 0;
         $('btnBatch').textContent = t('batch_btn', { n: fmtNum(Math.min(batchPending.length, 100)) });

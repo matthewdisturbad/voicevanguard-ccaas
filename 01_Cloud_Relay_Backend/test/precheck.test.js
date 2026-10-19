@@ -56,3 +56,21 @@ test('só regiões Genesys conhecidas são aceitas para a sonda', () => {
     for (const ok of ['mypurecloud.com', 'mypurecloud.com.au', 'sae1.pure.cloud', 'usw2.pure.cloud']) assert.ok(isGenesysRegion(ok), ok);
     for (const bad of ['evil.com', 'mypurecloud.com.evil.com', 'api.mypurecloud.com/x', '', null, undefined, 'x.pure.cloud.evil.io']) assert.ok(!isGenesysRegion(bad), String(bad));
 });
+
+test('UDP 3478: opcional, só aparece quando o tenant configurou STUN', () => {
+    const base = { relayConnected: true, net: { rttMs: 40, jitterMs: 3, lossPct: 0 }, devices: { audioInputs: 1, audioOutputs: 1 }, hw: { cores: 8, memoryGb: 16 } };
+    const find = (r) => r.itens.find(i => i.id === 'udp_3478');
+    assert.strictEqual(find(evaluatePrecheck(base)), undefined);
+    assert.strictEqual(find(evaluatePrecheck({ ...base, udp: { srflx: true } })).status, 'ok');
+    const blocked = evaluatePrecheck({ ...base, udp: { srflx: false } });
+    assert.strictEqual(find(blocked).status, 'atencao');
+    assert.strictEqual(blocked.status, 'ATENCAO');
+    assert.strictEqual(find(evaluatePrecheck({ ...base, udp: { error: 'falha' } })).status, 'atencao');
+});
+
+test('validStunServers aceita só stun:host[:porta], no máximo 3', () => {
+    const { validStunServers } = require('../../03_Chrome_Edge_Extension/precheck.js');
+    assert.deepStrictEqual(validStunServers(['stun:stun.example.com:3478', 'stun:a.b-c.com', 'turn:x.com', 'stun:x.com:99999', 'stun:', 'stun:a b.com', 42, 'stun:bad_host.com']), ['stun:stun.example.com:3478', 'stun:a.b-c.com']);
+    assert.strictEqual(validStunServers(['stun:a.com', 'stun:b.com', 'stun:c.com', 'stun:d.com']).length, 3);
+    assert.deepStrictEqual(validStunServers('stun:a.com'), []);
+});

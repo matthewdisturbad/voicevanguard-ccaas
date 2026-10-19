@@ -62,6 +62,19 @@
             }
         }
 
+        // Teste opcional de UDP de saída até o STUN do tenant (porta 3478). Não prova a faixa ampla de mídia:
+        // só indica se um bloqueio de UDP é provável. udp = null quando o tenant não configurou STUN.
+        if (input.udp) {
+            const u = input.udp;
+            if (u.error) {
+                items.push(item('udp_3478', 'atencao', 'sem medição', 'Não foi possível testar o UDP de saída (porta 3478). Tente novamente.'));
+            } else if (u.srflx) {
+                items.push(item('udp_3478', 'ok', 'UDP liberado', ''));
+            } else {
+                items.push(item('udp_3478', 'atencao', 'UDP bloqueado?', 'Não houve resposta UDP na porta 3478. Peça à TI para liberar UDP de saída (3478 e a faixa de mídia da plataforma); sem isso a chamada pode cair para TCP e perder qualidade.'));
+            }
+        }
+
         const dev = input.devices || { audioInputs: 0, audioOutputs: 0 };
         items.push(dev.audioInputs > 0
             ? item('microfone', 'ok', 'detectado', '')
@@ -108,7 +121,13 @@
     const REGION_PATTERN = /^(mypurecloud\.(com|ie|de|jp|com\.au)|[a-z0-9]{3,6}\.pure\.cloud)$/;
     const isGenesysRegion = (r) => typeof r === 'string' && REGION_PATTERN.test(r);
 
-    const api = { evaluatePrecheck, summarizeProbe, isGenesysRegion, LIMITS };
+    // URLs STUN aceitas (formato fixo, até 3); qualquer outra coisa é descartada.
+    const STUN_PATTERN = /^stun:[A-Za-z0-9]([A-Za-z0-9.-]{0,251}[A-Za-z0-9])?(:\d{1,5})?$/;
+    const validStunServers = (list) => Array.isArray(list)
+        ? list.filter(u => typeof u === 'string' && u.length <= 270 && STUN_PATTERN.test(u) && (!/:(\d+)$/.test(u) || Number(u.match(/:(\d+)$/)[1]) <= 65535)).slice(0, 3)
+        : [];
+
+    const api = { evaluatePrecheck, summarizeProbe, isGenesysRegion, validStunServers, LIMITS };
     if (typeof module !== 'undefined' && module.exports) module.exports = api;
     else root.VVPrecheck = api;
 })(typeof self !== 'undefined' ? self : this);

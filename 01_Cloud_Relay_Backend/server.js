@@ -44,6 +44,11 @@ const COMMAND_WHITELIST = new Set(['SAFE_CACHE_CLEAR']);
 const COMMAND_CODES = new Set(['IN_CALL_QUEUED', 'CACHE_CLEARED', 'CLEAR_FAILED']);
 const CALL_CLASSES = new Set(['EXCELENTE', 'BOA', 'DEGRADADA', 'CRÍTICA']);
 const AUDIO_ISSUES = new Set(['NONE', 'MIC_DESCONECTADO', 'MIC_MUDO_SISTEMA', 'SEM_AUDIO_RECEBIDO', 'SEM_AUDIO_ENVIADO']);
+const MEDIA_PATHS = new Set(['udp', 'tcp'].flatMap(p => ['host', 'srflx', 'prflx', 'relay', 'unknown'].map(t => `${p}-${t}`)));
+const MONITORING_MODES = new Set(['realtime', 'sampled', 'on_demand']);
+const STUN_PATTERN = /^stun:[A-Za-z0-9]([A-Za-z0-9.-]{0,251}[A-Za-z0-9])?(:\d{1,5})?$/;
+const MEASURE_MAX_TARGETS = 500;
+const MEASURE_MIN_INTERVAL_MS = 10000;
 const PRECHECK_STATUS = new Set(['PRONTA', 'ATENCAO', 'NAO_PRONTA']);
 const ITEM_STATUS = new Set(['ok', 'atencao', 'falha']);
 const RECONNECT_GRACE_MS = 15000;
@@ -128,6 +133,12 @@ function buildKeyIndex(tenants) {
         if (towerIds.length && !hasLegacy && sups.length === 0 && t.genesys === undefined) {
             throw new Error(`Tenant ${tenantId}: defina ao menos um supervisor para as torres.`);
         }
+        if (t.monitoringMode !== undefined && !MONITORING_MODES.has(t.monitoringMode)) {
+            throw new Error(`Tenant ${tenantId}: monitoringMode deve ser realtime, sampled ou on_demand.`);
+        }
+        if (t.stunServers !== undefined && (!Array.isArray(t.stunServers) || t.stunServers.length > 3 || !t.stunServers.every(u => typeof u === 'string' && STUN_PATTERN.test(u)))) {
+            throw new Error(`Tenant ${tenantId}: stunServers deve ter até 3 URLs no formato stun:host[:porta].`);
+        }
         meta.set(tenantId, {
             name: String(t.name || tenantId),
             plan: String(t.plan || 'Standard'),
@@ -136,6 +147,8 @@ function buildKeyIndex(tenants) {
             genesysRegion: t.genesys && GENESYS_REGIONS.has(t.genesys.region) ? t.genesys.region : null,
             webhook: t.demo === true ? null : validateWebhookConfig(tenantId, t.webhook),
             demo: t.demo === true,
+            monitoringMode: t.demo === true ? 'realtime' : (t.monitoringMode || 'realtime'),
+            stunServers: t.demo === true ? [] : (t.stunServers || []),
             demoSize: Math.min(500, Math.max(5, Math.floor(Number(t.demoSize)) || 36))
         });
         // Credenciais individuais por estação (opcionais). allowTowerKey:false desliga a chave compartilhada da torre.
@@ -889,6 +902,7 @@ function createRelay(options = {}) {
                     type: 'INIT_STATE',
                     tenant: meta.name,
                     demo: meta.demo === true,
+                    monitoringMode: meta.monitoringMode,
                     agents: Array.from(room.agents.values()).filter(a => canSee(ws, a.tower)),
                     stations: Array.from(room.stations.values()).filter(a => canSee(ws, a.tower)),
                     callHistory: room.callHistory.filter(c => canSee(ws, c.tower)).slice(0, 50),
@@ -899,7 +913,7 @@ function createRelay(options = {}) {
                 if (prev) prev.reconnectedAt = Date.now(); // até a próxima telemetria, o estado de chamada é desconhecido
                 console.log(`[+] Agente conectado | ID: ${agentId} | Tenant: ${tenantId} | via: ${found.stationId ? 'estação' : 'torre'}`);
                 if (viaMessage) {
-                    ws.send(JSON.stringify({ type: 'AUTH_OK', agentId, genesysRegion: meta.genesysRegion }));
+                    ws.send(JSON.stringify({ type: 'AUTH_OK', agentId, genesysRegion: meta.genesysRegion, monitoringMode: meta.monitoringMode, stunServers: meta.stunServers }));
                 }
             }
             return true;
@@ -1028,6 +1042,7 @@ function createRelay(options = {}) {
                         jitterMs: num(data.jitterMs, 0, 60000, 0),
                         lossPct: num(data.lossPct, 0, 100, 0),
                         protocol: str(data.protocol, 16, 'UDP'),
+                        mediaPath: oneOf(data.mediaPath, MEDIA_PATHS, 'N/D'),
                         networkType: str(data.networkType, 32, 'N/D'),
                         cpuStress: str(data.cpuStress, 32, 'NORMAL'),
                         callActive: data.callActive === true,
@@ -1067,6 +1082,7 @@ function createRelay(options = {}) {
                         rttMedioMs: num(data.rttMedioMs, 0, 60000, 0),
                         perdaPacotesPct: num(data.perdaPacotesPct, 0, 100, 0),
                         protocolo: str(data.protocolo, 16, 'UDP'),
+                        caminhoMidia: oneOf(data.caminhoMidia, MEDIA_PATHS, 'N/D'),
                         classificacao: oneOf(data.classificacao, CALL_CLASSES, 'N/D'),
                         networkType: str(data.networkType, 32, 'N/D'),
                         cpuStress: str(data.cpuStress, 32, 'NORMAL'),
@@ -1157,6 +1173,33 @@ function createRelay(options = {}) {
                         timer.unref();
                         batchTimers.add(timer);
                     }
+                    return;
+                }
+
+                // "Medir agora": abre a janela de medição nas estações visíveis ao supervisor. Somente leitura (sem In-Call Lock),
+                // só tem efeito em tenants sampled/on_demand, limitado a uma ordem a cada MEASURE_MIN_INTERVAL_MS por tenant.
+                if (clientType === 'supervisor' && data.type === 'SUPERVISOR_MEASURE') {
+                    if (!Array.isArray(data.targets)) return;
+                    if (meta.monitoringMode === 'realtime') { ws.send(JSON.stringify({ type: 'MEASURE_ACK', total: 0, mode: 'realtime' })); return; }
+                    const nowMs = Date.now();
+                    if (room.lastMeasureAt && nowMs - room.lastMeasureAt < MEASURE_MIN_INTERVAL_MS) { ws.send(JSON.stringify({ type: 'MEASURE_ACK', busy: true })); return; }
+                    const wanted = new Set();
+                    for (const t of data.targets.slice(0, MEASURE_MAX_TARGETS)) {
+                        if (!t || typeof t.agentId !== 'string' || !ID_PATTERN.test(t.agentId)) continue;
+                        const tw = typeof t.tower === 'string' && TOWER_ID_PATTERN.test(t.tower) ? t.tower : null;
+                        if (canSee(ws, tw)) wanted.add(akey(tw, t.agentId));
+                    }
+                    const seconds = Math.min(120, Math.max(5, Math.floor(Number(data.seconds)) || 30));
+                    room.lastMeasureAt = nowMs;
+                    let sent = 0;
+                    for (const client of wss.clients) {
+                        if (client.readyState !== WebSocket.OPEN || !client.authenticated || client.tenantId !== tenantId || client.clientType !== 'agent') continue;
+                        if (!wanted.has(akey(client.tower, client.agentId))) continue;
+                        client.send(JSON.stringify({ type: 'MEASURE_NOW', seconds }));
+                        sent++;
+                    }
+                    ws.send(JSON.stringify({ type: 'MEASURE_ACK', total: sent, seconds, mode: meta.monitoringMode }));
+                    console.log(`[AUDIT] ${new Date().toISOString()} tenant=${tenantId} supervisor=${JSON.stringify(ws.supervisorName)} torre=${tower || '*'} medir_agora alvos=${sent} janela=${seconds}s`);
                     return;
                 }
 

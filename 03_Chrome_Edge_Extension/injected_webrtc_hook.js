@@ -190,6 +190,29 @@
         return `${currentPlatform.code}-${new Date().toISOString().replace(/[-:T]/g, '').slice(0, 14)}-${Math.floor(Math.random() * 1000)}`;
     }
 
+    // Caminho de mídia do par de candidatos selecionado: só protocolo e tipo (host/srflx/prflx/relay).
+    // Endereços IP e portas nunca são lidos. Retorna null enquanto não houver par selecionado.
+    function classifyMediaPath(stats) {
+        const byId = new Map();
+        stats.forEach(r => byId.set(r.id, r));
+        let pair = null;
+        stats.forEach(r => {
+            if (r.type === 'transport' && r.selectedCandidatePairId && byId.has(r.selectedCandidatePairId)) pair = byId.get(r.selectedCandidatePairId);
+        });
+        if (!pair) {
+            stats.forEach(r => {
+                if (!pair && r.type === 'candidate-pair' && (r.selected || r.nominated) && r.state === 'succeeded') pair = r;
+            });
+        }
+        const local = pair && byId.get(pair.localCandidateId);
+        if (!local) return null;
+        const type = ['host', 'srflx', 'prflx', 'relay'].includes(local.candidateType) ? local.candidateType : 'unknown';
+        let protocol = String(local.protocol || '').toLowerCase() === 'tcp' ? 'tcp' : 'udp';
+        // TURN sobre TCP/TLS: o candidato relay é UDP do ponto de vista do navegador, mas o transporte até o relay é TCP
+        if (type === 'relay' && ['tcp', 'tls'].includes(String(local.relayProtocol || '').toLowerCase())) protocol = 'tcp';
+        return { protocol, type };
+    }
+
     // 3. Fórmula Padrão Internacional de Qualidade de Voz: ITU-T G.107 (E-model MOS)
     function calculateMos(rtt, jitter, lossPct) {
         const effectiveLatency = rtt + (jitter * 2) + 10;
@@ -242,6 +265,7 @@
                 mosSum: 0,
                 minMos: 4.5,
                 protocol: 'udp',
+                mediaType: 'unknown',
                 packetsLostTotal: 0,
                 audioIncidents: {},
                 deviceChangesAtStart: deviceChangeCount
@@ -273,6 +297,8 @@
                     classification = "BOA";
                 }
 
+                if (activeCall.protocol === 'tcp' && rootCause === "REDE_HOMOLOGADA") rootCause = "MIDIA_TCP_FALLBACK";
+
                 const audioIncidents = Object.keys(activeCall.audioIncidents);
                 if (audioIncidents.length > 0) {
                     classification = "CRÍTICA";
@@ -296,6 +322,7 @@
                     perdaPacotesTotal: activeCall.packetsLostTotal,
                     perdaPacotesPct: activeCall.maxLossPct,
                     protocolo: activeCall.protocol.toUpperCase(),
+                    caminhoMidia: `${activeCall.protocol}-${activeCall.mediaType}`,
                     classificacao: classification,
                     networkType: activeCall.netType || "N/D",
                     cpuStress: activeCall.cpuStress || "NORMAL",
@@ -352,7 +379,8 @@
                 let rtt = 0;
                 let jitter = 0;
                 let lossPct = 0;
-                let protocol = 'udp';
+                let protocol = activeCall ? activeCall.protocol : 'udp';
+                let mediaType = activeCall ? activeCall.mediaType : 'unknown';
                 let hasInboundAudio = false;
                 let hasOutboundAudio = false;
                 let inPackets = 0;
@@ -383,10 +411,10 @@
                         outPackets = report.packetsSent || 0;
                     }
 
-                    if (report.type === 'local-candidate') {
-                        if (report.protocol && report.protocol.toLowerCase() === 'tcp') protocol = 'tcp';
-                    }
                 });
+
+                const path = classifyMediaPath(stats);
+                if (path) { protocol = path.protocol; mediaType = path.type; }
 
                 if (!hasInboundAudio && !hasOutboundAudio) return;
 
@@ -412,6 +440,7 @@
                     activeCall.mosSum += mos;
                     if (mos < activeCall.minMos) activeCall.minMos = mos;
                     activeCall.protocol = protocol;
+                    activeCall.mediaType = mediaType;
                     activeCall.netType = netInfo.type;
                     activeCall.cpuStress = stressInfo.memStress;
                 }
@@ -427,6 +456,7 @@
                     mosScore: mos,
                     audioIssue: audioIssue,
                     protocolo: protocol,
+                    caminhoMidia: `${protocol}-${mediaType}`,
                     networkType: netInfo.type,
                     downlinkMbps: netInfo.downlink,
                     cpuStress: stressInfo.memStress,

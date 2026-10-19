@@ -44,6 +44,8 @@ function createDemoSimulator({ towers = [], size = 36, rand = Math.random, now =
             operator: `Operador ${String(i + 1).padStart(2, '0')}`,
             ...p,
             networkType: pick(NETWORKS),
+            // Caminho de mídia determinístico: algumas estações via relay e uma pequena parcela caída para TCP
+            mediaPath: i % 13 === 6 ? 'tcp-relay' : i % 5 === 0 ? 'udp-relay' : 'udp-srflx',
             base: { rtt: between(18, 55), jitter: between(1, 5), loss: 0 },
             inCall: false, callId: '', callStart: 0, callEnd: 0, samples: [],
             offlineUntil: 0, audioIssue: 'NONE', cpuStress: 'NORMAL'
@@ -63,7 +65,7 @@ function createDemoSimulator({ towers = [], size = 36, rand = Math.random, now =
         if (s.offlineUntil > t) {
             return { agentId: s.agentId, tower: s.tower, platform: s.platform, platformCode: s.platformCode, operator: s.operator, station: s.agentId,
                 genesysOrg: s.org, region: s.region, audioIssue: 'NONE', status: 'OFFLINE', mosScore: '4.40', rttMs: 0, jitterMs: 0, lossPct: 0,
-                protocol: 'UDP', networkType: s.networkType, cpuStress: 'NORMAL', callActive: false, currentCallId: '', lastSeen: new Date(t).toISOString() };
+                protocol: 'UDP', mediaPath: s.mediaPath, networkType: s.networkType, cpuStress: 'NORMAL', callActive: false, currentCallId: '', lastSeen: new Date(t).toISOString() };
         }
         const m = metrics(s);
         const mos = calculateMos(m.rtt, m.jitter, m.loss);
@@ -72,8 +74,8 @@ function createDemoSimulator({ towers = [], size = 36, rand = Math.random, now =
         return {
             agentId: s.agentId, tower: s.tower, platform: s.platform, platformCode: s.platformCode, operator: s.operator, station: s.agentId,
             genesysOrg: s.org, region: s.region, audioIssue: issue,
-            status: issue !== 'NONE' || (s.inCall && mos < 3.0) ? 'ALERTA' : 'OK',
-            mosScore: mos.toFixed(2), rttMs: m.rtt, jitterMs: m.jitter, lossPct: m.loss, protocol: 'UDP',
+            status: issue !== 'NONE' || (s.inCall && mos < 3.0) || (s.inCall && s.mediaPath.startsWith('tcp-')) ? 'ALERTA' : 'OK',
+            mosScore: mos.toFixed(2), rttMs: m.rtt, jitterMs: m.jitter, lossPct: m.loss, protocol: s.mediaPath.startsWith('tcp-') ? 'TCP' : 'UDP', mediaPath: s.mediaPath,
             networkType: s.networkType, cpuStress: s.cpuStress, callActive: s.inCall, currentCallId: s.inCall ? s.callId : '',
             lastSeen: new Date(t).toISOString()
         };
@@ -95,7 +97,7 @@ function createDemoSimulator({ towers = [], size = 36, rand = Math.random, now =
             interactionId: id, tower: s.tower, platform: s.platform, platformCode: s.platformCode, agentId: s.agentId, operator: s.operator, station: s.agentId,
             startTime: new Date(s.callStart).toISOString(), endTime: new Date(t).toISOString(),
             durationSeconds: Math.max(1, Math.round((t - s.callStart) / 1000)), mosMedio, mosMinimo,
-            jitterPicoMs: jitterPico, rttMedioMs: Math.round(sum('rtt') / n), perdaPacotesPct: lossAvg, protocolo: 'UDP',
+            jitterPicoMs: jitterPico, rttMedioMs: Math.round(sum('rtt') / n), perdaPacotesPct: lossAvg, protocolo: s.mediaPath.startsWith('tcp-') ? 'TCP' : 'UDP', caminhoMidia: s.mediaPath,
             classificacao: cls, networkType: s.networkType, cpuStress: s.cpuStress, causaRaiz: cause,
             incidentesAudio: audio ? [s.audioIssue] : [], trocasDispositivo: audio ? 1 : 0, receivedAt: new Date(t).toISOString()
         };

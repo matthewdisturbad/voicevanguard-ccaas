@@ -90,3 +90,20 @@ Na aba de monitoramento, o botão "Limpar cache das N estações da lista" atua 
 - o console mostra um resumo vivo: limpas, na fila do pós-atendimento, com falha, aguardando e sem conexão.
 
 Não há agendamento automático: só um supervisor aciona.
+
+## Modo de monitoramento e "Medir agora"
+
+Por tenant, em `TENANTS_JSON`: `"monitoringMode": "realtime" | "sampled" | "on_demand"` (padrão `realtime`; valor inválido impede o relay de subir).
+
+| Modo | O que a estação envia ao relay | Quando usar |
+|---|---|---|
+| `realtime` | toda amostra (a cada ~2 s) | operações pequenas/médias |
+| `sampled` | 1 amostra a cada ~10 s, e na hora se mudar status, problema de áudio ou caminho de mídia | frotas grandes, menos tráfego |
+| `on_demand` | presença a cada ~30 s (e mudanças relevantes); tempo real só durante a janela "Medir agora" (padrão 30 s, 5–120 s) | frotas muito grandes |
+
+A coleta local continua a cada 2 s; só o envio é reduzido. O resumo da chamada é sempre enviado. O botão **Medir agora** (console) envia `SUPERVISOR_MEASURE` às estações da lista filtrada (até 500, somente as que o supervisor enxerga); é somente leitura (não tem In-Call Lock) e limitado a uma ordem a cada 10 s por tenant. O tenant demo é sempre `realtime`.
+
+## Caminho de mídia e teste de UDP
+
+- **Caminho de mídia:** a extensão lê o par de candidatos ICE selecionado em `getStats()` e envia só protocolo e tipo (`udp-srflx`, `udp-relay`, `tcp-relay` etc.). Endereços IP e portas nunca são lidos. Mídia em TCP durante a chamada gera ALERTA e a causa "Mídia caiu para TCP (UDP possivelmente bloqueado)".
+- **Teste de UDP 3478 (opcional):** com `"stunServers": ["stun:host[:porta]"]` (até 3) no tenant, o pré-check do popup coleta candidatos ICE e informa se há resposta UDP de saída. Sem `stunServers`, o item não aparece. O teste **não prova** a faixa ampla de mídia (por exemplo UDP 16384–65535 no Genesys Cloud); só indica bloqueio provável. Confirme as portas na documentação vigente de cada plataforma antes de passá-las à TI do cliente.
