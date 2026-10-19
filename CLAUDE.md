@@ -83,7 +83,7 @@ cd 01_Cloud_Relay_Backend
 # Instalar dependências
 npm install
 
-# Rodar os testes automatizados (99 testes unitários)
+# Rodar os testes automatizados (101 testes unitários)
 npm test
 
 # Rodar backend localmente (Porta 9090; sem TENANTS_JSON usa tenants fictícios de dev)

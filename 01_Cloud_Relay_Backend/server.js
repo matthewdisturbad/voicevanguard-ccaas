@@ -22,6 +22,7 @@ const fs = require('fs');
 const crypto = require('crypto');
 const https = require('https');
 const { WebSocketServer, WebSocket } = require('ws');
+const { createDemoSimulator } = require('./demo');
 const { validateWebhookConfig, createWebhookDispatcher } = require('./webhook');
 const { callsToCsv, filterCalls } = require('./export-csv');
 const { STATION_ID, mintStationCredential, verifyStationCredential, looksLikeStationCredential, parseStationScope } = require('./station-credential');
@@ -129,7 +130,9 @@ function buildKeyIndex(tenants) {
             maxAgents: Number.isFinite(t.maxAgents) && t.maxAgents > 0 ? t.maxAgents : 100,
             towers: towerIds,
             genesysRegion: t.genesys && GENESYS_REGIONS.has(t.genesys.region) ? t.genesys.region : null,
-            webhook: validateWebhookConfig(tenantId, t.webhook)
+            webhook: t.demo === true ? null : validateWebhookConfig(tenantId, t.webhook),
+            demo: t.demo === true,
+            demoSize: Math.min(500, Math.max(5, Math.floor(Number(t.demoSize)) || 36))
         });
         // Credenciais individuais por estação (opcionais). allowTowerKey:false desliga a chave compartilhada da torre.
         const tenantScope = parseStationScope(`Tenant ${tenantId}`, t, t.agentKey);
@@ -487,6 +490,43 @@ function createRelay(options = {}) {
         if (!g || !roles.some(r => g.roles.includes(r))) return null;
         return { tenantId: g.tenantId, towers: g.towers, name: typeof me.name === 'string' && me.name ? me.name.slice(0, 64) : 'Supervisor' };
     }
+    // Tenant de demonstração: estações fictícias geradas aqui, só enquanto houver supervisor conectado (poupa CPU e tráfego).
+    const DEMO_TICK_MS = 2000;
+    const demoRuns = new Map(); // tenantId -> { sim, timer }
+    function demoStart(tenantId, meta) {
+        if (demoRuns.has(tenantId)) return;
+        const room = getRoom(tenantId);
+        const sim = createDemoSimulator({ towers: meta.towers, size: meta.demoSize });
+        room.agents.clear(); room.stations.clear();
+        room.callHistory = sim.seedHistory(Math.min(MAX_HISTORY, 80));
+        for (const h of sim.stationHealth()) room.stations.set(akey(h.tower, h.agentId), h);
+        const run = { sim, timer: null };
+        run.timer = setInterval(() => {
+            const { telemetry, calls } = sim.tick();
+            for (const rec of telemetry) {
+                room.agents.set(akey(rec.tower, rec.agentId), rec);
+                broadcast(room, { type: 'TELEMETRY_UPDATE', payload: rec }, rec.tower);
+            }
+            for (const c of calls) {
+                room.callHistory.unshift(c);
+                if (room.callHistory.length > MAX_HISTORY) room.callHistory.pop();
+                broadcast(room, { type: 'NEW_CALL_AUDIT', payload: c }, c.tower);
+            }
+        }, DEMO_TICK_MS);
+        run.timer.unref();
+        demoRuns.set(tenantId, run);
+        // Primeiro quadro já na conexão: o console não abre vazio.
+        const first = sim.tick();
+        for (const rec of first.telemetry) room.agents.set(akey(rec.tower, rec.agentId), rec);
+    }
+    function demoStopIfIdle(tenantId) {
+        const run = demoRuns.get(tenantId);
+        const room = tenantRooms.get(tenantId);
+        if (!run || (room && room.supervisors.size > 0)) return;
+        clearInterval(run.timer);
+        demoRuns.delete(tenantId);
+        if (room) { room.agents.clear(); room.stations.clear(); room.callHistory = []; }
+    }
     const mosWatch = new Map(); // `${tenantId}|${akey}` -> { callId, low, alerted }
     const webhooks = createWebhookDispatcher({ send: options.webhookSend, log: (m) => console.warn('[Webhook]', m) });
     if (keyIndex.size === 0) throw new Error('Nenhum tenant ativo configurado.');
@@ -758,6 +798,7 @@ function createRelay(options = {}) {
 
             let agentId = null;
             if (clientType === 'agent') {
+                if (meta.demo) { reject(ws, 4001, 'Invalid Key', 'Tenant de demonstração não aceita agentes.'); return false; }
                 const requested = typeof rawAgentId === 'string' ? rawAgentId : url.searchParams.get('agentId');
                 // Com credencial individual o id da estação vem da assinatura, não do cliente.
                 agentId = found.stationId || (requested && ID_PATTERN.test(requested)
@@ -800,11 +841,13 @@ function createRelay(options = {}) {
                     towers: []
                 }));
             } else if (clientType === 'supervisor') {
+                if (meta.demo) demoStart(tenantId, meta);
                 room.supervisors.add(ws);
                 console.log(`[+] Supervisor conectado | Tenant: ${tenantId}`);
                 ws.send(JSON.stringify({
                     type: 'INIT_STATE',
                     tenant: meta.name,
+                    demo: meta.demo === true,
                     agents: Array.from(room.agents.values()).filter(a => canSee(ws, a.tower)),
                     stations: Array.from(room.stations.values()).filter(a => canSee(ws, a.tower)),
                     callHistory: room.callHistory.filter(c => canSee(ws, c.tower)).slice(0, 50),
@@ -1030,6 +1073,17 @@ function createRelay(options = {}) {
                     const target = data.targetAgentId;
                     if (typeof target !== 'string' || !ID_PATTERN.test(target)) return;
                     if (!COMMAND_WHITELIST.has(data.command)) return;
+                    if (meta.demo) {
+                        // Estação fictícia: simula a resposta do agente, respeitando o In-Call Lock.
+                        const st = room.agents.get(akey(Array.from(room.agents.values()).find(a => a.agentId === target && canSee(ws, a.tower))?.tower ?? null, target));
+                        if (st && canSee(ws, st.tower)) {
+                            const inCall = st.callActive === true;
+                            broadcast(room, { type: 'AGENT_COMMAND_FEEDBACK', agentId: target, tower: st.tower, result: inCall
+                                ? { success: false, inCall: true, code: 'IN_CALL_QUEUED', message: 'Agente em chamada ativa. Comando enfileirado para o pós-chamada.', timestamp: new Date().toISOString(), origin: 'server_in_call_lock' }
+                                : { success: true, inCall: false, code: 'CACHE_CLEARED', message: 'Cache limpo (simulação).', timestamp: new Date().toISOString(), origin: 'supervisor_remote' } }, st.tower);
+                        }
+                        return;
+                    }
                     for (const client of wss.clients) {
                         if (client.authenticated && client.tenantId === tenantId && client.clientType === 'agent' && canSee(ws, client.tower) &&
                             client.agentId === target && client.readyState === WebSocket.OPEN) {
@@ -1082,6 +1136,8 @@ function createRelay(options = {}) {
             } else if (clientType === 'supervisor') {
                 room.supervisors.delete(ws);
                 console.log(`[-] Supervisor desconectado | Tenant: ${tenantId}`);
+                const tm = tenantMeta.get(tenantId);
+                if (tm && tm.demo) demoStopIfIdle(tenantId);
             } else {
                 const ag = room.agents.get(akey(tower, agentId));
                 // Só marca OFFLINE se não houver outra conexão viva com o mesmo agentId na mesma torre
@@ -1156,6 +1212,8 @@ function createRelay(options = {}) {
 
     async function shutdown() {
         webhooks.close();
+        for (const run of demoRuns.values()) clearInterval(run.timer);
+        demoRuns.clear();
         clearInterval(heartbeat);
         for (const ws of wss.clients) {
             try { ws.close(1001, 'Server shutting down'); ws.terminate(); } catch (_) {}

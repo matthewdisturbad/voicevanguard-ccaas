@@ -329,6 +329,7 @@
         <button class="tab-btn" id="tabBiBtn" role="tab" aria-selected="false" aria-controls="tabContentBi" type="button" data-tab="bi" data-i18n="tab_bi">Fatores locais</button>
     </div>
 
+    <div id="demoBanner" class="stale-banner" role="status" hidden data-i18n="demo_banner">DEMONSTRAÇÃO: todos os dados abaixo são fictícios e simulados.</div>
     <div id="staleBanner" class="stale-banner" role="status" hidden data-i18n="stale">Sem conexão com o relay: os dados abaixo podem estar desatualizados até a reconexão.</div>
 
     <!-- Indicadores -->
@@ -571,6 +572,7 @@
                 hint_offline: "{n} offline",
                 hint_of: "{a} de {b}",
                 hint_calls_of: "{a} de {b} chamadas",
+                demo_banner: "DEMONSTRAÇÃO: todos os dados abaixo são fictícios e simulados.",
                 csv_btn: "Exportar CSV",
                 csv_busy: "Gerando CSV…",
                 csv_fail: "Não foi possível exportar. Entre novamente e tente de novo.",
@@ -845,6 +847,7 @@
                 hint_offline: "{n} offline",
                 hint_of: "{a} of {b}",
                 hint_calls_of: "{a} of {b} calls",
+                demo_banner: "DEMO: all data below is fictional and simulated.",
                 csv_btn: "Export CSV",
                 csv_busy: "Building CSV…",
                 csv_fail: "Could not export. Sign in again and retry.",
@@ -1329,6 +1332,7 @@
             try {
                 const msg = JSON.parse(event.data);
                 if (msg.type === 'INIT_STATE') {
+                    $('demoBanner').hidden = msg.demo !== true;
                     attempt = 0;
                     hasData = true;
                     setConn('live', 'conn_live');

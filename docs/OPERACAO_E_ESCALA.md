@@ -60,3 +60,20 @@ O MOS da extensão é uma aproximação do E-model (ITU-T G.107), não uma medi�
 `test/mos.test.js` trava os valores atuais (limites, monotonicidade, pontos de referência). Antes de usar o MOS como indicador contratual, validar contra chamadas reais (ex.: comparação com o MOS estimado da própria plataforma) e só então decidir se o modelo muda.
 
 `HISTORY_MAX` (padrão 5000, faixa 500–50000) define o histórico de chamadas por tenant; cada gravação reescreve o arquivo JSON inteiro no volume, então valores altos custam disco e I/O.
+
+
+## Tenant de demonstração
+
+Para demonstrar o produto sem dados reais, marque um tenant com `"demo": true` no `TENANTS_JSON` (opcional `"demoSize"`, 5 a 500, padrão 36; use os nomes fictícios do projeto, ex.: `GENESYS-ALLIANCE-EVAL`):
+
+```json
+"GENESYS-ALLIANCE-EVAL": { "name": "Demonstração", "plan": "Demo", "maxAgents": 600, "demo": true, "demoSize": 60,
+  "towers": { "VENDAS": { "agentKey": "<aleatória>" }, "SUPORTE": { "agentKey": "<aleatória>" } },
+  "supervisors": [{ "key": "<chave de supervisor da demo>", "name": "Demo", "towers": "*" }] }
+```
+
+- **O acesso continua exigindo chave de supervisor.** A chave é entregue em privado a quem vai ver a demo e pode ser trocada a qualquer momento; não há demo aberta nem chave no código.
+- O servidor gera as estações (`PA-DEMO-001`...), com operadores genéricos, e as faz variar a cada 2 s: chamadas começam e terminam (viram histórico e CSV), MOS oscila, e de tempos em tempos aparecem Wi-Fi ruim em grupo (aciona a leitura de causa por frota), estação isolada, áudio mudo e estações offline. O botão de limpeza de cache responde de forma simulada, respeitando o In-Call Lock.
+- O console mostra a faixa "DEMONSTRAÇÃO: todos os dados abaixo são fictícios e simulados".
+- A simulação **só roda enquanto houver supervisor conectado** no tenant demo e limpa tudo ao fechar, para não gastar CPU nem tráfego de saída no Railway. Referência medida: 500 estações custam ~2 ms de CPU por quadro e ~100 MB de memória; o tráfego é de cerca de 100 KB/s por console aberto (~200 MB em 30 minutos).
+- Nada é gravado em disco; o tenant demo não aceita agentes reais e não dispara webhook.
