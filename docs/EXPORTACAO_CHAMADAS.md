@@ -10,7 +10,8 @@ curl -H "X-Tenant-Key: $CHAVE_DE_SUPERVISOR" \
 
 - **Acesso:** só com chave de **supervisor**, no cabeçalho `X-Tenant-Key` (chave em URL vaza em logs). Supervisor de uma torre exporta só a sua; um tenant nunca vê outro. Chave de agente é recusada. Sessões de login Genesys (OAuth) não têm chave e não usam esta rota.
 - **Filtros:** `from` e `to` (ISO 8601, opcionais) sobre o fim da chamada.
-- **Colunas:** `interactionId, tower, platform, station, startTime, endTime, durationSeconds, mosMedio, mosMinimo, rttMedioMs, jitterPicoMs, perdaPacotesPct, classificacao, causaRaiz, incidentesAudio, networkType`. **O nome do operador não é exportado.**
+- **Colunas:** `interactionId, tower, platform, station, startTime, endTime, durationSeconds, mosMedio, mosMinimo, rttMedioMs, jitterPicoMs, perdaPacotesPct, classificacao, causaRaiz, incidentesAudio, networkType, protocolo, caminhoMidia`. **O nome do operador não é exportado.**
+- **Idioma:** o padrão mantém os cabeçalhos e códigos em português (compatível com integrações existentes). `?lang=en` traz cabeçalhos (`mosAvg`, `rttAvgMs`, `classification`, `rootCause`…) e valores em inglês (`CRITICAL`, `WIFI_INSTABILITY`…). O botão do console usa o idioma selecionado.
 - **Planilhas:** células que começariam com `=`, `+`, `-` ou `@` recebem um apóstrofo para não virarem fórmula.
 - **Limite:** o histórico guardado são as últimas 500 chamadas por tenant (`MAX_HISTORY`); para períodos longos, exporte com frequência (por exemplo, diariamente).
 - **Rate limit:** mesmas tentativas inválidas por minuto da validação de chave.

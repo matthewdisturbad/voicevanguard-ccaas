@@ -68,3 +68,13 @@ test('/api/calls.csv: exporta só o que o supervisor pode ver e exige chave de s
         await relay.shutdown();
     }
 });
+
+test('callsToCsv em inglês: cabeçalhos e valores traduzidos; padrão (pt) segue igual', () => {
+    const call = { interactionId: 'C-1', classificacao: 'CRÍTICA', causaRaiz: 'INSTABILIDADE_WI_FI', incidentesAudio: ['SEM_AUDIO_ENVIADO'], networkType: 'CABO_ETHERNET', protocolo: 'UDP', caminhoMidia: 'udp-srflx', mosMedio: 3.1 };
+    const en = callsToCsv([call], 'en').split('\r\n');
+    assert.ok(en[0].includes('mosAvg,mosMin,rttAvgMs,jitterPeakMs,packetLossPct,classification,rootCause,audioIncidents,networkType,protocol,mediaPath'));
+    assert.ok(en[1].includes('CRITICAL,WIFI_INSTABILITY,NO_AUDIO_SENT,WIRED_ETHERNET,UDP,udp-srflx'), en[1]);
+    assert.ok(!/mosMedio|CRÍTICA|INSTABILIDADE/.test(en.join('\n')));
+    const pt = callsToCsv([call]).split('\r\n');
+    assert.ok(pt[0].includes('mosMedio,mosMinimo') && pt[1].includes('CRÍTICA,INSTABILIDADE_WI_FI'));
+});
