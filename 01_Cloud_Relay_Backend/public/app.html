@@ -192,6 +192,9 @@
         .pager { display: flex; align-items: center; justify-content: space-between; gap: var(--s3); flex-wrap: wrap; margin-top: var(--s3); font-size: var(--fs-sm); color: var(--text-2); }
         .pager-btns { display: flex; gap: var(--s2); align-items: center; }
         .result-count { font-size: var(--fs-sm); color: var(--text-2); margin: 0 0 var(--s2); }
+        .batch-bar { display: flex; align-items: center; flex-wrap: wrap; gap: var(--s3); margin: 0 0 var(--s3); }
+        .batch-bar .result-count { margin: 0; }
+        .batch-confirm { display: flex; align-items: center; flex-wrap: wrap; gap: var(--s2); font-size: var(--fs-sm); }
         .calls-toolbar { display: flex; align-items: center; justify-content: space-between; gap: var(--s3); margin-bottom: var(--s2); flex-wrap: wrap; }
         .calls-toolbar .result-count { margin: 0; }
         .card-hint { font-size: var(--fs-xs); color: var(--text-3); margin-top: var(--s1); min-height: 1.2em; }
@@ -410,6 +413,15 @@
             <button class="btn-quiet" id="btnClearFilters" type="button" data-i18n="btn_clear_filters">Limpar filtros</button>
         </div>
         <p class="result-count" id="resultCount"></p>
+        <div class="batch-bar" id="batchBar" hidden>
+            <button class="btn-quiet" id="btnBatch" type="button"></button>
+            <div class="batch-confirm" id="batchConfirm" hidden>
+                <span id="batchConfirmText"></span>
+                <button class="btn-action" id="btnBatchGo" type="button" data-i18n="batch_go">Confirmar</button>
+                <button class="btn-quiet" id="btnBatchCancel" type="button" data-i18n="batch_cancel">Cancelar</button>
+            </div>
+            <p class="result-count" id="batchSummary" role="status" hidden></p>
+        </div>
 
         <div class="table-box">
             <table class="stack-table">
@@ -573,6 +585,14 @@
                 hint_of: "{a} de {b}",
                 hint_calls_of: "{a} de {b} chamadas",
                 demo_banner: "DEMONSTRAÇÃO: todos os dados abaixo são fictícios e simulados.",
+                batch_btn: "Limpar cache das {n} estações da lista",
+                batch_confirm: "Limpar o cache de {n} estações? Quem está em chamada fica na fila para o pós-atendimento. A execução é de 10 em 10, a cada {s} s.",
+                batch_go: "Confirmar",
+                batch_cancel: "Cancelar",
+                batch_busy: "Já existe uma limpeza em lote em andamento. Aguarde terminar.",
+                batch_truncated: "Limite de 100 estações por lote: as demais não foram incluídas.",
+                batch_summary: "Lote: {done} de {total} limpas, {queued} na fila do pós-atendimento, {fail} com falha, {wait} aguardando{absent}.",
+                batch_absent: ", {n} sem conexão",
                 csv_btn: "Exportar CSV",
                 csv_busy: "Gerando CSV…",
                 csv_fail: "Não foi possível exportar. Entre novamente e tente de novo.",
@@ -848,6 +868,14 @@
                 hint_of: "{a} of {b}",
                 hint_calls_of: "{a} of {b} calls",
                 demo_banner: "DEMO: all data below is fictional and simulated.",
+                batch_btn: "Clear cache on the {n} listed stations",
+                batch_confirm: "Clear the cache on {n} stations? Anyone on a call is queued for after-call work. It runs 10 at a time, every {s} s.",
+                batch_go: "Confirm",
+                batch_cancel: "Cancel",
+                batch_busy: "A batch clear is already running. Wait for it to finish.",
+                batch_truncated: "Limit of 100 stations per batch: the rest were not included.",
+                batch_summary: "Batch: {done} of {total} cleared, {queued} queued for after-call work, {fail} failed, {wait} waiting{absent}.",
+                batch_absent: ", {n} not connected",
                 csv_btn: "Export CSV",
                 csv_busy: "Building CSV…",
                 csv_fail: "Could not export. Sign in again and retry.",
@@ -1352,6 +1380,8 @@
                     callsList.unshift(msg.payload);
                     if (callsList.length > 200) callsList.pop();
                     scheduleRender();
+                } else if (msg.type === 'BATCH_ACK' || msg.type === 'BATCH_DONE') {
+                    onBatchMessage(msg);
                 } else if (msg.type === 'AGENT_COMMAND_FEEDBACK') {
                     handleCommandFeedback(msg);
                 }
@@ -1626,6 +1656,7 @@
         const slice = list.slice(from, from + PAGE_SIZE);
 
         $('resultCount').textContent = agents.length === 0 ? '' : tn('count', agents.length, { n: fmtNum(list.length), m: fmtNum(agents.length) }) + ((q || ui.status !== 'all') ? t('count_filtered') : '');
+        updateBatchBar(list);
         $('pagerInfo').textContent = list.length ? t('pager_info', { a: fmtNum(from + 1), b: fmtNum(from + slice.length), n: fmtNum(list.length) }) : t('pager_none');
         $('pagerPage').textContent = t('pager_page', { p: fmtNum(ui.page + 1), n: fmtNum(pages) });
         $('btnPrev').disabled = ui.page <= 0;
@@ -1845,6 +1876,57 @@
         });
     }
 
+
+    // Limpeza de cache em lote: sobre a lista filtrada (sem estações offline), com confirmação e resumo.
+    let batch = null; // { keys:Set, results:Map, total, absent, done, targets:[{agentId,tower}] }
+    let batchPending = []; // alvos da lista atual
+    function updateBatchBar(list) {
+        batchPending = list.filter(a => !isOffline(a));
+        const bar = $('batchBar');
+        const running = batch && !batch.done;
+        bar.hidden = !batch && batchPending.length === 0;
+        $('btnBatch').hidden = !!batch && !batch.done ? true : batchPending.length === 0;
+        $('btnBatch').textContent = t('batch_btn', { n: fmtNum(Math.min(batchPending.length, 100)) });
+        $('btnBatch').disabled = !ws || ws.readyState !== WebSocket.OPEN;
+        if (running && $('batchConfirm').hidden === false) $('batchConfirm').hidden = true;
+        renderBatchSummary();
+    }
+    function renderBatchSummary() {
+        const el = $('batchSummary');
+        if (!batch) { el.hidden = true; return; }
+        let done = 0, queued = 0, fail = 0;
+        batch.results.forEach(o => { if (o === 'CACHE_CLEARED') done++; else if (o === 'IN_CALL_QUEUED') queued++; else fail++; });
+        const wait = Math.max(0, batch.total - batch.absent - done - queued - fail);
+        el.hidden = false;
+        el.textContent = t('batch_summary', { done: fmtNum(done), total: fmtNum(batch.total), queued: fmtNum(queued), fail: fmtNum(fail), wait: fmtNum(wait), absent: batch.absent ? t('batch_absent', { n: fmtNum(batch.absent) }) : '' });
+    }
+    $('btnBatch').addEventListener('click', () => {
+        const n = Math.min(batchPending.length, 100);
+        $('batchConfirmText').textContent = t('batch_confirm', { n: fmtNum(n), s: 5 });
+        $('batchConfirm').hidden = false;
+        $('btnBatchGo').focus();
+    });
+    $('btnBatchCancel').addEventListener('click', () => { $('batchConfirm').hidden = true; $('btnBatch').focus(); });
+    $('btnBatchGo').addEventListener('click', () => {
+        $('batchConfirm').hidden = true;
+        if (!ws || ws.readyState !== WebSocket.OPEN) { showToast(t('toast_no_conn'), 'err'); return; }
+        const targets = batchPending.slice(0, 100).map(a => ({ agentId: a.agentId, tower: a.tower || null }));
+        if (!targets.length) return;
+        batch = { keys: new Set(batchPending.slice(0, 100).map(akey)), results: new Map(), total: targets.length, absent: 0, done: false };
+        ws.send(JSON.stringify({ type: 'SUPERVISOR_COMMAND_BATCH', command: 'SAFE_CACHE_CLEAR', targets }));
+        scheduleRender();
+    });
+    function onBatchMessage(msg) {
+        if (msg.type === 'BATCH_ACK') {
+            if (msg.busy) { batch = null; showToast(t('batch_busy'), 'warn'); }
+            else if (msg.truncated) showToast(t('batch_truncated'), 'warn');
+        } else if (msg.type === 'BATCH_DONE' && batch) {
+            batch.absent = Number(msg.absent) || 0;
+            batch.done = true;
+        }
+        scheduleRender();
+    }
+
     function sendRemoteClearCache(key) {
         const a = agentsMap.get(key);
         if (!a) return;
@@ -1882,7 +1964,8 @@
             else fb = { state: 'fail', key: 'fb_fail_default' };
             toast = ['toast_fail', { who, msg: fb.key ? (fb.key === 'fb_fail_default' ? t('fb_fail_default_lc') : t(fb.key)) : fb.raw }, 'err'];
         }
-        showToast(t(toast[0], toast[1]), toast[2]);
+        if (batch && batch.keys.has(key)) { batch.results.set(key, outcome); renderBatchSummary(); }
+        else showToast(t(toast[0], toast[1]), toast[2]);
         fb.ts = Date.now();
         cmdFeedback.set(key, fb);
         scheduleRender();

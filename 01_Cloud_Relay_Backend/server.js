@@ -36,6 +36,10 @@ const HEARTBEAT_MS = 30000;
 const OFFLINE_TTL_MS = 24 * 60 * 60 * 1000;
 const AUTH_WINDOW_MS = 60000;
 const AUTH_MAX_FAILURES = 20;
+// Limpeza em lote: no máximo 100 estações por pedido, em levas de 10 a cada 5 s.
+const BATCH_MAX = 100;
+const BATCH_WAVE_SIZE = 10;
+const BATCH_WAVE_MS = 5000;
 const COMMAND_WHITELIST = new Set(['SAFE_CACHE_CLEAR']);
 const COMMAND_CODES = new Set(['IN_CALL_QUEUED', 'CACHE_CLEARED', 'CLEAR_FAILED']);
 const CALL_CLASSES = new Set(['EXCELENTE', 'BOA', 'DEGRADADA', 'CRÍTICA']);
@@ -492,6 +496,8 @@ function createRelay(options = {}) {
     }
     // Tenant de demonstração: estações fictícias geradas aqui, só enquanto houver supervisor conectado (poupa CPU e tráfego).
     const DEMO_TICK_MS = 2000;
+    const batchTimers = new Set();
+    const batchWaveMs = Number(options.batchWaveMs) > 0 ? Number(options.batchWaveMs) : BATCH_WAVE_MS;
     const demoRuns = new Map(); // tenantId -> { sim, timer }
     function demoStart(tenantId, meta) {
         if (demoRuns.has(tenantId)) return;
@@ -576,6 +582,41 @@ function createRelay(options = {}) {
         };
         room.stations.set(key, rec);
         return rec;
+    }
+
+    // Entrega o comando à(s) conexão(ões) do agente, respeitando o In-Call Lock do servidor. Devolve se havia agente conectado.
+    function deliverCommand(room, tenantId, sup, target, command, tower) {
+        let found = false;
+        for (const client of wss.clients) {
+            if (client.authenticated && client.tenantId === tenantId && client.clientType === 'agent' && canSee(sup, client.tower) &&
+                client.agentId === target && (tower === undefined || client.tower === tower) && client.readyState === WebSocket.OPEN) {
+                found = true;
+                const state = room.agents.get(akey(client.tower, target));
+                // Sem estado fresco (agente sem telemetria ou reconectado há pouco) tratamos como possível chamada em curso.
+                const stale = !state || (state.reconnectedAt && Date.now() - state.reconnectedAt < RECONNECT_GRACE_MS);
+                if (stale || state.callActive) {
+                    // In-Call Lock no servidor: enfileira para o wrap-up e avisa os supervisores da torre
+                    client.pendingCommands = client.pendingCommands || new Set();
+                    client.pendingCommands.add(command);
+                    broadcast(room, { type: 'AGENT_COMMAND_FEEDBACK', agentId: target, tower: client.tower,
+                        result: { success: false, inCall: true, code: 'IN_CALL_QUEUED', message: 'Agente em chamada ativa. Comando enfileirado para o pós-chamada.', timestamp: new Date().toISOString(), origin: 'server_in_call_lock' } }, client.tower);
+                } else {
+                    client.send(JSON.stringify({ type: 'EXECUTE_COMMAND', command, origin: 'supervisor_remote' }));
+                }
+            }
+        }
+        return found;
+    }
+
+    // Tenant de demonstração: não há agente real; simula a resposta, também respeitando o In-Call Lock.
+    function demoCommand(room, sup, target, tower) {
+        const st = Array.from(room.agents.values()).find(a => a.agentId === target && canSee(sup, a.tower) && (tower === undefined || a.tower === tower));
+        if (!st) return false;
+        const inCall = st.callActive === true;
+        broadcast(room, { type: 'AGENT_COMMAND_FEEDBACK', agentId: target, tower: st.tower, result: inCall
+            ? { success: false, inCall: true, code: 'IN_CALL_QUEUED', message: 'Agente em chamada ativa. Comando enfileirado para o pós-chamada.', timestamp: new Date().toISOString(), origin: 'server_in_call_lock' }
+            : { success: true, inCall: false, code: 'CACHE_CLEARED', message: 'Cache limpo (simulação).', timestamp: new Date().toISOString(), origin: 'supervisor_remote' } }, st.tower);
+        return true;
     }
 
     // Libera comandos enfileirados pelo In-Call Lock quando a chamada termina
@@ -1073,35 +1114,49 @@ function createRelay(options = {}) {
                     const target = data.targetAgentId;
                     if (typeof target !== 'string' || !ID_PATTERN.test(target)) return;
                     if (!COMMAND_WHITELIST.has(data.command)) return;
-                    if (meta.demo) {
-                        // Estação fictícia: simula a resposta do agente, respeitando o In-Call Lock.
-                        const st = room.agents.get(akey(Array.from(room.agents.values()).find(a => a.agentId === target && canSee(ws, a.tower))?.tower ?? null, target));
-                        if (st && canSee(ws, st.tower)) {
-                            const inCall = st.callActive === true;
-                            broadcast(room, { type: 'AGENT_COMMAND_FEEDBACK', agentId: target, tower: st.tower, result: inCall
-                                ? { success: false, inCall: true, code: 'IN_CALL_QUEUED', message: 'Agente em chamada ativa. Comando enfileirado para o pós-chamada.', timestamp: new Date().toISOString(), origin: 'server_in_call_lock' }
-                                : { success: true, inCall: false, code: 'CACHE_CLEARED', message: 'Cache limpo (simulação).', timestamp: new Date().toISOString(), origin: 'supervisor_remote' } }, st.tower);
-                        }
-                        return;
-                    }
-                    for (const client of wss.clients) {
-                        if (client.authenticated && client.tenantId === tenantId && client.clientType === 'agent' && canSee(ws, client.tower) &&
-                            client.agentId === target && client.readyState === WebSocket.OPEN) {
-                            const state = room.agents.get(akey(client.tower, target));
-                            // Sem estado fresco (agente sem telemetria ou reconectado há pouco) tratamos como possível chamada em curso.
-                            const stale = !state || (state.reconnectedAt && Date.now() - state.reconnectedAt < RECONNECT_GRACE_MS);
-                            if (stale || state.callActive) {
-                                // In-Call Lock no servidor: enfileira para o wrap-up e avisa os supervisores da torre
-                                client.pendingCommands = client.pendingCommands || new Set();
-                                client.pendingCommands.add(data.command);
-                                broadcast(room, { type: 'AGENT_COMMAND_FEEDBACK', agentId: target, tower: client.tower,
-                                    result: { success: false, inCall: true, code: 'IN_CALL_QUEUED', message: 'Agente em chamada ativa. Comando enfileirado para o pós-chamada.', timestamp: new Date().toISOString(), origin: 'server_in_call_lock' } }, client.tower);
-                            } else {
-                                client.send(JSON.stringify({ type: 'EXECUTE_COMMAND', command: data.command, origin: 'supervisor_remote' }));
-                            }
-                        }
-                    }
+                    if (meta.demo) demoCommand(room, ws, target);
+                    else deliverCommand(room, tenantId, ws, target, data.command);
                     console.log(`[AUDIT] ${new Date().toISOString()} tenant=${tenantId} supervisor=${JSON.stringify(ws.supervisorName)} torre=${tower || '*'} comando=${data.command} alvo=${target}`);
+                    return;
+                }
+
+                // Limpeza em lote: só estações que o supervisor enxerga, em levas escalonadas, uma leva por vez por tenant.
+                if (clientType === 'supervisor' && data.type === 'SUPERVISOR_COMMAND_BATCH') {
+                    if (!COMMAND_WHITELIST.has(data.command) || !Array.isArray(data.targets)) return;
+                    if (room.batchActive) { ws.send(JSON.stringify({ type: 'BATCH_ACK', busy: true })); return; }
+                    const seen = new Set();
+                    const targets = [];
+                    for (const t of data.targets) {
+                        if (targets.length >= BATCH_MAX) break;
+                        if (!t || typeof t.agentId !== 'string' || !ID_PATTERN.test(t.agentId)) continue;
+                        const tw = typeof t.tower === 'string' && TOWER_ID_PATTERN.test(t.tower) ? t.tower : null;
+                        const k = akey(tw, t.agentId);
+                        if (seen.has(k) || !canSee(ws, tw)) continue;
+                        seen.add(k);
+                        targets.push({ agentId: t.agentId, tower: tw });
+                    }
+                    const batchId = crypto.randomBytes(4).toString('hex');
+                    const waves = Math.ceil(targets.length / BATCH_WAVE_SIZE);
+                    if (!targets.length) { ws.send(JSON.stringify({ type: 'BATCH_ACK', batchId, total: 0, waves: 0, stepSeconds: batchWaveMs / 1000 })); return; }
+                    room.batchActive = true;
+                    ws.send(JSON.stringify({ type: 'BATCH_ACK', batchId, total: targets.length, waves, stepSeconds: batchWaveMs / 1000, truncated: data.targets.length > BATCH_MAX }));
+                    console.log(`[AUDIT] ${new Date().toISOString()} tenant=${tenantId} supervisor=${JSON.stringify(ws.supervisorName)} torre=${tower || '*'} comando=${data.command} lote=${batchId} alvos=${targets.length}`);
+                    let delivered = 0, absent = 0;
+                    for (let w = 0; w < waves; w++) {
+                        const timer = setTimeout(() => {
+                            batchTimers.delete(timer);
+                            for (const t of targets.slice(w * BATCH_WAVE_SIZE, (w + 1) * BATCH_WAVE_SIZE)) {
+                                const ok = meta.demo ? demoCommand(room, ws, t.agentId, t.tower) : deliverCommand(room, tenantId, ws, t.agentId, data.command, t.tower);
+                                if (ok) delivered++; else absent++;
+                            }
+                            if (w === waves - 1) {
+                                room.batchActive = false;
+                                if (ws.readyState === WebSocket.OPEN) { try { ws.send(JSON.stringify({ type: 'BATCH_DONE', batchId, delivered, absent })); } catch (_) {} }
+                            }
+                        }, w * batchWaveMs);
+                        timer.unref();
+                        batchTimers.add(timer);
+                    }
                     return;
                 }
 
@@ -1212,6 +1267,8 @@ function createRelay(options = {}) {
 
     async function shutdown() {
         webhooks.close();
+        for (const t of batchTimers) clearTimeout(t);
+        batchTimers.clear();
         for (const run of demoRuns.values()) clearInterval(run.timer);
         demoRuns.clear();
         clearInterval(heartbeat);

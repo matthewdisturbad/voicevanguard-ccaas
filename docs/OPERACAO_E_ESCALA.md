@@ -77,3 +77,16 @@ Para demonstrar o produto sem dados reais, marque um tenant com `"demo": true` n
 - O console mostra a faixa "DEMONSTRAÇÃO: todos os dados abaixo são fictícios e simulados".
 - A simulação **só roda enquanto houver supervisor conectado** no tenant demo e limpa tudo ao fechar, para não gastar CPU nem tráfego de saída no Railway. Referência medida: 500 estações custam ~2 ms de CPU por quadro e ~100 MB de memória; o tráfego é de cerca de 100 KB/s por console aberto (~200 MB em 30 minutos).
 - Nada é gravado em disco; o tenant demo não aceita agentes reais e não dispara webhook.
+
+
+## Limpeza de cache em lote
+
+Na aba de monitoramento, o botão "Limpar cache das N estações da lista" atua sobre a lista filtrada (sem estações offline), com confirmação. Regras aplicadas no servidor:
+
+- só estações que o supervisor enxerga (escopo de torre); até 100 por pedido;
+- **In-Call Lock** por estação: quem está em chamada fica na fila e executa no pós-atendimento, então as limpezas se espalham sozinhas conforme as chamadas terminam;
+- execução em levas de 10 estações a cada 5 s, e só um lote por vez por tenant (o segundo pedido recebe "ocupado");
+- cada lote entra no log de auditoria (`lote=<id> alvos=<n>`), sem nome de operador;
+- o console mostra um resumo vivo: limpas, na fila do pós-atendimento, com falha, aguardando e sem conexão.
+
+Não há agendamento automático: só um supervisor aciona.
