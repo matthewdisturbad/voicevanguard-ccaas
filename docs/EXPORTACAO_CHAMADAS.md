@@ -14,3 +14,10 @@ curl -H "X-Tenant-Key: $CHAVE_DE_SUPERVISOR" \
 - **Planilhas:** células que começariam com `=`, `+`, `-` ou `@` recebem um apóstrofo para não virarem fórmula.
 - **Limite:** o histórico guardado são as últimas 500 chamadas por tenant (`MAX_HISTORY`); para períodos longos, exporte com frequência (por exemplo, diariamente).
 - **Rate limit:** mesmas tentativas inválidas por minuto da validação de chave.
+
+
+## Botão no console e login pelo Genesys
+
+A aba "Auditoria de chamadas" tem o botão **Exportar CSV**. Ele baixa todas as chamadas guardadas (não só as exibidas na tela), respeitando as torres do supervisor. Quem entrou com chave envia `X-Tenant-Key`; quem entrou pelo Genesys (OAuth) envia `Authorization: Bearer <token>` e `X-Genesys-Region: <região>`, e o token é revalidado na API do Genesys a cada exportação.
+
+O histórico guarda por padrão as últimas **5000** chamadas por tenant (variável `HISTORY_MAX`, de 500 a 50000). Com 200 PAs isso cobre algumas horas de operação, não um dia inteiro: exporte ao fim do turno ou agende a coleta do CSV no BI do cliente. Arquivo diário permanente (`.jsonl`) não está implementado.

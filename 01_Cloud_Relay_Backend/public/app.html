@@ -192,6 +192,8 @@
         .pager { display: flex; align-items: center; justify-content: space-between; gap: var(--s3); flex-wrap: wrap; margin-top: var(--s3); font-size: var(--fs-sm); color: var(--text-2); }
         .pager-btns { display: flex; gap: var(--s2); align-items: center; }
         .result-count { font-size: var(--fs-sm); color: var(--text-2); margin: 0 0 var(--s2); }
+        .calls-toolbar { display: flex; align-items: center; justify-content: space-between; gap: var(--s3); margin-bottom: var(--s2); flex-wrap: wrap; }
+        .calls-toolbar .result-count { margin: 0; }
         .card-hint { font-size: var(--fs-xs); color: var(--text-3); margin-top: var(--s1); min-height: 1.2em; }
         .cause { font-size: var(--fs-sm); color: var(--text); max-width: 34ch; }
         .cause .more { color: var(--text-3); font-size: var(--fs-xs); }
@@ -463,7 +465,11 @@
 
     <!-- Aba 2: auditoria de chamadas -->
     <div id="tabContentCalls" role="tabpanel" aria-labelledby="tabCallsBtn" hidden>
-        <p class="result-count" id="callsCount"></p>
+        <div class="calls-toolbar">
+            <p class="result-count" id="callsCount"></p>
+            <button type="button" class="btn-quiet" id="btnExportCsv" data-i18n="csv_btn">Exportar CSV</button>
+        </div>
+        <p class="result-count" id="csvMsg" role="status" hidden></p>
         <div class="table-box">
             <table class="stack-table">
                 <thead>
@@ -565,6 +571,9 @@
                 hint_offline: "{n} offline",
                 hint_of: "{a} de {b}",
                 hint_calls_of: "{a} de {b} chamadas",
+                csv_btn: "Exportar CSV",
+                csv_busy: "Gerando CSV…",
+                csv_fail: "Não foi possível exportar. Entre novamente e tente de novo.",
                 hint_sample: "Amostra insuficiente (mín. {n} chamadas)",
                 attn_initial: "Precisam de atenção agora: 0",
                 fleet_insufficient: "Causa por frota: são necessárias ao menos {min} estações em chamada para comparar (agora: {n}).",
@@ -836,6 +845,9 @@
                 hint_offline: "{n} offline",
                 hint_of: "{a} of {b}",
                 hint_calls_of: "{a} of {b} calls",
+                csv_btn: "Export CSV",
+                csv_busy: "Building CSV…",
+                csv_fail: "Could not export. Sign in again and retry.",
                 hint_sample: "Not enough data (min. {n} calls)",
                 attn_initial: "Needing attention now: 0",
                 fleet_insufficient: "Fleet cause: at least {min} seats on a call are needed to compare (now: {n}).",
@@ -1658,6 +1670,29 @@
     const CLASS_KEYS = { 'EXCELENTE': 'cls_exc', 'BOA': 'cls_good', 'DEGRADADA': 'cls_deg', 'CRÍTICA': 'cls_crit' };
     const classLabel = (c) => Object.prototype.hasOwnProperty.call(CLASS_KEYS, c) ? t(CLASS_KEYS[c]) : c;
     const rootCauseLabel = (c) => tHas('rc_' + c) ? t('rc_' + c) : c;
+
+
+    // Exporta todas as chamadas guardadas no relay (não só as 50 da tela). A credencial vai só em cabeçalho.
+    async function exportCsv() {
+        const msg = $('csvMsg'), btn = $('btnExportCsv');
+        const headers = activeOauth ? { 'Authorization': `Bearer ${activeOauth.token}`, 'X-Genesys-Region': activeOauth.region } : { 'X-Tenant-Key': activeTenantKey };
+        btn.disabled = true; msg.hidden = false; msg.textContent = t('csv_busy');
+        try {
+            const resp = await fetch('/api/calls.csv', { headers });
+            if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+            const blob = await resp.blob();
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = `voicevanguard-chamadas-${new Date().toISOString().slice(0, 10)}.csv`;
+            document.body.appendChild(a); a.click(); a.remove();
+            setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+            msg.hidden = true;
+        } catch (e) {
+            msg.textContent = t('csv_fail');
+        }
+        btn.disabled = false;
+    }
+    $('btnExportCsv').addEventListener('click', exportCsv);
 
     function renderCalls() {
         const calls = callsList.filter(towerOk);

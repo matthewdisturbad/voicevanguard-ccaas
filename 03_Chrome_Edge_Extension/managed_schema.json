@@ -17,6 +17,12 @@
       "description": "Nome ou matrícula exibida ao supervisor. Deixe vazio para usar apenas o identificador da estação.",
       "type": "string"
     },
+    "stationId": {
+      "title": "Identificador da estação (opcional)",
+      "description": "Identificador exibido ao supervisor, por exemplo o nome do computador (PA-SP-0142). Pode ser gravado por script de logon ou Intune. Letras, números, ponto, hífen e sublinhado (até 48).",
+      "type": "string",
+      "pattern": "^[A-Za-z0-9._-]{1,48}$"
+    },
     "enrollToken": {
       "title": "Token de cadastro da torre (recomendado)",
       "description": "Token fornecido pela TrustCo. Cada estação o troca, no primeiro uso, por uma credencial individual; ele não abre telemetria. Quando preenchido, é preferido à chave de agente compartilhada.",

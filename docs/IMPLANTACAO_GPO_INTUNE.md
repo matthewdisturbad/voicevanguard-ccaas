@@ -70,3 +70,16 @@ Como funciona: a política entrega o `enrollToken`; a extensão envia `ENROLL` a
 - **Revogar a torre toda / rotacionar:** aumente `epoch`, ou troque `stationSecret` (mantendo o antigo em `stationSecretPrev` por uma janela). As extensões se recadastram sozinhas pelo `enrollToken` (até 3 tentativas).
 - **Token vazado:** troque o `enrollToken`; `maxStations` limita quantas estações novas ele consegue criar (o contador fica em `DATA_DIR/enrolled_stations.json`, então use Volume).
 - **Limites conhecidos:** revogação e expiração valem na conexão (não derrubam socket já aberto); a credencial fica no `chrome.storage.local` do perfil do navegador, legível por quem tem acesso ao perfil, como a política de hoje; o fluxo com GPO/Intune reais ainda não foi validado em cliente piloto.
+
+## Identificação da estação (hostname)
+
+Sem configuração extra, cada navegador gera um ID aleatório (`PA-XXXX`). Para o supervisor ver o nome real da máquina (ex.: `PA-SP-0142`), grave o valor `stationId` na mesma política da extensão (campo opcional em `managed_schema.json`; letras, números, `.`, `-`, `_`, até 48).
+
+- Script pronto: `deploy/Set-VoiceVanguardStation.ps1 -ChromeExtensionId <ID> [-EdgeExtensionId <ID>]`. Rode como SYSTEM (script de plataforma do Intune) ou como administrador (script de inicialização da GPO), porque escreve em `HKLM`. Ele grava só o `stationId` e preserva o restante da política.
+- O valor estático da ADMX não expande `%COMPUTERNAME%`; por isso o script.
+- Se o ID mudar, a credencial emitida para o ID antigo é descartada e a estação se cadastra de novo. O ID antigo continua contando no limite `maxStations` do tenant até o cadastro ser limpo; ajuste o limite ou limpe `enrolled_stations.json` no piloto.
+- Privacidade: o nome do computador pode identificar o operador indiretamente (ver `docs/juridico/ADENDO_NOVOS_FLUXOS_DE_DADOS.md`). O script não foi testado em Windows real; valide no piloto.
+
+## Pareamento manual (sem GPO/Intune)
+
+Em estação sem política (piloto rápido, home office/BYOD), o popup da extensão mostra "Ativar esta estação" enquanto não houver chave, token nem credencial. O operador escolhe "Token de cadastro" (recomendado) ou "Chave do agente" e cola o código fornecido pela operação. O campo desaparece depois de configurado e não aparece em estações gerenciadas.

@@ -70,6 +70,8 @@
         .lang-btn + .lang-btn { border-left: 1px solid var(--border-strong); }
         .lang-btn:hover { background: var(--idle-tint); }
         .lang-btn[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); }
+        .activate-box { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: var(--s3); margin-bottom: var(--s3); font-size: var(--fs-sm); }
+        .act-input { width: 100%; margin-bottom: var(--s2); padding: var(--s2); border: 1px solid var(--border-strong); border-radius: 6px; background: var(--bg); color: var(--text); font: inherit; font-size: var(--fs-sm); }
         .tenant-box { font-size: var(--fs-xs); color: var(--text-3); display: flex; justify-content: space-between; align-items: center; margin-top: var(--s3); padding-top: var(--s3); border-top: 1px solid var(--border); }
         .tenant-box b { color: var(--text-2); font-weight: 600; }
     </style>
@@ -133,6 +135,17 @@
         Limpeza segura de cache (preserva login)
     </button>
     <div class="feedback" id="cacheFeedback"></div>
+</div>
+
+<div class="activate-box" id="activateBox" hidden>
+    <div class="history-title" data-i18n="act.title">Ativar esta estação</div>
+    <select id="actKind" class="act-input" aria-label="Tipo">
+        <option value="token" data-i18n="act.kind.token">Token de cadastro (recomendado)</option>
+        <option value="key" data-i18n="act.kind.key">Chave do agente</option>
+    </select>
+    <input type="password" id="actValue" class="act-input" autocomplete="off" spellcheck="false" maxlength="256" data-i18n-placeholder="act.ph" placeholder="Código fornecido pela sua operação">
+    <button class="btn btn-secondary" id="btnActivate" data-i18n="act.btn">Ativar</button>
+    <div id="actFeedback" class="feedback" aria-live="polite"></div>
 </div>
 
 <div class="tenant-box">

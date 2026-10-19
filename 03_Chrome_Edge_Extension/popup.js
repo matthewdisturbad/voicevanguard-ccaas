@@ -128,8 +128,9 @@ function renderLangSwitch() {
 }
 
 function render() {
-    chrome.storage.local.get(['lastMetric', 'callHistory', 'tenantKey', 'enrollToken', 'stationCredential', 'agentStationId', 'isCallActive', 'lastCacheCleared'], (res) => {
+    chrome.storage.local.get(['lastMetric', 'callHistory', 'tenantKey', 'enrollToken', 'stationCredential', 'agentStationId', 'isCallActive', 'lastCacheCleared', 'isManaged'], (res) => {
         applyI18n();
+        $('activateBox').hidden = !!(res.isManaged || res.tenantKey || res.enrollToken || res.stationCredential);
         renderLangSwitch();
         $('lblTenant').textContent = (res.tenantKey || res.enrollToken || res.stationCredential) ? t('license.set') : t('license.unset');
         $('lblStation').textContent = res.agentStationId || 'PA-LIVE';
@@ -206,6 +207,24 @@ async function clearCache() {
     }
 }
 
+// Pareamento manual (sem GPO/Intune): só aparece quando a estação não tem credencial nem política.
+async function activate() {
+    const value = $('actValue').value.trim();
+    const fb = $('actFeedback');
+    if (!value) { fb.textContent = t('act.empty'); return; }
+    const action = $('actKind').value === 'key' ? 'SET_TENANT_KEY' : 'SET_ENROLL_TOKEN';
+    const payload = action === 'SET_TENANT_KEY' ? { action, tenantKey: value } : { action, enrollToken: value };
+    try {
+        const r = await chrome.runtime.sendMessage(payload);
+        if (!r || !r.success) throw new Error('recusado');
+        $('actValue').value = '';
+        fb.textContent = t('act.done');
+        setTimeout(render, 800);
+    } catch (_) {
+        fb.textContent = t('act.error');
+    }
+}
+
 document.addEventListener('DOMContentLoaded', async () => {
     await initLang();
     document.querySelectorAll('.lang-btn').forEach(b => {
@@ -216,6 +235,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
     $('btnPrecheck').addEventListener('click', runPrecheck);
     $('btnClearCache').addEventListener('click', clearCache);
+    $('btnActivate').addEventListener('click', activate);
     render();
 });
 

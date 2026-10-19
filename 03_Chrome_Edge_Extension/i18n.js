@@ -78,7 +78,15 @@
         'clear.last': 'Última limpeza segura: hoje às {time}',
         'license': 'Licença:',
         'license.set': 'Configurada',
-        'license.unset': 'Não configurada'
+        'license.unset': 'Não configurada',
+        'act.title': 'Ativar esta estação',
+        'act.kind.token': 'Token de cadastro (recomendado)',
+        'act.kind.key': 'Chave do agente',
+        'act.ph': 'Código fornecido pela sua operação',
+        'act.btn': 'Ativar',
+        'act.empty': 'Informe o código.',
+        'act.done': 'Código salvo. Conectando…',
+        'act.error': 'Não foi possível salvar o código.'
     };
 
     const en = {
@@ -152,7 +160,15 @@
         'clear.last': 'Last safe cleanup: today at {time}',
         'license': 'License:',
         'license.set': 'Configured',
-        'license.unset': 'Not configured'
+        'license.unset': 'Not configured',
+        'act.title': 'Activate this workstation',
+        'act.kind.token': 'Enrollment token (recommended)',
+        'act.kind.key': 'Agent key',
+        'act.ph': 'Code provided by your operation',
+        'act.btn': 'Activate',
+        'act.empty': 'Enter the code.',
+        'act.done': 'Code saved. Connecting…',
+        'act.error': 'Could not save the code.'
     };
 
     const DICTS = { pt, en };
@@ -180,6 +196,7 @@
         if (!base) return;
         base.querySelectorAll('[data-i18n]').forEach(el => { el.textContent = t(el.getAttribute('data-i18n')); });
         base.querySelectorAll('[data-i18n-title]').forEach(el => { el.title = t(el.getAttribute('data-i18n-title')); });
+        base.querySelectorAll('[data-i18n-placeholder]').forEach(el => { el.placeholder = t(el.getAttribute('data-i18n-placeholder')); });
         base.querySelectorAll('[data-i18n-aria]').forEach(el => { el.setAttribute('aria-label', t(el.getAttribute('data-i18n-aria'))); });
         if (root.document && root.document.documentElement) root.document.documentElement.lang = current === 'pt' ? 'pt-BR' : 'en';
     }

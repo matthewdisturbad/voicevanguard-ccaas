@@ -32,6 +32,8 @@ if (tenants && typeof tenants === 'object') {
         }
         if (t.supervisorKey && t.supervisorKey === t.agentKey) add('ERRO', `Tenant "${id}" usa a mesma chave para agente e supervisor.`);
         if (t.stationSecret && weak(t.stationSecret)) add('ERRO', `Tenant "${id}" stationSecret fraco.`);
+        if (!t.stationSecret) add('AVISO', `Tenant "${id}" sem stationSecret: credenciais por estação desativadas (só chave compartilhada).`);
+        if (!t.genesys) add('AVISO', `Tenant "${id}" sem genesys.region: o item de latência até o Genesys no pré-check fica desativado.`);
         if (t.webhook && (!t.webhook.url || !String(t.webhook.url).startsWith('https://'))) add('ERRO', `Tenant "${id}" webhook deve usar https.`);
     }
 }

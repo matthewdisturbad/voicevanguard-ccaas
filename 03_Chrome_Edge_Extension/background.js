@@ -53,7 +53,7 @@ chrome.storage.local.get(['tenantKey', 'enrollToken', 'stationCredential', 'stat
 
 // Suporte a GPO / Active Directory (Políticas Corporativas do Windows / Chrome Managed Storage)
 if (chrome.storage.managed) {
-    chrome.storage.managed.get(['tenantKey', 'enrollToken', 'relayServer', 'operatorName'], (managedConfig) => {
+    chrome.storage.managed.get(['tenantKey', 'enrollToken', 'relayServer', 'operatorName', 'stationId'], (managedConfig) => {
         if (chrome.runtime.lastError) return; // sem política instalada
         if (managedConfig && (managedConfig.tenantKey || managedConfig.enrollToken)) {
             if (managedConfig.tenantKey) tenantKey = managedConfig.tenantKey;
@@ -70,6 +70,13 @@ if (chrome.storage.managed) {
             if (typeof managedConfig.operatorName === 'string' && managedConfig.operatorName.length <= 64) {
                 operatorName = managedConfig.operatorName;
                 chrome.storage.local.set({ operatorName });
+            }
+            // Identificação da estação (ex.: hostname gravado por script de logon/Intune). A credencial é presa ao ID antigo: troca => novo cadastro.
+            if (typeof managedConfig.stationId === 'string' && /^[A-Za-z0-9._-]{1,48}$/.test(managedConfig.stationId) && managedConfig.stationId !== agentStationId) {
+                agentStationId = managedConfig.stationId;
+                stationCredential = null; stationCredentialExp = 0; enrollFailures = 0;
+                chrome.storage.local.set({ agentStationId });
+                chrome.storage.local.remove(['stationCredential', 'stationCredentialExp']);
             }
             reconnectAttempts = 0;
             // Não derruba a telemetria no meio de uma chamada: a nova política vale na próxima conexão.
@@ -376,6 +383,12 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         tenantKey = message.tenantKey;
         chrome.storage.local.set({ tenantKey: message.tenantKey });
         if (ws) ws.close();
+        sendResponse({ success: true });
+    } else if (message.action === 'SET_ENROLL_TOKEN' && fromExtensionPage && typeof message.enrollToken === 'string' && message.enrollToken.length <= 256 && !isManaged) {
+        enrollToken = message.enrollToken;
+        enrollFailures = 0;
+        chrome.storage.local.set({ enrollToken });
+        if (ws && !callIsActive()) ws.close(); else if (!ws) connectToCloudRelay();
         sendResponse({ success: true });
     }
 });

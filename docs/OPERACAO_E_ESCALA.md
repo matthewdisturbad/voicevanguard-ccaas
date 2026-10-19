@@ -58,3 +58,5 @@ O MOS da extensão é uma aproximação do E-model (ITU-T G.107), não uma medi�
 | 600 / 40 / 5% | 23.7 / 1.37 | 44.7 / 2.30 |
 
 `test/mos.test.js` trava os valores atuais (limites, monotonicidade, pontos de referência). Antes de usar o MOS como indicador contratual, validar contra chamadas reais (ex.: comparação com o MOS estimado da própria plataforma) e só então decidir se o modelo muda.
+
+`HISTORY_MAX` (padrão 5000, faixa 500–50000) define o histórico de chamadas por tenant; cada gravação reescreve o arquivo JSON inteiro no volume, então valores altos custam disco e I/O.

@@ -29,7 +29,8 @@ const { STATION_ID, mintStationCredential, verifyStationCredential, looksLikeSta
 const PORT = process.env.PORT !== undefined ? Number(process.env.PORT) : 9090;
 const IS_PROD = process.env.NODE_ENV === 'production';
 const MAX_PAYLOAD_BYTES = 64 * 1024;
-const MAX_HISTORY = 500;
+// Teto de chamadas guardadas por tenant (ajustável por HISTORY_MAX; 500 a 50000).
+const MAX_HISTORY = Math.min(50000, Math.max(500, parseInt(process.env.HISTORY_MAX, 10) || 5000));
 const HEARTBEAT_MS = 30000;
 const OFFLINE_TTL_MS = 24 * 60 * 60 * 1000;
 const AUTH_WINDOW_MS = 60000;
@@ -475,6 +476,17 @@ function createRelay(options = {}) {
     const { index: keyIndex, meta: tenantMeta, genesys: genesysIndex, stations: stationScopes, enrollIndex } = buildKeyIndex(tenants);
     const enrolled = loadEnrolled(); // scopeKey -> Set(stationId) emitidos
     const genesysFetch = options.genesysFetch || genesysUsersMe;
+
+    // Valida o token OAuth do Genesys e devolve o escopo do supervisor (ou null). Usado pelo WebSocket e pelo CSV.
+    async function verifyGenesysSupervisor(token, region) {
+        if (typeof token !== 'string' || !OAUTH_TOKEN_PATTERN.test(token) || typeof region !== 'string' || !GENESYS_REGIONS.has(region) || genesysIndex.size === 0) return null;
+        const me = await genesysFetch(token, region);
+        const orgId = me && me.organization && typeof me.organization.id === 'string' ? me.organization.id.toLowerCase() : '';
+        const g = genesysIndex.get(`${region}|${orgId}`);
+        const roles = me && me.authorization && Array.isArray(me.authorization.roles) ? me.authorization.roles.map(r => String(r && r.name || '').toLowerCase()) : [];
+        if (!g || !roles.some(r => g.roles.includes(r))) return null;
+        return { tenantId: g.tenantId, towers: g.towers, name: typeof me.name === 'string' && me.name ? me.name.slice(0, 64) : 'Supervisor' };
+    }
     const mosWatch = new Map(); // `${tenantId}|${akey}` -> { callId, low, alerted }
     const webhooks = createWebhookDispatcher({ send: options.webhookSend, log: (m) => console.warn('[Webhook]', m) });
     if (keyIndex.size === 0) throw new Error('Nenhum tenant ativo configurado.');
@@ -622,20 +634,28 @@ function createRelay(options = {}) {
                 sendJson(res, 429, { error: 'Muitas tentativas. Aguarde um minuto.' }, { 'Retry-After': '60' });
                 return;
             }
-            const found = lookupKey(req.headers['x-tenant-key']);
-            if (!found || found.role !== 'supervisor') {
-                recordFailure(ip);
-                sendJson(res, 403, { error: 'Chave inválida ou não autorizada.' });
+            const sendCsv = (found) => {
+                const room = getRoom(found.tenantId);
+                const rows = filterCalls(room.callHistory, { from: url.searchParams.get('from'), to: url.searchParams.get('to'), canSee: (tw) => canSee(found, tw) });
+                res.writeHead(200, {
+                    'Content-Type': 'text/csv; charset=utf-8',
+                    'Content-Disposition': `attachment; filename="chamadas-${found.tenantId}.csv"`,
+                    'Cache-Control': 'no-store'
+                });
+                res.end(callsToCsv(rows));
+            };
+            const deny = () => { recordFailure(ip); sendJson(res, 403, { error: 'Chave inválida ou não autorizada.' }); };
+            const bearer = /^Bearer (\S+)$/.exec(String(req.headers['authorization'] || ''));
+            if (bearer) {
+                // Supervisor que entrou pelo Genesys (OAuth): o token é revalidado na API da região a cada exportação.
+                verifyGenesysSupervisor(bearer[1], String(req.headers['x-genesys-region'] || ''))
+                    .then((sup) => sup ? sendCsv({ tenantId: sup.tenantId, towers: sup.towers }) : deny())
+                    .catch(deny);
                 return;
             }
-            const room = getRoom(found.tenantId);
-            const rows = filterCalls(room.callHistory, { from: url.searchParams.get('from'), to: url.searchParams.get('to'), canSee: (tw) => canSee(found, tw) });
-            res.writeHead(200, {
-                'Content-Type': 'text/csv; charset=utf-8',
-                'Content-Disposition': `attachment; filename="chamadas-${found.tenantId}.csv"`,
-                'Cache-Control': 'no-store'
-            });
-            res.end(callsToCsv(rows));
+            const found = lookupKey(req.headers['x-tenant-key']);
+            if (!found || found.role !== 'supervisor') { deny(); return; }
+            sendCsv(found);
             return;
         }
 
@@ -831,17 +851,12 @@ function createRelay(options = {}) {
             const deny = () => { recordFailure(ip); reject(ws, 4001, 'Invalid Key', 'Chave inválida ou não autorizada.'); };
             if (ws.authPending) return;
             const token = oauth && oauth.token, region = oauth && oauth.region;
-            if (typeof token !== 'string' || !OAUTH_TOKEN_PATTERN.test(token) || typeof region !== 'string' || !GENESYS_REGIONS.has(region) || genesysIndex.size === 0) { deny(); return; }
             ws.authPending = true;
-            Promise.resolve().then(() => genesysFetch(token, region)).then((me) => {
+            Promise.resolve().then(() => verifyGenesysSupervisor(token, region)).then((sup) => {
                 ws.authPending = false;
                 if (ws.readyState !== WebSocket.OPEN) return;
-                const orgId = me && me.organization && typeof me.organization.id === 'string' ? me.organization.id.toLowerCase() : '';
-                const g = genesysIndex.get(`${region}|${orgId}`);
-                const roles = me && me.authorization && Array.isArray(me.authorization.roles) ? me.authorization.roles.map(r => String(r && r.name || '').toLowerCase()) : [];
-                if (!g || !roles.some(r => g.roles.includes(r))) { deny(); return; }
-                const name = typeof me.name === 'string' && me.name ? me.name.slice(0, 64) : 'Supervisor';
-                const ok = completeAuth(null, null, true, null, { tenantId: g.tenantId, role: 'supervisor', tower: null, towers: g.towers, supervisorName: name });
+                if (!sup) { deny(); return; }
+                const ok = completeAuth(null, null, true, null, { tenantId: sup.tenantId, role: 'supervisor', tower: null, towers: sup.towers, supervisorName: sup.name });
                 if (ok) {
                     const t = setTimeout(() => { try { ws.close(4002, 'Session Expired'); } catch (e) {} }, OAUTH_SESSION_MAX_MS);
                     t.unref();
