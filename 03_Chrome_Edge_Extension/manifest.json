@@ -33,7 +33,10 @@
     "https://*.my.connect.aws/*",
     "https://*.awsapps.com/connect/*",
     "https://*.niceincontact.com/*",
-    "https://*.nice-incontact.com/*"
+    "https://*.nice-incontact.com/*",
+    "https://desktop.wxcc-us1.cisco.com/*",
+    "https://desktop.wxcc-eu1.cisco.com/*",
+    "https://desktop.wxcc-sg1.cisco.com/*"
   ],
   "content_scripts": [
     {
@@ -47,7 +50,10 @@
         "https://*.my.connect.aws/*",
         "https://*.awsapps.com/connect/*",
         "https://*.niceincontact.com/*",
-        "https://*.nice-incontact.com/*"
+        "https://*.nice-incontact.com/*",
+        "https://desktop.wxcc-us1.cisco.com/*",
+        "https://desktop.wxcc-eu1.cisco.com/*",
+        "https://desktop.wxcc-sg1.cisco.com/*"
       ],
       "js": [
         "content.js"
@@ -71,7 +77,10 @@
         "https://*.my.connect.aws/*",
         "https://*.awsapps.com/*",
         "https://*.niceincontact.com/*",
-        "https://*.nice-incontact.com/*"
+        "https://*.nice-incontact.com/*",
+        "https://desktop.wxcc-us1.cisco.com/*",
+        "https://desktop.wxcc-eu1.cisco.com/*",
+        "https://desktop.wxcc-sg1.cisco.com/*"
       ]
     }
   ],

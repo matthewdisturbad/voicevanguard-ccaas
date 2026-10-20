@@ -8,7 +8,7 @@
   },
   "scripts": {
     "start": "node server.js",
-    "test": "node --test test/relay.test.js test/precheck.test.js test/audio-flow.test.js test/towers.test.js test/hardening.test.js test/genesys-oauth.test.js test/webhook.test.js test/mos.test.js test/export-oauth.test.js test/demo.test.js test/batch-clear.test.js test/monitoring.test.js test/media-path.test.js test/otel.test.js test/station-credential.test.js test/enroll-extension.test.js test/fleet.test.js test/export.test.js"
+    "test": "node --test test/relay.test.js test/precheck.test.js test/audio-flow.test.js test/towers.test.js test/hardening.test.js test/genesys-oauth.test.js test/webhook.test.js test/mos.test.js test/export-oauth.test.js test/demo.test.js test/batch-clear.test.js test/monitoring.test.js test/media-path.test.js test/otel.test.js test/webex.test.js test/station-credential.test.js test/enroll-extension.test.js test/fleet.test.js test/export.test.js"
   },
   "dependencies": {
     "ws": "^8.18.0"

@@ -21,7 +21,7 @@ test('par selecionado via transport: UDP direto por NAT', () => {
         { id: 'l2', type: 'local-candidate', protocol: 'udp', candidateType: 'srflx', address: '203.0.113.9' }
     );
     // Candidato TCP não usado NÃO pode marcar a chamada como TCP (limitação da detecção antiga)
-    assert.deepStrictEqual(classifyMediaPath(s), { protocol: 'udp', type: 'srflx' });
+    assert.deepStrictEqual(classifyMediaPath(s), { protocol: 'udp', type: 'srflx', rttMs: null });
 });
 
 test('sem transport: usa o par nomeado/succeeded; TCP direto é detectado', () => {
@@ -29,7 +29,7 @@ test('sem transport: usa o par nomeado/succeeded; TCP direto é detectado', () =
         { id: 'p', type: 'candidate-pair', localCandidateId: 'l', nominated: true, state: 'succeeded' },
         { id: 'l', type: 'local-candidate', protocol: 'tcp', candidateType: 'host' }
     );
-    assert.deepStrictEqual(classifyMediaPath(s), { protocol: 'tcp', type: 'host' });
+    assert.deepStrictEqual(classifyMediaPath(s), { protocol: 'tcp', type: 'host', rttMs: null });
 });
 
 test('TURN sobre TCP/TLS conta como TCP; TURN sobre UDP segue UDP', () => {
@@ -38,8 +38,8 @@ test('TURN sobre TCP/TLS conta como TCP; TURN sobre UDP segue UDP', () => {
         { id: 'p', type: 'candidate-pair', localCandidateId: 'l' },
         { id: 'l', type: 'local-candidate', protocol: 'udp', candidateType: 'relay', relayProtocol }
     );
-    assert.deepStrictEqual(classifyMediaPath(mk('tls')), { protocol: 'tcp', type: 'relay' });
-    assert.deepStrictEqual(classifyMediaPath(mk('udp')), { protocol: 'udp', type: 'relay' });
+    assert.deepStrictEqual(classifyMediaPath(mk('tls')), { protocol: 'tcp', type: 'relay', rttMs: null });
+    assert.deepStrictEqual(classifyMediaPath(mk('udp')), { protocol: 'udp', type: 'relay', rttMs: null });
 });
 
 test('sem par selecionado devolve null; tipo desconhecido vira unknown', () => {
@@ -49,7 +49,7 @@ test('sem par selecionado devolve null; tipo desconhecido vira unknown', () => {
         { id: 'p', type: 'candidate-pair', localCandidateId: 'l' },
         { id: 'l', type: 'local-candidate', protocol: 'udp', candidateType: 'qualquer' }
     );
-    assert.deepStrictEqual(classifyMediaPath(s), { protocol: 'udp', type: 'unknown' });
+    assert.deepStrictEqual(classifyMediaPath(s), { protocol: 'udp', type: 'unknown', rttMs: null });
 });
 
 test('o resultado nunca carrega endereços IP', () => {
@@ -58,7 +58,7 @@ test('o resultado nunca carrega endereços IP', () => {
         { id: 'p', type: 'candidate-pair', localCandidateId: 'l' },
         { id: 'l', type: 'local-candidate', protocol: 'udp', candidateType: 'host', address: '10.0.0.5', ip: '10.0.0.5', port: 5000 }
     );
-    assert.deepStrictEqual(Object.keys(classifyMediaPath(s)).sort(), ['protocol', 'type']);
+    assert.deepStrictEqual(Object.keys(classifyMediaPath(s)).sort(), ['protocol', 'rttMs', 'type']);
 });
 
 const S = (o = {}) => ({ status: 'OK', audioIssue: 'NONE', mediaPath: 'udp-srflx', ...o });
@@ -100,4 +100,20 @@ test('reset (nova chamada) faz a 1ª amostra seguir; limites da janela de mediç
     assert.strictEqual(measureSeconds(9999), 120);
     assert.strictEqual(measureSeconds('x'), 30);
     assert.strictEqual(normalizeMode('sampled'), 'sampled');
+});
+
+test('RTT vem do par selecionado, não de outro par "succeeded" que não carrega a mídia', () => {
+    const s = report(
+        { id: 't', type: 'transport', selectedCandidatePairId: 'p2' },
+        { id: 'p1', type: 'candidate-pair', localCandidateId: 'l1', state: 'succeeded', currentRoundTripTime: 0.250 },
+        { id: 'p2', type: 'candidate-pair', localCandidateId: 'l2', state: 'succeeded', currentRoundTripTime: 0.040 },
+        { id: 'l1', type: 'local-candidate', protocol: 'udp', candidateType: 'relay' },
+        { id: 'l2', type: 'local-candidate', protocol: 'udp', candidateType: 'host' }
+    );
+    assert.strictEqual(classifyMediaPath(s).rttMs, 40);
+    const avg = report(
+        { id: 'p', type: 'candidate-pair', localCandidateId: 'l', nominated: true, state: 'succeeded', totalRoundTripTime: 0.6, responsesReceived: 10 },
+        { id: 'l', type: 'local-candidate', protocol: 'udp', candidateType: 'srflx' }
+    );
+    assert.strictEqual(classifyMediaPath(avg).rttMs, 60);
 });

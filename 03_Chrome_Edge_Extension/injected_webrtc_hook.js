@@ -24,7 +24,7 @@
         if (host.includes('pure.cloud') || host.includes('mypurecloud')) return { name: 'Genesys Cloud', code: 'GENESYS' };
         if (host.includes('awsapps.com') || host.includes('amazonconnect') || host.includes('connect.')) return { name: 'Amazon Connect', code: 'AWS_CONNECT' };
         if (host.includes('niceincontact.com') || host.includes('nice-incontact.com') || host.includes('cxone')) return { name: 'NICE CXone', code: 'NICE_CXONE' };
-        if (host.includes('ciscocc') || host.includes('webex.com')) return { name: 'Cisco Webex CC', code: 'CISCO_WEBEX' };
+        if (host.includes('wxcc') || host.includes('ciscocc') || host.includes('webex.com')) return { name: 'Cisco Webex CC', code: 'CISCO_WEBEX' };
         if (host.includes('twilio') || host.includes('flex.')) return { name: 'Twilio Flex', code: 'TWILIO' };
         if (host.includes('five9')) return { name: 'Five9', code: 'FIVE9' };
         if (host.includes('talkdesk')) return { name: 'Talkdesk', code: 'TALKDESK' };
@@ -210,7 +210,11 @@
         let protocol = String(local.protocol || '').toLowerCase() === 'tcp' ? 'tcp' : 'udp';
         // TURN sobre TCP/TLS: o candidato relay é UDP do ponto de vista do navegador, mas o transporte até o relay é TCP
         if (type === 'relay' && ['tcp', 'tls'].includes(String(local.relayProtocol || '').toLowerCase())) protocol = 'tcp';
-        return { protocol, type };
+        // RTT do par selecionado (null se o navegador não informar): evita ler outro par "succeeded" que não carrega a mídia
+        let rttMs = null;
+        if (pair.currentRoundTripTime !== undefined) rttMs = Math.round(pair.currentRoundTripTime * 1000);
+        else if (pair.totalRoundTripTime && pair.responsesReceived) rttMs = Math.round((pair.totalRoundTripTime / pair.responsesReceived) * 1000);
+        return { protocol, type, rttMs };
     }
 
     // 3. Fórmula Padrão Internacional de Qualidade de Voz: ITU-T G.107 (E-model MOS)
@@ -414,7 +418,7 @@
                 });
 
                 const path = classifyMediaPath(stats);
-                if (path) { protocol = path.protocol; mediaType = path.type; }
+                if (path) { protocol = path.protocol; mediaType = path.type; if (path.rttMs !== null) rtt = path.rttMs; }
 
                 if (!hasInboundAudio && !hasOutboundAudio) return;
 
@@ -477,7 +481,7 @@
     // 5. Latência e erros das APIs do agent desktop (Resource Timing)
     // Agregado por janela e por HOSTNAME. URL, caminho, query string e IDs nunca são lidos nem enviados.
     const API_WINDOW_MS = 30000;
-    const API_HOST_PATTERN = /(^|\.)(pure\.cloud|mypurecloud\.[a-z.]+|connect\.aws|awsapps\.com|niceincontact\.com|nice-incontact\.com)$/i;
+    const API_HOST_PATTERN = /(^|\.)(pure\.cloud|mypurecloud\.[a-z.]+|connect\.aws|awsapps\.com|niceincontact\.com|nice-incontact\.com|wxcc-[a-z0-9]+\.cisco\.com)$/i;
     const MAX_SAMPLES_PER_HOST = 500;
     let apiWindow = new Map(); // host -> { durations: number[], errors: number }
 

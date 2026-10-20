@@ -85,7 +85,7 @@ cd 01_Cloud_Relay_Backend
 # Instalar dependências
 npm install
 
-# Rodar os testes automatizados (121 testes unitários)
+# Rodar os testes automatizados (125 testes unitários)
 npm test
 
 # Rodar backend localmente (Porta 9090; sem TENANTS_JSON usa tenants fictícios de dev)
@@ -117,3 +117,5 @@ node test_multicloud_simulator.js
   * Correlação por `ConversationId`.
 * **NICE CXone:**
   * Suporte nativo na extensão (`*.niceincontact.com`, `*.nice-incontact.com`) com detecção automática de plataforma (`NICE_CXONE`), correlação de `contactId` e agregação de latência de API por hostname.
+* **Cisco Webex Contact Center (em validação):**
+  * Domínios do Desktop `desktop.wxcc-{us1,eu1,sg1}.cisco.com` no manifest e detecção `CISCO_WEBEX`. Outras regiões entram só depois de confirmadas (a extensão não aceita curinga no meio do host). **Não testado em tenant Webex real**; a correlação por ID de interação ainda usa os mecanismos genéricos (URL/atributos) e cai em ID temporal.

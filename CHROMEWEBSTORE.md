@@ -33,6 +33,7 @@ This document contains the exact disclosures, permission justifications, privacy
 - `https://*.awsapps.com/connect/*`
 - `https://*.niceincontact.com/*`
 - `https://*.nice-incontact.com/*`
+- `https://desktop.wxcc-us1.cisco.com/*`, `https://desktop.wxcc-eu1.cisco.com/*`, `https://desktop.wxcc-sg1.cisco.com/*` (Cisco Webex Contact Center Desktop; só as regiões confirmadas, sem curinga em `cisco.com`)
 
 > **Justification:** Required to inject the WebRTC quality observer (`content.js` and `injected_webrtc_hook.js`) into the agent desktop of supported CCaaS platforms (Genesys Cloud CX, Amazon Connect, and NICE CXone), including embedded softphone iframes (`all_frames: true`). The script reads standard W3C `RTCPeerConnection.getStats()` counters (`rtt`, `jitter`, `packetsLost`, `packetsReceived`, `packetsSent`), media track state (`readyState`, `muted`, `enabled`), and aggregated `PerformanceObserver` API response times per hostname. It never accesses `MediaStream` audio buffers, `MediaRecorder`, or `AudioContext`.
 
