@@ -38,7 +38,10 @@ function scheduleReconnect() {
 }
 
 // Inicializa Identificadores
-chrome.storage.local.get(['tenantKey', 'enrollToken', 'stationCredential', 'stationCredentialExp', 'agentStationId', 'operatorName', 'isCallActive', 'lastTelemetryAt', 'isManaged'], (res) => {
+chrome.storage.local.get(['tenantKey', 'enrollToken', 'stationCredential', 'stationCredentialExp', 'agentStationId', 'operatorName', 'isCallActive', 'lastTelemetryAt', 'isManaged', 'stunServers', 'monitoringMode'], (res) => {
+    // Modo e STUN do tenant sobrevivem à reinicialização do service worker (o AUTH_OK os renova a cada conexão)
+    if (!stunServers.length) stunServers = VVPrecheck.validStunServers(res.stunServers);
+    cadence.setMode(res.monitoringMode);
     // O In-Call Lock sobrevive à reinicialização do service worker (MV3 encerra o worker por ociosidade)
     if (res.isCallActive === true) { isCallActive = true; lastTelemetryAt = Number(res.lastTelemetryAt) || Date.now(); }
     if (res.isManaged === true) isManaged = true;
@@ -117,6 +120,7 @@ function connectToCloudRelay() {
                 if (msg.type === 'AUTH_OK') {
                     genesysRegion = VVPrecheck.isGenesysRegion(msg.genesysRegion) ? msg.genesysRegion : "";
                     cadence.setMode(msg.monitoringMode);
+                    cadence.reset(); // nova conexão: a primeira amostra segue imediatamente
                     stunServers = VVPrecheck.validStunServers(msg.stunServers);
                     chrome.storage.local.set({ monitoringMode: cadence.mode, stunServers });
                     return;
@@ -290,6 +294,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                      (message.payload.audioIssue && message.payload.audioIssue !== 'NONE') ||
                      (message.payload.protocolo && String(message.payload.protocolo).toUpperCase() === 'TCP')) ? "ALERTA" : "OK";
         // O modo do tenant decide se esta amostra segue ao relay; o estado local (lastMetric) já foi atualizado acima.
+        // Sem conexão aberta nada é enviado e o estado da cadência não avança (a primeira amostra após reconectar segue)
+        if (!(ws && ws.readyState === WebSocket.OPEN)) return;
         if (!cadence.shouldSend({ status, audioIssue: message.payload.audioIssue || 'NONE', mediaPath: message.payload.caminhoMidia }, Date.now())) return;
 
         sendWsMessage({

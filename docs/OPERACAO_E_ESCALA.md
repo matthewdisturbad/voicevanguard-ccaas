@@ -121,6 +121,6 @@ Opt-in: sem `OTEL_EXPORTER_OTLP_ENDPOINT` o relay não coleta nem envia nada. Im
 
 No Grafana Cloud: *Connections → OpenTelemetry (OTLP)* mostra o endpoint, o instance ID e permite gerar o token (escopo de escrita de métricas).
 
-Métricas: `vvg.ws.connections` (tenant, papel), `vvg.stations` (tenant, status), `vvg.calls.active`, `vvg.call_history.size`, `vvg.webhook.pending`, `nodejs.eventloop.delay.p99`, `process.memory.rss`/`heap_used`, `process.uptime`, e contadores `vvg.auth.failures`, `vvg.limit.rejects`, `vvg.ratelimit.closed`, `vvg.messages.received` (papel). Rótulos só de baixa cardinalidade: nunca agentId, operador, chave ou IP (o plano gratuito comporta 10 mil séries).
+Métricas: `vvg.ws.connections` (tenant, papel), `vvg.stations` (tenant, status; conta as estações com telemetria de voz), `vvg.calls.active`, `vvg.call_history.size`, `vvg.webhook.pending`, `nodejs.eventloop.delay.p99`, `process.memory.rss`/`heap_used`, `process.uptime`, e contadores `vvg.auth.failures`, `vvg.limit.rejects`, `vvg.ratelimit.closed`, `vvg.messages.received` (papel). Rótulos só de baixa cardinalidade: nunca agentId, operador, chave ou IP (o plano gratuito comporta 10 mil séries).
 
 Alertas sugeridos: sem dados do serviço por 5 min (relay fora), `vvg.ws.connections{role="agent"}` caindo mais de 30% em 5 min, `nodejs.eventloop.delay.p99` acima de 200 ms, `vvg.webhook.pending` acima de 40, pico de `vvg.auth.failures`. Complemente com um monitor externo de uptime em `/api/health`, que continua pendente.

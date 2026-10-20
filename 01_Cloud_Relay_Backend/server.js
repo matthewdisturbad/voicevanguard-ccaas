@@ -1168,13 +1168,19 @@ function createRelay(options = {}) {
                     for (let w = 0; w < waves; w++) {
                         const timer = setTimeout(() => {
                             batchTimers.delete(timer);
-                            for (const t of targets.slice(w * BATCH_WAVE_SIZE, (w + 1) * BATCH_WAVE_SIZE)) {
-                                const ok = meta.demo ? demoCommand(room, ws, t.agentId, t.tower) : deliverCommand(room, tenantId, ws, t.agentId, data.command, t.tower);
-                                if (ok) delivered++; else absent++;
-                            }
-                            if (w === waves - 1) {
-                                room.batchActive = false;
-                                if (ws.readyState === WebSocket.OPEN) { try { ws.send(JSON.stringify({ type: 'BATCH_DONE', batchId, delivered, absent })); } catch (_) {} }
+                            try {
+                                for (const t of targets.slice(w * BATCH_WAVE_SIZE, (w + 1) * BATCH_WAVE_SIZE)) {
+                                    const ok = meta.demo ? demoCommand(room, ws, t.agentId, t.tower) : deliverCommand(room, tenantId, ws, t.agentId, data.command, t.tower);
+                                    if (ok) delivered++; else absent++;
+                                }
+                            } catch (err) {
+                                console.error('Erro na leva do lote:', err.message);
+                            } finally {
+                                // Mesmo com falha numa leva, o lote termina e o tenant não fica preso em "busy"
+                                if (w === waves - 1) {
+                                    room.batchActive = false;
+                                    if (ws.readyState === WebSocket.OPEN) { try { ws.send(JSON.stringify({ type: 'BATCH_DONE', batchId, delivered, absent })); } catch (_) {} }
+                                }
                             }
                         }, w * batchWaveMs);
                         timer.unref();
@@ -1197,7 +1203,7 @@ function createRelay(options = {}) {
                         if (canSee(ws, tw)) wanted.add(akey(tw, t.agentId));
                     }
                     const seconds = Math.min(120, Math.max(5, Math.floor(Number(data.seconds)) || 30));
-                    room.lastMeasureAt = nowMs;
+                    if (wanted.size) room.lastMeasureAt = nowMs; // ordem sem alvo visível não consome o intervalo do tenant
                     let sent = 0;
                     for (const client of wss.clients) {
                         if (client.readyState !== WebSocket.OPEN || !client.authenticated || client.tenantId !== tenantId || client.clientType !== 'agent') continue;
@@ -1317,7 +1323,8 @@ function createRelay(options = {}) {
 
     // Métricas de saúde do relay: só rótulos de baixa cardinalidade (tenant, papel, status).
     const loopDelay = monitorEventLoopDelay({ resolution: 20 });
-    loopDelay.enable();
+    const otelEnv = options.env || process.env;
+    if (otelEnv.OTEL_EXPORTER_OTLP_ENDPOINT) loopDelay.enable(); // sem endpoint nada é coletado
     function collectHealth() {
         const conns = new Map(); // `${tenant}|${papel}` -> n
         for (const c of wss.clients) {
@@ -1358,7 +1365,7 @@ function createRelay(options = {}) {
         ];
         return { gauges, sums };
     }
-    const metrics = createMetricsExporter({ env: options.env || process.env, collect: collectHealth, log: (m) => console.warn('[OTLP]', m) });
+    const metrics = createMetricsExporter({ env: otelEnv, collect: collectHealth, log: (m) => console.warn('[OTLP]', m) });
     if (metrics) { metrics.start(); console.log(`[OTLP] métricas de saúde habilitadas a cada ${metrics.interval / 1000}s`); }
 
     async function shutdown() {

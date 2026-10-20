@@ -1361,6 +1361,7 @@
     /* ---------- Conexão ao vivo (verde / âmbar / vermelho, sempre com texto) ---------- */
     let connState = { kind: 'connecting', key: 'conn_verifying', params: null };
     function setConn(kind, key, params) {
+        scheduleRender(); // botões que dependem da conexão (Medir agora, lote) acompanham o estado
         connState = { kind, key, params };
         const cls = { live: 'is-live', connecting: 'is-connecting', down: 'is-down' }[kind];
         const dot = $('liveDotIndicator');
@@ -1988,6 +1989,7 @@
     $('btnBatchCancel').addEventListener('click', () => { $('batchConfirm').hidden = true; $('btnBatch').focus(); });
     $('btnBatchGo').addEventListener('click', () => {
         $('batchConfirm').hidden = true;
+        $('batchSummary').tabIndex = -1; $('batchSummary').focus(); // o botão focado vai sumir: mantém o foco no resumo
         if (!ws || ws.readyState !== WebSocket.OPEN) { showToast(t('toast_no_conn'), 'err'); return; }
         const targets = batchPending.slice(0, 100).map(a => ({ agentId: a.agentId, tower: a.tower || null }));
         if (!targets.length) return;

@@ -210,7 +210,11 @@
         let protocol = String(local.protocol || '').toLowerCase() === 'tcp' ? 'tcp' : 'udp';
         // TURN sobre TCP/TLS: o candidato relay é UDP do ponto de vista do navegador, mas o transporte até o relay é TCP
         if (type === 'relay' && ['tcp', 'tls'].includes(String(local.relayProtocol || '').toLowerCase())) protocol = 'tcp';
-        return { protocol, type };
+        // RTT do par selecionado (null se o navegador não informar): evita ler outro par "succeeded" que não carrega a mídia
+        let rttMs = null;
+        if (pair.currentRoundTripTime !== undefined) rttMs = Math.round(pair.currentRoundTripTime * 1000);
+        else if (pair.totalRoundTripTime && pair.responsesReceived) rttMs = Math.round((pair.totalRoundTripTime / pair.responsesReceived) * 1000);
+        return { protocol, type, rttMs };
     }
 
     // 3. Fórmula Padrão Internacional de Qualidade de Voz: ITU-T G.107 (E-model MOS)
@@ -414,7 +418,7 @@
                 });
 
                 const path = classifyMediaPath(stats);
-                if (path) { protocol = path.protocol; mediaType = path.type; }
+                if (path) { protocol = path.protocol; mediaType = path.type; if (path.rttMs !== null) rtt = path.rttMs; }
 
                 if (!hasInboundAudio && !hasOutboundAudio) return;
 

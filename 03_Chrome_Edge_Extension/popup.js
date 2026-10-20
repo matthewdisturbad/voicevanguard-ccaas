@@ -162,7 +162,7 @@ async function probeUdp() {
         pc.createDataChannel('vv');
         let srflx = false;
         const done = new Promise((resolve) => {
-            const timer = setTimeout(resolve, 3000);
+            const timer = setTimeout(resolve, 5000);
             pc.onicecandidate = (ev) => {
                 if (!ev.candidate) { clearTimeout(timer); resolve(); return; }
                 if (/ typ srflx /.test(ev.candidate.candidate)) { srflx = true; clearTimeout(timer); resolve(); }
