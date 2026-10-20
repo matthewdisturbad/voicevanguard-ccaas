@@ -569,6 +569,9 @@
                 conn_live: "Ao vivo",
                 conn_down_retry: "Desconectado — reconectando em {s}s (tentativa {n})",
                 conn_key_refused: "Chave recusada",
+                conn_license_expired: "Licença expirada",
+                auth_license_expired: "Licença expirada. Fale com o suporte: contato@trustco.pro.",
+                pilot_until: "Piloto até",
                 btn_reconnect: "Reconectar agora",
                 btn_logout: "Sair",
                 tabs_aria: "Seções do console",
@@ -875,6 +878,9 @@
                 conn_live: "Live",
                 conn_down_retry: "Disconnected — reconnecting in {s}s (attempt {n})",
                 conn_key_refused: "Key rejected",
+                conn_license_expired: "License expired",
+                auth_license_expired: "License expired. Contact support: contato@trustco.pro.",
+                pilot_until: "Pilot until",
                 btn_reconnect: "Reconnect now",
                 btn_logout: "Sign out",
                 tabs_aria: "Console sections",
@@ -1280,6 +1286,7 @@
             const resp = await fetch('/api/validate-tenant', { headers: { 'X-Tenant-Key': key } });
             const data = await resp.json();
             if (resp.ok && data.valid) return data;
+            if (data && data.code === 'LICENSE_EXPIRED') return { expired: true };
             return null;
         } catch (e) {
             console.error("Erro na validação do tenant:", e);
@@ -1295,7 +1302,9 @@
         hideAuthError();
 
         const result = await validateTenantKey(key);
-        if (result) {
+        if (result && result.expired) {
+            showAuthError('auth_license_expired');
+        } else if (result) {
             sessionStorage.setItem('vv_tenant_key', key);
             sessionStorage.setItem('vv_tenant_name', result.tenant);
             sessionStorage.setItem('vv_tenant_plan', result.plan);
@@ -1411,6 +1420,7 @@
                 if (msg.type === 'INIT_STATE') {
                     $('demoBanner').hidden = msg.demo !== true;
                     monitoringMode = ['sampled', 'on_demand'].includes(msg.monitoringMode) ? msg.monitoringMode : 'realtime';
+                    pilotUntil = msg.tier === 'pilot' && typeof msg.expiresAt === 'string' ? msg.expiresAt.slice(0, 10) : '';
                     renderMonitorInfo();
                     attempt = 0;
                     hasData = true;
@@ -1445,6 +1455,12 @@
 
         sock.onclose = (ev) => {
             if (sock !== ws) return;
+            if (ev.code === 4010) {
+                try { sessionStorage.setItem('vv_login_error', 'auth_license_expired'); } catch (e) {}
+                setConn('down', 'conn_license_expired');
+                logoutSupervisor({});
+                return;
+            }
             if (ev.code === 4001 || ev.code === 4002) {
                 if (activeOauth && ev.code === 4001) { try { sessionStorage.setItem('vv_login_error', 'auth_genesys_refused'); } catch (e) {} }
                 setConn('down', 'conn_key_refused');
@@ -1937,10 +1953,13 @@
 
     // Modo de monitoramento do tenant (informado no INIT_STATE) e "Medir agora" (somente leitura, sem In-Call Lock)
     let monitoringMode = 'realtime';
+    let pilotUntil = '';
     function renderMonitorInfo() {
         const el = $('monitorInfo');
-        el.hidden = monitoringMode === 'realtime';
-        el.textContent = monitoringMode === 'sampled' ? t('mon_sampled') : monitoringMode === 'on_demand' ? t('mon_on_demand') : '';
+        const mon = monitoringMode === 'sampled' ? t('mon_sampled') : monitoringMode === 'on_demand' ? t('mon_on_demand') : '';
+        const pilot = pilotUntil ? `${t('pilot_until')} ${pilotUntil}` : '';
+        el.textContent = [mon, pilot].filter(Boolean).join(' · ');
+        el.hidden = !el.textContent;
     }
     $('btnMeasure').addEventListener('click', () => {
         if (!ws || ws.readyState !== WebSocket.OPEN) { showToast(t('toast_no_conn'), 'err'); return; }
@@ -2132,6 +2151,12 @@
         const candidateKey = sessionStorage.getItem('vv_tenant_key'); // chaves nunca são aceitas via URL (vazam em logs e histórico)
         if (candidateKey) {
             const check = await validateTenantKey(candidateKey);
+            if (check && check.expired) {
+                sessionStorage.removeItem('vv_tenant_key');
+                sessionStorage.setItem('vv_login_error', 'auth_license_expired');
+                location.reload();
+                return;
+            }
             if (check) {
                 sessionStorage.setItem('vv_tenant_key', candidateKey);
                 sessionStorage.setItem('vv_tenant_name', check.tenant);

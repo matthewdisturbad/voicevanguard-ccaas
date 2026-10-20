@@ -103,6 +103,17 @@ Por tenant, em `TENANTS_JSON`: `"monitoringMode": "realtime" | "sampled" | "on_d
 
 A coleta local continua a cada 2 s; só o envio é reduzido. O resumo da chamada é sempre enviado. O botão **Medir agora** (console) envia `SUPERVISOR_MEASURE` às estações da lista filtrada (até 500, somente as que o supervisor enxerga); é somente leitura (não tem In-Call Lock) e limitado a uma ordem a cada 10 s por tenant. O tenant demo é sempre `realtime`.
 
+## Tenants de piloto e de produção
+
+Os tenants continuam criados à mão em `TENANTS_JSON`. Dois campos novos os diferenciam:
+
+- `"tier": "pilot" | "production"` (padrão `production`).
+- `"expiresAt": "2026-11-03T23:59:59-03:00"` (data ISO). **Obrigatório no piloto**; opcional em produção (fim do contrato).
+
+O piloto tem tetos para não consumir a infraestrutura de um contrato: no máximo **25 estações** (`maxAgents` maior é reduzido a 25) e **500 chamadas** de histórico. Um valor inválido de `tier` ou `expiresAt`, ou um piloto sem `expiresAt`, impede o relay de subir (`scripts/check-config.js` avisa antes).
+
+Depois de `expiresAt`, o relay recusa novas conexões (código `4010`, "Licença expirada") e encerra as já abertas na próxima batida do heartbeat; `/api/validate-tenant` devolve `403 LICENSE_EXPIRED`. A extensão mostra "Expirada" no popup e o console mostra a mensagem com o e-mail de suporte. Para converter o piloto em produção, troque `tier` para `production`, ajuste `maxAgents` e `expiresAt` (ou remova) e atualize `TENANTS_JSON`. O console e o popup mostram "Piloto até <data>" enquanto o piloto está válido.
+
 ## Caminho de mídia e teste de UDP
 
 - **Caminho de mídia:** a extensão lê o par de candidatos ICE selecionado em `getStats()` e envia só protocolo e tipo (`udp-srflx`, `udp-relay`, `tcp-relay` etc.). Endereços IP e portas nunca são lidos. Mídia em TCP durante a chamada gera ALERTA e a causa "Mídia caiu para TCP (UDP possivelmente bloqueado)".

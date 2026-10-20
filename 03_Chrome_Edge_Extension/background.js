@@ -122,7 +122,7 @@ function connectToCloudRelay() {
                     cadence.setMode(msg.monitoringMode);
                     cadence.reset(); // nova conexão: a primeira amostra segue imediatamente
                     stunServers = VVPrecheck.validStunServers(msg.stunServers);
-                    chrome.storage.local.set({ monitoringMode: cadence.mode, stunServers });
+                    chrome.storage.local.set({ monitoringMode: cadence.mode, stunServers, licenseExpired: false, licenseTier: msg.tier === 'pilot' ? 'pilot' : 'production', licenseExpiresAt: typeof msg.expiresAt === 'string' ? msg.expiresAt.slice(0, 10) : '' });
                     return;
                 }
 
@@ -160,6 +160,7 @@ function connectToCloudRelay() {
         ws.onclose = (ev) => {
             chrome.storage.local.set({ relayConnected: false });
             if (auth.kind === 'enroll' && ev && ev.code === 1000 && stationCredential) { reconnectAttempts = 0; scheduleReconnect(); return; }
+            if (ev && ev.code === 4010) { chrome.storage.local.set({ licenseExpired: true }); } // licença do tenant vencida: o popup avisa; a reconexão segue com recuo
             if (ev && ev.code === 4001) {
                 // Credencial recusada (revogada, epoch trocado ou segredo rotacionado): descarta e tenta cadastrar de novo, no máximo MAX_ENROLL_FAILURES vezes.
                 if (auth.kind === 'credential') {
