@@ -15,7 +15,7 @@ Marque quando verificado pelo cliente.
 - [ ] **Dados tratados:** nome do operador, estação/agentId, torre, ID da chamada, início/fim/duração, jitter, RTT, perda, MOS estimado, tipo de rede, faixa de CPU/memória, incidentes de áudio (códigos), trocas de dispositivo, resultado do pré-check, latência de API por hostname, hostname da página.
 - [ ] **Não tratados (confirmar na configuração do cliente):** áudio, transcrição, conteúdo de conversas, dados de cartão, URL/caminho de APIs, nomes de dispositivos.
 - [ ] **Fluxo:** extensão no navegador (instalada via GPO/Intune com chave da torre) → servidor do VoiceVanguard (Railway) → console do supervisor.
-- [ ] **Retenção atual:** 500 chamadas mais recentes por cliente; estações inativas removidas após 24 h; 50 chamadas locais no navegador. Prazo desejado pelo cliente: [PRAZO].
+- [ ] **Retenção atual:** 5.000 chamadas mais recentes por cliente (padrão; configurável de 500 a 50.000); estações inativas removidas após 24 h; 50 chamadas locais no navegador. Prazo desejado pelo cliente: [PRAZO].
 - [ ] **Acesso:** supervisores por chave, restritos às torres liberadas. Lista de quem tem chave: [LISTA]. Processo de revogação/rotação: [PROCESSO].
 - [ ] **Controles técnicos reais:** chaves distintas agente/supervisor, isolamento por tenant e torre, limitação de tentativas, validação de entrada, TLS no proxy, In-Call Lock.
 - [ ] **Limitações a registrar como risco:** histórico **sem criptografia em repouso pela aplicação**; sem trilha de auditoria detalhada de acessos; instância única; exclusão por titular feita manualmente.

@@ -102,7 +102,7 @@ O Cliente pode solicitar informações para comprovar o cumprimento deste DPA e,
 
 ## 13. Retenção, devolução e eliminação
 
-- **Retenção atual:** histórico de chamadas limitado às **500 chamadas mais recentes por cliente**; estado em tempo real de estações removido após **24 horas** sem atividade. Registros operacionais do provedor seguem as políticas dele [CONFIRMAR].
+- **Retenção atual:** histórico de chamadas limitado às **5.000 chamadas mais recentes por cliente (padrão; configurável de 500 a 50.000)**; estado em tempo real de estações removido após **24 horas** sem atividade. Registros operacionais do provedor seguem as políticas dele [CONFIRMAR].
 - Ao término do contrato, em até [PRAZO] dias a TrustCo, à escolha do Cliente, **devolverá** os dados em formato [FORMATO] e/ou **eliminará** os dados e confirmará por escrito, salvo guarda exigida por lei. Cópias em backups do provedor serão eliminadas conforme o ciclo dele [CONFIRMAR].
 - Prazo de retenção diferente do atual, se o Cliente quiser: [COMPLETAR].
 
