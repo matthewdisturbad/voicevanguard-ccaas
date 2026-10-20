@@ -83,3 +83,7 @@ Sem configuração extra, cada navegador gera um ID aleatório (`PA-XXXX`). Para
 ## Pareamento manual (sem GPO/Intune)
 
 Em estação sem política (piloto rápido, home office/BYOD), o popup da extensão mostra "Ativar esta estação" enquanto não houver chave, token nem credencial. O operador escolhe "Token de cadastro" (recomendado) ou "Chave do agente" e cola o código fornecido pela operação. O campo desaparece depois de configurado e não aparece em estações gerenciadas.
+
+## Cisco Webex Contact Center (em validação)
+
+A extensão passa a incluir `desktop.wxcc-us1.cisco.com`, `desktop.wxcc-eu1.cisco.com` e `desktop.wxcc-sg1.cisco.com` nas permissões. Atualizar a extensão com permissões novas pode exigir aprovação no navegador (em instalação forçada por GPO/Intune costuma ser automática; confirme no piloto). Outras regiões do Webex só entram depois de confirmadas na documentação do cliente. **Ainda não foi testado em um tenant Webex real**: antes de prometer a um cliente, validar no piloto a detecção da plataforma, a métrica de chamada e o ID da interação.

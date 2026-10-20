@@ -24,7 +24,7 @@
         if (host.includes('pure.cloud') || host.includes('mypurecloud')) return { name: 'Genesys Cloud', code: 'GENESYS' };
         if (host.includes('awsapps.com') || host.includes('amazonconnect') || host.includes('connect.')) return { name: 'Amazon Connect', code: 'AWS_CONNECT' };
         if (host.includes('niceincontact.com') || host.includes('nice-incontact.com') || host.includes('cxone')) return { name: 'NICE CXone', code: 'NICE_CXONE' };
-        if (host.includes('ciscocc') || host.includes('webex.com')) return { name: 'Cisco Webex CC', code: 'CISCO_WEBEX' };
+        if (host.includes('wxcc') || host.includes('ciscocc') || host.includes('webex.com')) return { name: 'Cisco Webex CC', code: 'CISCO_WEBEX' };
         if (host.includes('twilio') || host.includes('flex.')) return { name: 'Twilio Flex', code: 'TWILIO' };
         if (host.includes('five9')) return { name: 'Five9', code: 'FIVE9' };
         if (host.includes('talkdesk')) return { name: 'Talkdesk', code: 'TALKDESK' };
@@ -477,7 +477,7 @@
     // 5. Latência e erros das APIs do agent desktop (Resource Timing)
     // Agregado por janela e por HOSTNAME. URL, caminho, query string e IDs nunca são lidos nem enviados.
     const API_WINDOW_MS = 30000;
-    const API_HOST_PATTERN = /(^|\.)(pure\.cloud|mypurecloud\.[a-z.]+|connect\.aws|awsapps\.com|niceincontact\.com|nice-incontact\.com)$/i;
+    const API_HOST_PATTERN = /(^|\.)(pure\.cloud|mypurecloud\.[a-z.]+|connect\.aws|awsapps\.com|niceincontact\.com|nice-incontact\.com|wxcc-[a-z0-9]+\.cisco\.com)$/i;
     const MAX_SAMPLES_PER_HOST = 500;
     let apiWindow = new Map(); // host -> { durations: number[], errors: number }
 
