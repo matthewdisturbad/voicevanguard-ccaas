@@ -55,7 +55,7 @@ A extensão do navegador, instalada pela TI da Empresa, só atua nas páginas do
 
 ## 6. Por quanto tempo
 
-- Histórico de chamadas: guardado até as **500 chamadas mais recentes por cliente**; as mais antigas são substituídas automaticamente.
+- Histórico de chamadas: guardado até as **5.000 chamadas mais recentes por cliente (padrão; configurável de 500 a 50.000)**; as mais antigas são substituídas automaticamente.
 - Estado em tempo real da estação (telemetria, pré-check, latência de API): mantido em memória; estações sem atividade por **24 horas** são removidas.
 - Não há exclusão automática por prazo fixo além disso. Prazo contratual diferente: [COMPLETAR, SE HOUVER].
 - Cópia local na extensão: as últimas 50 chamadas ficam no navegador do próprio agente.

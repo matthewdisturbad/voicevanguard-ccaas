@@ -76,7 +76,7 @@ Cada Cliente é isolado: supervisores de um Cliente não acessam dados de outro.
 
 ## 8. Por quanto tempo guardamos
 
-- **Histórico de chamadas:** as **500 chamadas mais recentes por Cliente**; as mais antigas são substituídas automaticamente.
+- **Histórico de chamadas:** as **5.000 chamadas mais recentes por Cliente (padrão; configurável de 500 a 50.000)**; as mais antigas são substituídas automaticamente.
 - **Estado em tempo real das estações** (telemetria, pré-check, latência de API): removido após **24 horas** sem atividade.
 - **Navegador do operador:** a extensão guarda localmente as últimas 50 chamadas e configurações.
 - Dados são eliminados ou devolvidos ao Cliente ao fim do contrato, conforme o DPA [PRAZO].

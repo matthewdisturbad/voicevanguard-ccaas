@@ -13,7 +13,7 @@ curl -H "X-Tenant-Key: $CHAVE_DE_SUPERVISOR" \
 - **Colunas:** `interactionId, tower, platform, station, startTime, endTime, durationSeconds, mosMedio, mosMinimo, rttMedioMs, jitterPicoMs, perdaPacotesPct, classificacao, causaRaiz, incidentesAudio, networkType, protocolo, caminhoMidia`. **O nome do operador não é exportado.**
 - **Idioma:** o padrão mantém os cabeçalhos e códigos em português (compatível com integrações existentes). `?lang=en` traz cabeçalhos (`mosAvg`, `rttAvgMs`, `classification`, `rootCause`…) e valores em inglês (`CRITICAL`, `WIFI_INSTABILITY`…). O botão do console usa o idioma selecionado.
 - **Planilhas:** células que começariam com `=`, `+`, `-` ou `@` recebem um apóstrofo para não virarem fórmula.
-- **Limite:** o histórico guardado são as últimas 500 chamadas por tenant (`MAX_HISTORY`); para períodos longos, exporte com frequência (por exemplo, diariamente).
+- **Limite:** o histórico guardado são as últimas 5.000 chamadas por tenant por padrão (`MAX_HISTORY`, configurável entre 500 e 50.000); para períodos longos, exporte com frequência (por exemplo, diariamente).
 - **Rate limit:** mesmas tentativas inválidas por minuto da validação de chave.
 
 
