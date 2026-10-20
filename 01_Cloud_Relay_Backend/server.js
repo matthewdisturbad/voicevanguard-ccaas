@@ -34,6 +34,10 @@ const IS_PROD = process.env.NODE_ENV === 'production';
 const MAX_PAYLOAD_BYTES = 64 * 1024;
 // Teto de chamadas guardadas por tenant (ajustável por HISTORY_MAX; 500 a 50000).
 const MAX_HISTORY = Math.min(50000, Math.max(500, parseInt(process.env.HISTORY_MAX, 10) || 5000));
+// Tenant de piloto: validade obrigatória e tetos menores, para validar sem consumir a infraestrutura de um contrato.
+const PILOT_MAX_AGENTS = 25;
+const PILOT_HISTORY_MAX = 500;
+const TIERS = new Set(['pilot', 'production']);
 const HEARTBEAT_MS = 30000;
 const OFFLINE_TTL_MS = 24 * 60 * 60 * 1000;
 const AUTH_WINDOW_MS = 60000;
@@ -141,10 +145,22 @@ function buildKeyIndex(tenants) {
         if (t.stunServers !== undefined && (!Array.isArray(t.stunServers) || t.stunServers.length > 3 || !t.stunServers.every(u => typeof u === 'string' && STUN_PATTERN.test(u)))) {
             throw new Error(`Tenant ${tenantId}: stunServers deve ter até 3 URLs no formato stun:host[:porta].`);
         }
+        if (t.tier !== undefined && !TIERS.has(t.tier)) throw new Error(`Tenant ${tenantId}: tier deve ser pilot ou production.`);
+        const tier = t.tier === 'pilot' ? 'pilot' : 'production';
+        let expiresAt = null;
+        if (t.expiresAt !== undefined) {
+            expiresAt = typeof t.expiresAt === 'string' ? Date.parse(t.expiresAt) : NaN;
+            if (!Number.isFinite(expiresAt)) throw new Error(`Tenant ${tenantId}: expiresAt deve ser uma data ISO (ex.: 2026-11-03T23:59:59-03:00).`);
+        }
+        if (tier === 'pilot' && expiresAt === null) throw new Error(`Tenant ${tenantId}: tenant de piloto exige expiresAt.`);
+        const requestedMax = Number.isFinite(t.maxAgents) && t.maxAgents > 0 ? t.maxAgents : (tier === 'pilot' ? PILOT_MAX_AGENTS : 100);
         meta.set(tenantId, {
             name: String(t.name || tenantId),
-            plan: String(t.plan || 'Standard'),
-            maxAgents: Number.isFinite(t.maxAgents) && t.maxAgents > 0 ? t.maxAgents : 100,
+            plan: String(t.plan || (tier === 'pilot' ? 'Pilot' : 'Standard')),
+            tier,
+            expiresAt,
+            historyMax: tier === 'pilot' ? Math.min(MAX_HISTORY, PILOT_HISTORY_MAX) : MAX_HISTORY,
+            maxAgents: tier === 'pilot' ? Math.min(requestedMax, PILOT_MAX_AGENTS) : requestedMax,
             towers: towerIds,
             genesysRegion: t.genesys && GENESYS_REGIONS.has(t.genesys.region) ? t.genesys.region : null,
             webhook: t.demo === true ? null : validateWebhookConfig(tenantId, t.webhook),
@@ -564,7 +580,7 @@ function createRelay(options = {}) {
                 widgets: new Set(),
                 agents: new Map(),
                 stations: new Map(), // agentId -> { station, operator, precheck, api, lastSeen }
-                callHistory: loadTenantHistory(tenantId)
+                callHistory: loadTenantHistory(tenantId).slice(0, (tenantMeta.get(tenantId) || {}).historyMax || MAX_HISTORY)
             });
         }
         return tenantRooms.get(tenantId);
@@ -717,6 +733,7 @@ function createRelay(options = {}) {
             const found = lookupKey(key);
             if (found && found.role === 'supervisor') {
                 const meta = tenantMeta.get(found.tenantId);
+                if (isExpired(meta)) { sendJson(res, 403, { valid: false, error: 'Licença expirada.', code: 'LICENSE_EXPIRED' }); return; }
                 sendJson(res, 200, { valid: true, tenant: meta.name, plan: meta.plan });
             } else {
                 recordFailure(ip);
@@ -809,6 +826,9 @@ function createRelay(options = {}) {
 
     const wss = new WebSocketServer({ server, maxPayload: MAX_PAYLOAD_BYTES });
 
+    const isExpired = (meta) => meta.expiresAt !== null && Date.now() > meta.expiresAt;
+    const expiresIso = (meta) => (meta.expiresAt === null ? null : new Date(meta.expiresAt).toISOString());
+
     function reject(ws, code, reason, message) {
         if (code === 4001) counters.authFailures++; else if (code === 4003) counters.limitRejects++;
         try { ws.send(JSON.stringify({ type: 'AUTH_ERROR', message })); } catch (_) {}
@@ -844,6 +864,11 @@ function createRelay(options = {}) {
 
             const { tenantId, role: clientType, tower, towers } = found;
             const meta = tenantMeta.get(tenantId);
+            if (isExpired(meta)) {
+                counters.limitRejects++;
+                reject(ws, 4010, 'License Expired', 'Licença expirada. Fale com o suporte: contato@trustco.pro.');
+                return false;
+            }
             const room = getRoom(tenantId);
 
             let conversationId = null;
@@ -908,6 +933,8 @@ function createRelay(options = {}) {
                     tenant: meta.name,
                     demo: meta.demo === true,
                     monitoringMode: meta.monitoringMode,
+                    tier: meta.tier,
+                    expiresAt: expiresIso(meta),
                     agents: Array.from(room.agents.values()).filter(a => canSee(ws, a.tower)),
                     stations: Array.from(room.stations.values()).filter(a => canSee(ws, a.tower)),
                     callHistory: room.callHistory.filter(c => canSee(ws, c.tower)).slice(0, 50),
@@ -918,7 +945,7 @@ function createRelay(options = {}) {
                 if (prev) prev.reconnectedAt = Date.now(); // até a próxima telemetria, o estado de chamada é desconhecido
                 console.log(`[+] Agente conectado | ID: ${agentId} | Tenant: ${tenantId} | via: ${found.stationId ? 'estação' : 'torre'}`);
                 if (viaMessage) {
-                    ws.send(JSON.stringify({ type: 'AUTH_OK', agentId, genesysRegion: meta.genesysRegion, monitoringMode: meta.monitoringMode, stunServers: meta.stunServers }));
+                    ws.send(JSON.stringify({ type: 'AUTH_OK', agentId, genesysRegion: meta.genesysRegion, monitoringMode: meta.monitoringMode, stunServers: meta.stunServers, tier: meta.tier, expiresAt: expiresIso(meta) }));
                 }
             }
             return true;
@@ -1101,7 +1128,7 @@ function createRelay(options = {}) {
                         receivedAt: new Date().toISOString()
                     };
                     room.callHistory.unshift(record);
-                    if (room.callHistory.length > MAX_HISTORY) room.callHistory.pop();
+                    if (room.callHistory.length > meta.historyMax) room.callHistory.length = meta.historyMax;
                     saveTenantHistory(tenantId, room.callHistory);
                     broadcast(room, { type: 'NEW_CALL_AUDIT', payload: record }, tower);
                     notifyWebhook(meta, tenantId, record);
@@ -1269,6 +1296,8 @@ function createRelay(options = {}) {
     // Heartbeat: encerra conexões mortas; limpa agentes offline antigos e contadores de rate limit
     const heartbeat = setInterval(() => {
         for (const ws of wss.clients) {
+            const wmeta = ws.authenticated ? tenantMeta.get(ws.tenantId) : null;
+            if (wmeta && isExpired(wmeta)) { try { ws.close(4010, 'License Expired'); } catch (_) {} continue; }
             if (!ws.isAlive) { ws.terminate(); continue; }
             ws.isAlive = false;
             try { ws.ping(); } catch (_) {}

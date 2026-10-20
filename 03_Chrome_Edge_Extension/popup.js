@@ -128,11 +128,14 @@ function renderLangSwitch() {
 }
 
 function render() {
-    chrome.storage.local.get(['lastMetric', 'callHistory', 'tenantKey', 'enrollToken', 'stationCredential', 'agentStationId', 'isCallActive', 'lastCacheCleared', 'isManaged'], (res) => {
+    chrome.storage.local.get(['lastMetric', 'callHistory', 'tenantKey', 'enrollToken', 'stationCredential', 'agentStationId', 'isCallActive', 'lastCacheCleared', 'isManaged', 'licenseExpired', 'licenseTier', 'licenseExpiresAt'], (res) => {
         applyI18n();
         $('activateBox').hidden = !!(res.isManaged || res.tenantKey || res.enrollToken || res.stationCredential);
         renderLangSwitch();
-        $('lblTenant').textContent = (res.tenantKey || res.enrollToken || res.stationCredential) ? t('license.set') : t('license.unset');
+        const hasLicense = !!(res.tenantKey || res.enrollToken || res.stationCredential);
+        $('lblTenant').textContent = res.licenseExpired ? t('license.expired')
+            : (hasLicense && res.licenseTier === 'pilot' && res.licenseExpiresAt) ? `${t('license.pilot')} · ${res.licenseExpiresAt}`
+            : hasLicense ? t('license.set') : t('license.unset');
         $('lblStation').textContent = res.agentStationId || 'PA-LIVE';
 
         const m = res.lastMetric;

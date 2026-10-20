@@ -34,6 +34,11 @@ if (tenants && typeof tenants === 'object') {
         if (t.stationSecret && weak(t.stationSecret)) add('ERRO', `Tenant "${id}" stationSecret fraco.`);
         if (!t.stationSecret) add('AVISO', `Tenant "${id}" sem stationSecret: credenciais por estação desativadas (só chave compartilhada).`);
         if (!t.genesys) add('AVISO', `Tenant "${id}" sem genesys.region: o item de latência até o Genesys no pré-check fica desativado.`);
+        if (t.tier !== undefined && !['pilot', 'production'].includes(t.tier)) add('ERRO', `Tenant "${id}" tier inválido (pilot ou production; o relay recusa subir).`);
+        if (t.expiresAt !== undefined && !Number.isFinite(Date.parse(t.expiresAt))) add('ERRO', `Tenant "${id}" expiresAt não é uma data ISO válida (o relay recusa subir).`);
+        if (t.tier === 'pilot' && t.expiresAt === undefined) add('ERRO', `Tenant "${id}" é de piloto e exige expiresAt (o relay recusa subir).`);
+        if (t.expiresAt !== undefined && Date.parse(t.expiresAt) < Date.now()) add('AVISO', `Tenant "${id}" já expirou em ${t.expiresAt}; as conexões dele são recusadas.`);
+        if (t.tier === 'pilot' && Number.isFinite(t.maxAgents) && t.maxAgents > 25) add('AVISO', `Tenant "${id}" de piloto: maxAgents ${t.maxAgents} será reduzido para 25.`);
         if (t.monitoringMode !== undefined && !['realtime', 'sampled', 'on_demand'].includes(t.monitoringMode)) add('ERRO', `Tenant "${id}" monitoringMode inválido (realtime, sampled ou on_demand; o relay recusa subir).`);
         if (t.demo === true) add('AVISO', `Tenant "${id}" é de demonstração (demo: true): dados fictícios; confirme que é intencional neste ambiente.`);
         if (t.stunServers !== undefined && (!Array.isArray(t.stunServers) || t.stunServers.length > 3 || !t.stunServers.every(u => /^stun:[A-Za-z0-9.-]+(:\d{1,5})?$/.test(String(u))))) add('ERRO', `Tenant "${id}" stunServers inválido (até 3 URLs stun:host[:porta]; o relay recusa subir).`);
