@@ -21,6 +21,21 @@ Por que não começar pelos conectores: o custo está em manter e dar suporte a 
 - **Runbook guiado e ranking de headsets:** exigiria ler nomes de dispositivos (hoje deliberadamente não lidos); avaliar impacto de privacidade antes.
 - **Tempo de indisponibilidade técnica em R$:** depende de integração de presença do CCaaS.
 
+## Infraestrutura, Disponibilidade e Migração de Nuvem (Railway → AWS)
+
+Princípio: manter custo e complexidade mínimos durante a fase de validação/lojas, migrando para infraestrutura enterprise dedicada assim que houver contrato comercial pagante com exigência de SLA.
+
+| Fase | Provedor / Região | Topologia | Latência Brasil | SLA / Resiliência | Gatilho de Adoção |
+|---|---|---|---|---|---|
+| **1. Validação & Pilotos (Atual)** | **Railway** (EUA / SFO) | 1 réplica, volume em disco, SQLite/JSON local | ~130–180 ms | Best-effort (nó único, sem multi-AZ) | **Em produção hoje**; atende homologações nas lojas e testes com clientes. |
+| **2. Produção Enterprise** | **AWS** (São Paulo — `sa-east-1`) | ECS Fargate Multi-AZ (2+ réplicas) + ALB + Redis (ElastiCache) + Postgres (RDS) | **10–25 ms** | **99,99%** (tolerância a queda de datacenter físico) | Primeiro contrato comercial de BPO (>250 PAs) ou exigência de SLA/compliance em contrato. |
+
+### Racional da escolha por AWS sobre outras opções:
+1. **Latência de rede no Brasil:** agentes em home office e operações de EPS/Caixa no Brasil ficam a 10–25 ms do servidor em São Paulo (`sa-east-1`), contra 150 ms+ em servidores nos EUA. Latência local baixa é essencial para não distorcer as métricas de RTT e MOS da chamada.
+2. **Redundância física Multi-AZ:** o Application Load Balancer (ALB) da AWS distribui as conexões WebSockets entre containers em zonas de disponibilidade fisicamente separadas. Se um datacenter sofrer pane, o outro assume imediatamente.
+3. **Alinhamento com AWS Marketplace e FTR:** o produto já possui aprovação no catálogo do AWS Marketplace e opera com Amazon Connect; hospedar nativamente na AWS viabiliza certificação AWS FTR (*Foundational Technical Review*), faturamento integrado e segurança via AWS PrivateLink/VPC Peering.
+4. **Por que não Supabase como hospedeiro:** o Supabase é um BaaS (banco Postgres + Edge Functions serverless efêmeras). Ele não suporta processos contínuos de longa duração com conexões WebSocket abertas 24/7 com milhares de agentes transmitindo telemetria em tempo real. Pode no máximo atuar como banco de dados externo, mas não como servidor da aplicação.
+
 ## Restrições que valem para tudo
 - Posicionamento: **saúde técnica da estação**, não vigilância do operador. Sem captura de tela, produtividade ou conteúdo.
 - Anonimizar o operador por padrão em análises agregadas; definir retenção e base legal; mostrar ao operador o que é coletado.
